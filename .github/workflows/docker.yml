@@ -72,6 +72,7 @@ jobs:
         id: generate-release-notes
         shell: sh
         env:
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DOCKERLIKE_RELEASE_NAME: ${{ env.DOCKERLIKE_RELEASE_NAME }}
           NEW_VERSION: ${{ env.NEW_VERSION }}
