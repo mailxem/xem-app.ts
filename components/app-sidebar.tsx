@@ -1,18 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import {
-  ChevronDown,
-  ChevronUp,
-  Home,
-  Mail,
-  Zap,
-  Users,
-  BarChart3,
-  PencilLine,
-  Settings,
-  Code,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";

@@ -2,6 +2,6 @@ services:
   app:
     env_file:
       - .env
-    image: ghcr.io/posthoot/posthoot-app.ts:latest
+    image: ghcr.io/emailxem/xem-app.ts:latest
     ports:
       - "3000:3000"

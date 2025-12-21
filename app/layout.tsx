@@ -35,7 +35,7 @@ async function MainLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider className="flex flex-col min-h-screen">
-      <AppHeader heading="Posthoot ❇" className="shrink-0" />
+      <AppHeader heading="Xem ❇" className="shrink-0" />
       <div className="flex flex-col lg:flex-row flex-1 w-full bg-sidebar relative">
         <div className="lg:fixed lg:left-0 lg:top-[64px] lg:bottom-0 lg:w-64 overflow-y-auto overflow-x-hidden">
           <AppSidebar className="h-full w-full" />
@@ -56,23 +56,21 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>
-          Posthoot: AI-Powered Email Marketing for Effortless Engagement
-        </title>
+        <title>Xem: AI-Powered Email Marketing for Effortless Engagement</title>
         <meta
           name="description"
-          content="Posthoot is the AI-powered email marketing platform that simplifies your workflow and boosts engagement. Create smarter campaigns and automate your marketing with AI. Start your free trial today!"
+          content="Xem is the AI-powered email marketing platform that simplifies your workflow and boosts engagement. Create smarter campaigns and automate your marketing with AI. Start your free trial today!"
         />
 
-        <meta property="og:url" content="https://posthoot.com" />
+        <meta property="og:url" content="https://xem.email" />
         <meta property="og:type" content="website" />
         <meta
           property="og:title"
-          content="Posthoot: AI-Powered Email Marketing for Effortless Engagement"
+          content="Xem: AI-Powered Email Marketing for Effortless Engagement"
         />
         <meta
           property="og:description"
-          content="Posthoot is the AI-powered email marketing platform that simplifies your workflow and boosts engagement. Create smarter campaigns and automate your marketing with AI. Start your free trial today!"
+          content="Xem is the AI-powered email marketing platform that simplifies your workflow and boosts engagement. Create smarter campaigns and automate your marketing with AI. Start your free trial today!"
         />
         <meta
           property="og:image"
@@ -81,15 +79,15 @@ export default async function RootLayout({
 
         {/* Twitter Meta Tags */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta property="twitter:domain" content="posthoot.com" />
-        <meta property="twitter:url" content="https://posthoot.com" />
+        <meta property="twitter:domain" content="xem.email" />
+        <meta property="twitter:url" content="https://xem.email" />
         <meta
           name="twitter:title"
-          content="Posthoot: AI-Powered Email Marketing for Effortless Engagement"
+          content="Xem: AI-Powered Email Marketing for Effortless Engagement"
         />
         <meta
           name="twitter:description"
-          content="Posthoot is the AI-powered email marketing platform that simplifies your workflow and boosts engagement. Create smarter campaigns and automate your marketing with AI. Start your free trial today!"
+          content="Xem is the AI-powered email marketing platform that simplifies your workflow and boosts engagement. Create smarter campaigns and automate your marketing with AI. Start your free trial today!"
         />
         <meta
           name="format-detection"

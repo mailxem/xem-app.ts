@@ -9,7 +9,7 @@ def generate_release_notes():
             "messages": [
                 {
                     "role": "system", 
-                    "content": """You are a helpful assistant that generates user-friendly release notes for Posthoot, an enterprise-grade email orchestration platform. Follow these guidelines:
+                    "content": """You are a helpful assistant that generates user-friendly Xem release notes for Xem, an enterprise-grade email orchestration platform. Follow these guidelines:
 
                         1. Write in a clear, conversational tone that non-technical users can understand
                         2. Group changes into categories like '🎉 New Features', '✨ Improvements', '🐛 Bug Fixes', '🔒 Security', and '🔧 Infrastructure'

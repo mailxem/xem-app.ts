@@ -258,8 +258,8 @@ export default function APIKeysPage() {
               />
             </div>
             <p className="text-muted-foreground">
-              The Posthoot API makes it easy for programmers to integrate
-              Posthoot's features into other applications.
+              The Xem API makes it easy for programmers to integrate
+              Xem's features into other applications.
             </p>
           </div>
           <Button variant="outline" className="w-max justify-start">
@@ -280,7 +280,7 @@ export default function APIKeysPage() {
             </div>
             <p className="text-muted-foreground">
               Writing your own application that requires access to other
-              Posthoot users' accounts? Check out our{" "}
+              Xem users' accounts? Check out our{" "}
               <Link href="#" className="text-primary hover:underline">
                 OAuth2 API documentation
               </Link>

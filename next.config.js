@@ -25,12 +25,15 @@ const nextConfig = {
     ],
   },
   output: "standalone",
-  webpack: (config, { nextRuntime }) => {
-    if (nextRuntime !== "nodejs") return config;
-    return {
-      ...config,
-      externals: [...config.externals, "everything-json"],
-    };
+  experimental: {
+    turbo: {
+      rules: {
+        "*.json": {
+          loaders: ["@vercel/webpack-asset-relocator-loader"],
+          as: "*.js",
+        },
+      },
+    },
   },
   transpilePackages: ["bcryptjs"],
   serverExternalPackages: ["@maily-to/core", "@maily-to/render"],

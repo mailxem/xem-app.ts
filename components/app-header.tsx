@@ -61,7 +61,7 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-30 w-full border-b border-muted bg-background ">
       <div className="flex h-16 items-center px-6">
-        <img src="https://framerusercontent.com/images/Mj9OOgqyJTaP8t5wDmlauyecVM.png?scale-down-to=512" alt="Posthoot" className="h-10 w-10" />
+        <img src="/android-chrome-512x512.png" alt="Xem" className="h-10 w-10" />
         <div className="flex flex-1 items-center gap-x-4 ml-auto">
           <div className="relative w-full max-w-md ml-4">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

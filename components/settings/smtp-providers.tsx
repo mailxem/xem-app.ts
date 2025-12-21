@@ -81,7 +81,7 @@ export function SMTPProviders({
               <span className="text-sm text-muted-foreground flex items-center gap-1">
                 Need help? Check out our documentation.{" "}
                 <a
-                  href="https://docs.posthoot.com/docs/smtp-providers"
+                  href="https://docs.xem.email/docs/smtp-providers"
                   target="_blank"
                   className="text-blue-500 hover:text-blue-600"
                 >

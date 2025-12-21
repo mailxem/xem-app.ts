@@ -89,7 +89,7 @@ export default function RegisterPage() {
         <div className="mb-8 grid gap-4">
           <div className="grid">
             <h1 className="text-4xl text-center font-normal dark:text-foreground text-white">
-              hey 👋🏻, welcome to posthoot
+              hey 👋🏻, welcome to Xem
             </h1>
             <div className="text-center">
               <div

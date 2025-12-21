@@ -9,7 +9,7 @@ export default function AcceptInvitePage() {
         <div className="mb-8 grid gap-4">
           <div className="grid">
             <h1 className="text-4xl text-center font-normal dark:text-foreground text-white">
-              hey, accept the invite to join posthoot
+              hey, accept the invite to join Xem
             </h1>
             <div className="text-center text-muted-foreground ">
               <Link href={"/auth/register"}>

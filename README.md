@@ -1,4 +1,4 @@
-# Posthoot - the opensourced email marketing engine
+# Xem - the opensourced email marketing engine
 
 <div align="center">
  <img width="1710" height="1112" alt="image" src="https://github.com/user-attachments/assets/4fca872c-a940-477a-9d0d-a79f9cb23ce4" />
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Posthoot is an enterprise-grade email orchestration platform that helps businesses automate their email workflows, manage contact lists, and deliver personalized communications at scale. Built with modern technologies and designed for performance.
+Xem is an enterprise-grade email orchestration platform that helps businesses automate their email workflows, manage contact lists, and deliver personalized communications at scale. Built with modern technologies and designed for performance.
 
 ## Latest Updates
 
