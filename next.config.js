@@ -35,8 +35,7 @@ const nextConfig = {
       },
     },
   },
-  transpilePackages: ["bcryptjs"],
-  serverExternalPackages: ["@maily-to/core", "@maily-to/render"],
+  transpilePackages: ["bcryptjs", "@maily-to/core", "@maily-to/render"],
 };
 
 module.exports = nextConfig;
