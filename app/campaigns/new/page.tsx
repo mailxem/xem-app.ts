@@ -62,10 +62,12 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
 
 const campaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  data: z.record(z.string(), z.string()).optional(), // { variable: value }
   templateId: z
     .string()
     .uuid("Template ID must be a valid UUID")
@@ -95,111 +97,6 @@ const campaignSchema = z.object({
 });
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
-
-type Step = {
-  id: string;
-  title: string;
-  description: string;
-};
-
-const steps: Step[] = [
-  {
-    id: "to",
-    title: "To",
-    description: "Choose your recipients",
-  },
-  {
-    id: "from",
-    title: "From",
-    description: "Set sender details",
-  },
-  {
-    id: "subject",
-    title: "Subject",
-    description: "Write your subject line",
-  },
-  {
-    id: "schedule",
-    title: "Send time",
-    description: "When should we send this email?",
-  },
-  {
-    id: "content",
-    title: "Content",
-    description: "Design the content for your email",
-  },
-];
-
-function Timeline({
-  currentStep,
-  steps,
-  onClick,
-}: {
-  currentStep: string;
-  steps: Step[];
-  onClick: (id: string) => void;
-}) {
-  return (
-    <div className="relative py-4">
-      <div className="absolute left-0 top-[22px] h-[2px] w-full bg-[#E7B75F] opacity-20" />
-      <div className="relative z-10 flex justify-between">
-        {steps.map((step, index) => {
-          const isCompleted =
-            steps.findIndex((s) => s.id === currentStep) > index;
-          const isCurrent = currentStep === step.id;
-
-          return (
-            <motion.div
-              key={step.id}
-              className="flex flex-col items-center gap-3"
-              initial={false}
-              animate={{ scale: isCurrent ? 1.05 : 1 }}
-            >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                onClick={() => onClick(step.id)}
-                className={cn(
-                  "h-12 w-12  border-[3px] flex items-center justify-center bg-white transition-all duration-200",
-                  isCurrent &&
-                    "border-[#E7B75F] shadow-[0_0_0_4px_rgba(231,183,95,0.2)]",
-                  isCompleted && "border-[#007C89] bg-[#007C89] text-white",
-                  !isCurrent && !isCompleted && "border-muted"
-                )}
-              >
-                {isCompleted ? (
-                  <CheckCircledIcon className="h-5 w-5" />
-                ) : (
-                  <CircleIcon
-                    className={cn(
-                      "h-5 w-5",
-                      isCurrent && "text-[#E7B75F]",
-                      !isCurrent && "text-gray-400"
-                    )}
-                  />
-                )}
-              </motion.button>
-              <div className="flex flex-col items-center text-center">
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    isCurrent && "text-[#241C15]",
-                    isCompleted && "text-[#007C89]",
-                    !isCurrent && !isCompleted && "text-gray-500"
-                  )}
-                >
-                  {step.title}
-                </span>
-                <span className="text-xs text-gray-500 max-w-[120px]">
-                  {step.description}
-                </span>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default function NewCampaignPage() {
   return (
@@ -233,6 +130,7 @@ const NewCampaignForm = () => {
       listId: "",
       smtpConfigId: "",
       schedule: "ONE_TIME",
+      data: {} as Record<string, string>,
       scheduledFor: undefined,
       recurringSchedule: undefined,
       cronExpression: undefined,
@@ -241,6 +139,21 @@ const NewCampaignForm = () => {
       batchDelay: undefined,
       timezone: "America/New_York",
     },
+  });
+
+  const { data: contacts, isLoading: isLoadingContacts } = useQuery({
+    queryKey: ["contacts", form.watch("listId")],
+    queryFn: () =>
+      apiFetch(
+        "contacts?limit=5&sort=created_at&order=desc&list_id=" +
+          form.watch("listId"),
+        {
+          method: "GET",
+        }
+      )
+        .then((res) => res.json())
+        .then((data) => data.data),
+    enabled: !!form.watch("listId"),
   });
 
   useEffect(() => {
@@ -352,7 +265,7 @@ const NewCampaignForm = () => {
                             <div className="flex gap-2 items-center justify-between w-full">
                               <span>{list.name}</span>
                               <span className="text-sm text-muted-foreground">
-                                {list?._count?.subscribers} subscribers
+                                {list?.subscribersCount} subscribers
                               </span>
                             </div>
                           </SelectItem>
@@ -374,7 +287,7 @@ const NewCampaignForm = () => {
                     <div>
                       <h4 className="font-medium">List Preview</h4>
                       <p className="text-sm text-muted-foreground">
-                        First 5 subscribers in selected list
+                        First {contacts?.length} subscribers in selected list
                       </p>
                     </div>
                     <Button
@@ -389,13 +302,23 @@ const NewCampaignForm = () => {
                     </Button>
                   </div>
                   <div className="mt-2 space-y-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
+                    {contacts?.map((contact) => (
                       <div
-                        key={i}
+                        key={contact.id}
                         className="text-sm text-muted-foreground flex items-center gap-2"
                       >
-                        <PersonIcon className="h-4 w-4" />
-                        <span>subscriber{i}@example.com</span>
+                        <img
+                          src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${contact.email}`}
+                          className="size-8 bg-orange-500 rounded-sm"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{contact.email}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {contact.firstName || contact.lastName
+                              ? `${contact.firstName || ""} ${contact.lastName || ""}`
+                              : "-"}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -911,6 +834,68 @@ const NewCampaignForm = () => {
                 Design email
               </Button>
             </Link>
+            {form.watch("templateId") && (
+              <div className="pt-6 border-t border-muted">
+                <h4 className="font-semibold text-sidebar-foreground mb-3">
+                  Preview
+                </h4>
+                <div className="rounded-lg border border-muted p-6 bg-muted">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-700">
+                        Subject:
+                      </span>
+                      <span className="text-sm text-sidebar-foreground">
+                        {
+                          templates.find(
+                            (t) => t.id === form.watch("templateId")
+                          )?.subject
+                        }
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-start gap-3">
+                      <span className="text-sm font-medium text-gray-700">
+                        Variables:
+                      </span>
+                      <div className="text-sm text-sidebar-foreground">
+                        <div className="space-y-2">
+                          {templates
+                            .find((t) => t.id === form.watch("templateId"))
+                            ?.variables?.map((variable: string) => (
+                              <div
+                                key={variable}
+                                className="flex items-center gap-2"
+                              >
+                                <span className="text-xs px-2 py-1 rounded-md bg-accent text-accent-foreground min-w-0 flex-shrink-0">
+                                  {`{{${variable}}:`}
+                                </span>
+                                {variable === "name" ? (
+                                  "Auto filled"
+                                ) : (
+                                  <Input
+                                    placeholder={`Enter value for ${variable}`}
+                                    className="h-8 text-xs flex-1"
+                                    onChange={(e) => {
+                                      form.setValue("data", {
+                                        ...form.getValues("data"),
+                                        [variable]: e.target.value,
+                                      });
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            )) || (
+                            <span className="text-xs text-muted-foreground">
+                              No variables in this template
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         );
 

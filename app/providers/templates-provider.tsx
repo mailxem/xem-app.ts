@@ -41,14 +41,14 @@ export function TemplatesProvider({ children }: { children: React.ReactNode }) {
   const { apiFetch } = useApi();
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 50,
     total: 0,
   });
 
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
-      const response = await apiFetch("templates?teamId=" + team?.id);
+      const response = await apiFetch("templates?limit=50&team_id=" + team?.id);
       if (!response.ok) {
         throw new Error("Failed to fetch templates");
       }

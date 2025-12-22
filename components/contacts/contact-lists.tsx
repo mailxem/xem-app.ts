@@ -34,9 +34,9 @@ export function ContactLists() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const { team } = useTeam();
-  const { lists, isLoading, error, refetch } = useMailingLists();
+  const { lists, isLoading, error, refetch, pagination, setPagination } =
+    useMailingLists();
   const { apiFetch } = useApi();
-
   const createList = async () => {
     try {
       const response = await apiFetch("mailing-list", {
@@ -180,14 +180,20 @@ export function ContactLists() {
             },
             {
               header: "Contacts",
-              accessorKey: "_count",
-              cell: ({ row }: any) => row?.original?._count?.subscribers || 0,
+              accessorKey: "subscribersCount",
+              cell: ({ row }: any) => row?.original?.subscribersCount || 0,
             },
             {
               header: "Created Date",
               accessorKey: "createdAt",
               cell: ({ row }: any) =>
                 format(row.original.createdAt, "MMM d, yyyy"),
+            },
+            {
+              header: "Updated Date",
+              accessorKey: "updatedAt",
+              cell: ({ row }: any) =>
+                format(row.original.updatedAt, "MMM d, yyyy"),
             },
             {
               header: "Actions",
@@ -214,6 +220,19 @@ export function ContactLists() {
               ),
             },
           ]}
+          pageIndex={pagination.page}
+          pageSize={pagination.limit}
+          totalRows={pagination.total}
+          onPaginationChange={(_pagination: {
+            pageIndex: number;
+            pageSize: number;
+          }) =>
+            setPagination({
+              total: pagination.total,
+              page: _pagination.pageIndex,
+              limit: _pagination.pageSize,
+            })
+          }
         />
       </div>
     </div>

@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
+import { MailingList } from "@/lib";
 
 interface Contact {
   id: string;
@@ -42,7 +43,9 @@ export function ContactsList({ listId }: { listId: string }) {
     pageSize: 10,
   });
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
+  const [list, setList] = useState<MailingList | null>(null);
   const { team } = useTeam();
   const { apiFetch } = useApi();
 
@@ -72,12 +75,34 @@ export function ContactsList({ listId }: { listId: string }) {
         pageSize: data.limit,
       });
       setTotal(data.total);
+      return data.data;
     } catch (error) {
-      toast.error("Failed to fetch contacts");
+      toast.error("Failed to fetch contacts: " + error.message);
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
+
+  const fetchList = async () => {
+    try {
+      const response = await apiFetch("/mailing-lists/" + listId, {
+        method: "GET",
+      });
+      if (!response.ok) throw new Error("Failed to fetch list");
+      const data = await response.json();
+      console.log("data fetchList", data.data);
+      setList(data.data);
+      return data.data;
+    } catch (error) {
+      toast.error("Failed to fetch list: " + error.message);
+      setList(null);
+      return {};
+    } finally {
+      setListLoading(false);
+    }
+  };
+
 
   const updateContactStatus = async (
     contactId: string,
@@ -111,7 +136,19 @@ export function ContactsList({ listId }: { listId: string }) {
   useQuery({
     queryKey: ["contacts", listId, pagination.pageIndex, pagination.pageSize],
     queryFn: () => fetchContacts(),
+    enabled: !!listId && pagination.pageIndex > 0 && pagination.pageSize > 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
   });
+
+  useQuery({
+    queryKey: ["list", listId],
+    queryFn: fetchList,
+    enabled: !!listId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
+
 
   const columns: ColumnDef<Contact>[] = [
     {
@@ -262,11 +299,11 @@ export function ContactsList({ listId }: { listId: string }) {
               className="font-bold text-[#007C89] hover:underline"
               title="Your contacts"
             >
-              {contacts.length}
+              {total}
             </a>{" "}
             total contacts.{" "}
             <a className="font-bold text-[#007C89] hover:underline" href="#">
-              {contacts.filter((contact) => contact.isDeleted === false).length}
+              {list?.subscribersCount}
             </a>{" "}
             email subscribers.
           </h4>

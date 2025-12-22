@@ -88,6 +88,7 @@ export function ContactImport({
   const { team } = useTeam();
   const { apiFetch } = useApi();
   const [file, setFile] = useState<File | null>(null);
+  const [fileId, setFileId] = useState<string | null>(null);
   const [text, setText] = useState<string>(
     "name,email,phone\nJohn Doe,john.doe@example.com,1234567890\nJane Smith,jane.smith@example.com,9876543210"
   );
@@ -170,6 +171,7 @@ export function ContactImport({
 
     // Validate required fields
     if (!Object.values(fieldMapping).includes("email")) {
+      toast.dismiss();
       toast.error("Email field mapping is required");
       return;
     }
@@ -177,19 +179,26 @@ export function ContactImport({
     try {
       setIsLoading(true);
 
-      // upload file
-      // form data
-      const formData = new FormData();
-      formData.append("file", file);
-      console.log("file", file);
-      const fileUpload = await apiFetch("blobs", {
-        method: "POST",
-        body: formData,
-      });
+      if (!fileId) {
+        // upload file
+        // form data
+        const formData = new FormData();
+        formData.append("file", file);
+        const fileUpload = await apiFetch("files/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-      const fileUploadResponse = await fileUpload.json();
+        const fileUploadResponse = await fileUpload.json();
 
-      const fileId = fileUploadResponse.data.fileId;
+        setFileId(fileUploadResponse.data.fileId);
+      }
+
+      if (!fileId) {
+        toast.dismiss();
+        toast.error("Failed to upload file");
+        return;
+      }
 
       const response = await apiFetch("imports/contact", {
         method: "POST",
@@ -198,23 +207,37 @@ export function ContactImport({
           mappings: fieldMapping,
           listId,
           teamId: team?.id,
-          fileId,
+          fileId: fileId || "",
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to import contacts");
+      if (!response.ok) {
+        throw new Error("Failed to import contacts: " + response.statusText);
+      }
 
       const result = await response.json();
       toast.success(`Successfully imported ${result.imported} contacts`);
 
       // Reset state and close dialog
       setStep("upload");
+      setFileId(null);
+      setFile(null);
+      setText("");
+      setCsvHeaders([]);
+      setFieldMapping({});
+      setCsvData([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       setIsDialogOpen(false);
       onImportComplete();
     } catch (error) {
-      toast.error("Failed to import contacts");
+      toast.dismiss();
+      console.error("Failed to import contacts", error);
+      toast.error("Failed to import contacts: " + error.message);
     } finally {
       setIsLoading(false);
+      toast.dismiss();
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }

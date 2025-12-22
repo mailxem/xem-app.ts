@@ -31,6 +31,7 @@ import { Settings, Mail, Send } from "lucide-react";
 import { deepCompare } from "@/lib/utils";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
 
 const testEmailSchema = z.object({
   to: z.string().email(),
@@ -73,23 +74,6 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
     }
   };
 
-  useEffect(() => {
-    getEmailCategories();
-    if (templateId !== "new") {
-      fetchTemplate();
-    }
-  }, [templateId]);
-
-  const onReady: EmailEditorProps["onReady"] = (unlayer) => {
-    if (templateId !== "new" && template.design) {
-      try {
-        unlayer?.loadDesign(template.design as any);
-      } catch (error) {
-        console.error("Failed to load template design:", error);
-      }
-    }
-  };
-
   const fetchTemplate = async () => {
     try {
       const response = await apiFetch("templates/" + templateId, {
@@ -99,6 +83,27 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
       setTemplate(data.data);
     } catch (error) {
       toast.error("Failed to load template");
+    }
+  };
+
+  useQuery({
+    queryKey: ["emailCategories"],
+    queryFn: getEmailCategories,
+  });
+
+  useQuery({
+    queryKey: ["template", templateId],
+    queryFn: fetchTemplate,
+    enabled: templateId !== "new",
+  });
+
+  const onReady: EmailEditorProps["onReady"] = (unlayer) => {
+    if (templateId !== "new" && template.design) {
+      try {
+        unlayer?.loadDesign(template.design as any);
+      } catch (error) {
+        console.error("Failed to load template design:", error);
+      }
     }
   };
 
@@ -125,8 +130,10 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
           categoryId: selectedCategory?.value,
         };
 
-        const response = await apiFetch(
-          templateId === "new" ? "templates" : `templates/${templateId}`,
+        const response = await fetch(
+          templateId === "new"
+            ? "/api/templates"
+            : `/api/templates/${templateId}`,
           {
             method: templateId === "new" ? "POST" : "PUT",
             headers: { "Content-Type": "application/json" },

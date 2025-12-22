@@ -65,7 +65,6 @@ export interface APIKey {
   isDeleted: boolean;
 }
 
-
 export interface APIKeyRequest {
   name: string;
   expiresAt?: Date;
@@ -128,7 +127,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'USER' | 'ADMIN';
+  role: "USER" | "ADMIN";
   teamId?: string;
 }
 
@@ -143,7 +142,7 @@ export interface TeamInvite {
   id: string;
   email: string;
   teamId: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
   expiresAt: Date;
   user?: User;
 }
@@ -162,9 +161,7 @@ export interface MailingList {
   name: string;
   description?: string;
   teamId: string;
-  _count?: {
-    subscribers: number;
-  };
+  subscribersCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -173,7 +170,7 @@ export interface Campaign {
   id: string;
   name: string;
   description?: string;
-  status: 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'COMPLETED' | 'FAILED';
+  status: "DRAFT" | "SCHEDULED" | "SENDING" | "COMPLETED" | "FAILED";
   templateId: string;
   listId: string;
   schedule?: string;
@@ -184,6 +181,7 @@ export interface Campaign {
   teamId: string;
   userId: string;
   analytics?: Record<string, any>;
+  template?: EmailTemplate;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -192,4 +190,4 @@ export interface ApiError {
   message: string;
   code?: string;
   details?: Record<string, any>;
-} 
+}

@@ -4,12 +4,14 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useTeam } from "./team-provider";
 import { Campaign } from "@/lib";
 import { useApi } from "@/hooks/use-api";
+import { QueryObserverResult, useQuery } from "@tanstack/react-query";
+
 type CampaignsContextType = {
   campaigns: Campaign[];
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
-  getCampaign: (id: string) => Promise<Campaign | null>;
+  refetch: () => Promise<QueryObserverResult<void, Error>>;
+  getCampaign: (id: string) => Promise<QueryObserverResult<Campaign, Error>>;
   campaign: Campaign | null;
   total: number;
   page: number;
@@ -23,8 +25,20 @@ const CampaignsContext = createContext<CampaignsContextType>({
   campaigns: [],
   loading: false,
   error: null,
-  refetch: async () => {},
-  getCampaign: async () => null,
+  refetch: async () =>
+    ({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+      isError: false,
+    }) as QueryObserverResult<void, Error>,
+  getCampaign: async () =>
+    ({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+      isError: false,
+    }) as QueryObserverResult<Campaign, Error>,
   campaign: null,
   total: 0,
   page: 1,
@@ -47,15 +61,17 @@ export function CampaignsProvider({ children }: { children: React.ReactNode }) {
 
   const getCampaign = async (id: string) => {
     try {
-      const response = await apiFetch("campaigns?id=" + id);
+      const response = await apiFetch("campaigns?include=Template&id=" + id);
       if (!response.ok) {
         throw new Error("Failed to fetch campaign");
       }
-      const data = await response.json();
-      setCampaign(data.campaigns.data[0]);
-      return data;
+      const { data } = await response.json();
+      setCampaign(data[0]);
+      return data[0];
     } catch (err) {
-      setError(err instanceof Error ? err : new Error("Unknown error occurred"));
+      setError(
+        err instanceof Error ? err : new Error("Unknown error occurred")
+      );
     }
   };
 
@@ -63,17 +79,17 @@ export function CampaignsProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       const response = await apiFetch(
-        "campaigns?teamId=" + team?.id + "&page=" + page + "&limit=" + limit
+        "campaigns?team_id=" + team?.id + "&page=" + page + "&limit=" + limit
       );
 
       if (!response.ok) {
         throw new Error("Failed to fetch campaigns");
       }
       const data = await response.json();
-      setCampaigns(data.campaigns.data);
-      setTotal(data.campaigns.total);
-      setPage(data.campaigns.page);
-      setLimit(data.campaigns.limit);
+      setCampaigns(data.data);
+      setTotal(data.total);
+      setPage(data.page);
+      setLimit(data.limit);
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error("Unknown error occurred")
@@ -83,11 +99,11 @@ export function CampaignsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    if (team?.id) {
-      fetchCampaigns();
-    }
-  }, [team?.id]);
+  const { refetch: refetchCampaigns } = useQuery({
+    queryKey: ["campaigns", team?.id],
+    queryFn: fetchCampaigns,
+    enabled: !!team?.id,
+  });
 
   return (
     <CampaignsContext.Provider
@@ -95,7 +111,7 @@ export function CampaignsProvider({ children }: { children: React.ReactNode }) {
         campaigns,
         loading,
         error,
-        refetch: fetchCampaigns,
+        refetch: refetchCampaigns,
         getCampaign,
         campaign,
         total,
