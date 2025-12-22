@@ -19,21 +19,9 @@ import MailList from "@/app/developer/logs/emails/components/mail-list";
 import { type Mail } from "@/app/types";
 import { useMail } from "@/hooks/use-mail";
 import { useMemo } from "react";
+import { useApi } from "@/hooks/use-api";
 
 const PAGE_SIZE = 20;
-
-async function fetchEmails({ pageParam = 0, filter = "SENT"}) {
-  // Replace with your actual API endpoint
-  const response = await fetch(
-    `/api/emails?page=${pageParam}&filter=${filter}&limit=${PAGE_SIZE}`
-  );
-  const data = await response.json();
-  return {
-    results: data.data,
-    offset: data.page * PAGE_SIZE,
-    total: data.total,
-  };
-}
 
 export default function Mail() {
   const defaultLayout = [265, 440, 655];
@@ -42,6 +30,21 @@ export default function Mail() {
   const [search, setSearch] = React.useState("");
   const [searchTimeout, setSearchTimeout] =
     React.useState<NodeJS.Timeout | null>(null);
+
+  const { apiFetch } = useApi();
+
+  const fetchEmails = async ({ pageParam = 0, filter = "SENT" }) => {
+    // Replace with your actual API endpoint
+    const response = await apiFetch(
+      `/emails?page=${pageParam}&sort=sent_at&order=desc&status=${filter}&limit=${PAGE_SIZE}`
+    );
+    const data = await response.json();
+    return {
+      results: data.data,
+      offset: data.page * PAGE_SIZE,
+      total: data.total,
+    };
+  };
 
   const {
     data,
@@ -58,6 +61,9 @@ export default function Mail() {
         ? pages.length + 1
         : undefined;
     },
+    refetchOnMount: true,
+    enabled: !!activeTab,
+    refetchOnWindowFocus: true,
     initialPageParam: 0,
   });
 
@@ -145,39 +151,19 @@ export default function Mail() {
                 </div>
               </form>
             </div>
-            <TabsContent value="SENT" className="m-0">
-              {isLoading ? (
-                <div className="text-center p-4">Loading...</div>
-              ) : (
-                <MailList
-                  items={emails}
-                  isFetchingNextPage={isFetchingNextPage}
-                  observerTarget={observerTarget}
-                />
-              )}
-            </TabsContent>
-            <TabsContent value="PENDING" className="m-0">
-              {isLoading ? (
-                <div className="text-center p-4">Loading...</div>
-              ) : (
-                <MailList
-                  items={emails}
-                  isFetchingNextPage={isFetchingNextPage}
-                  observerTarget={observerTarget}
-                />
-              )}
-            </TabsContent>
-            <TabsContent value="FAILED" className="m-0">
-              {isLoading ? (
-                <div className="text-center p-4">Loading...</div>
-              ) : (
-                <MailList
-                  items={emails}
-                  isFetchingNextPage={isFetchingNextPage}
-                  observerTarget={observerTarget}
-                />
-              )}
-            </TabsContent>
+            {["SENT", "PENDING", "FAILED"].map((tab) => (
+              <TabsContent value={tab} className="m-0">
+                {isLoading ? (
+                  <div className="text-center p-4">Loading...</div>
+                ) : (
+                  <MailList
+                    items={emails}
+                    isFetchingNextPage={isFetchingNextPage}
+                    observerTarget={observerTarget}
+                  />
+                )}
+              </TabsContent>
+            ))}
           </Tabs>
         </ResizablePanel>
         <ResizableHandle withHandle />

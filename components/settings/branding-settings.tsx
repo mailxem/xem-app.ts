@@ -16,6 +16,7 @@ import { Upload, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { useTeam } from "@/app/providers/team-provider";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 const brandingSchema = z.object({
   dashboardName: z
@@ -31,6 +32,7 @@ export function BrandingSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const {
     register,
@@ -72,7 +74,7 @@ export function BrandingSettings() {
         formData.append("logo", logoFile);
       }
 
-      const response = await fetch("/api/settings/branding", {
+      const response = await apiFetch("settings/branding", {
         method: "POST",
         body: formData,
       });

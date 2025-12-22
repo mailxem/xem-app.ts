@@ -30,15 +30,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Mail, Send } from "lucide-react";
 import { deepCompare } from "@/lib/utils";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 const testEmailSchema = z.object({
-  email: z.string().email(),
+  to: z.string().email(),
 });
 
 export function TemplateEditor({ templateId }: TemplateEditorProps) {
   const router = useRouter();
   const emailEditorRef = useRef<EditorRef | null>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const [template, setTemplate] = useState<EmailTemplate>({
     id: "",
@@ -60,7 +62,7 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
 
   const getEmailCategories = async () => {
     try {
-      const response = await fetch("/api/email-category");
+      const response = await apiFetch("categories");
       const data = await response.json();
       setEmailCategories(data.data);
       if (template.categoryId === "Transactional") {
@@ -90,9 +92,10 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
 
   const fetchTemplate = async () => {
     try {
-      const response = await fetch(`/api/templates/${templateId}`);
+      const response = await apiFetch("templates/" + templateId, {
+        method: "GET",
+      });
       const data = await response.json();
-      console.log("data", data);
       setTemplate(data.data);
     } catch (error) {
       toast.error("Failed to load template");
@@ -122,8 +125,8 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
           categoryId: selectedCategory?.value,
         };
 
-        const response = await fetch(
-          `/api/templates/${templateId === "new" ? "" : templateId}`,
+        const response = await apiFetch(
+          templateId === "new" ? "templates" : `templates/${templateId}`,
           {
             method: templateId === "new" ? "POST" : "PUT",
             headers: { "Content-Type": "application/json" },
@@ -144,10 +147,10 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
   const sendTestEmail = async (email: string) => {
     setIsSendingTestEmail(true);
     emailEditorRef.current?.editor?.exportHtml(async ({ html }) => {
-      const response = await fetch(`/api/email`, {
+      const response = await apiFetch(`emails`, {
         method: "POST",
         body: JSON.stringify({
-          email,
+          to: email,
           html,
           test: true,
         }),
@@ -171,8 +174,8 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
     resolver: zodResolver(testEmailSchema),
   });
 
-  const onSubmit = (data: { email: string }) => {
-    sendTestEmail(data.email);
+  const onSubmit = (data: { to: string }) => {
+    sendTestEmail(data.to);
     setShowTestEmailDialog(false);
   };
 
@@ -233,15 +236,15 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
                   onSubmit={handleSubmit(onSubmit)}
                 >
                   <Input
-                    name="email"
+                    name="to"
                     required
                     type="email"
                     placeholder="Email"
-                    {...register("email")}
+                    {...register("to")}
                   />
-                  {errors.email && (
+                  {errors.to && (
                     <span className="text-red-500">
-                      {errors.email.message as string}
+                      {errors.to.message as string}
                     </span>
                   )}
                   {isSendingTestEmail ? (

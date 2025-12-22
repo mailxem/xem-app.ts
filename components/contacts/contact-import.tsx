@@ -24,6 +24,7 @@ import { parse } from "papaparse";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 interface ContactImportProps {
   listId: string;
@@ -36,17 +37,23 @@ interface FieldMapping {
 
 // Define field mappings for common CSV headers
 const FIELD_MAPPINGS: { [key: string]: string[] } = {
-  email: ['email', 'e-mail', 'e_mail', 'email_address', 'emailaddress'],
-  firstName: ['first_name', 'firstname', 'first', 'given_name', 'givenname'],
-  lastName: ['last_name', 'lastname', 'last', 'surname', 'family_name'],
-  phone: ['phone', 'phone_number', 'phonenumber', 'mobile', 'telephone', 'tel'],
-  company: ['company', 'organization', 'organisation', 'company_name', 'employer'],
-  title: ['title', 'job_title', 'position', 'role'],
-  address: ['address', 'address_line_1', 'street_address'],
-  city: ['city', 'town'],
-  state: ['state', 'province', 'region', 'state_province_region'],
-  country: ['country', 'country_name'],
-  postalCode: ['postal_code', 'zip', 'zip_code', 'postcode'],
+  email: ["email", "e-mail", "e_mail", "email_address", "emailaddress"],
+  firstName: ["first_name", "firstname", "first", "given_name", "givenname"],
+  lastName: ["last_name", "lastname", "last", "surname", "family_name"],
+  phone: ["phone", "phone_number", "phonenumber", "mobile", "telephone", "tel"],
+  company: [
+    "company",
+    "organization",
+    "organisation",
+    "company_name",
+    "employer",
+  ],
+  title: ["title", "job_title", "position", "role"],
+  address: ["address", "address_line_1", "street_address"],
+  city: ["city", "town"],
+  state: ["state", "province", "region", "state_province_region"],
+  country: ["country", "country_name"],
+  postalCode: ["postal_code", "zip", "zip_code", "postcode"],
 };
 
 const REQUIRED_FIELDS = ["email"];
@@ -61,34 +68,48 @@ const OPTIONAL_FIELDS = [
   "state",
   "country",
   "postal_code",
-  "linkedin"
+  "linkedin",
 ];
 const ALL_FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
-export function ContactImport({ listId, onImportComplete }: ContactImportProps) {
+export function ContactImport({
+  listId,
+  onImportComplete,
+}: ContactImportProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<"upload" | "map" | "preview" | "text">("upload");
+  const [step, setStep] = useState<"upload" | "map" | "preview" | "text">(
+    "upload"
+  );
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [fieldMapping, setFieldMapping] = useState<FieldMapping>({});
   const [csvData, setCsvData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
   const [file, setFile] = useState<File | null>(null);
-  const [text, setText] = useState<string>("name,email,phone\nJohn Doe,john.doe@example.com,1234567890\nJane Smith,jane.smith@example.com,9876543210");
+  const [text, setText] = useState<string>(
+    "name,email,phone\nJohn Doe,john.doe@example.com,1234567890\nJane Smith,jane.smith@example.com,9876543210"
+  );
   // Function to guess field mapping based on header name
   const guessFieldMapping = (header: string): string | null => {
-    const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-    
+    const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, "");
+
     for (const [field, variations] of Object.entries(FIELD_MAPPINGS)) {
-      if (variations.some(v => normalizedHeader.includes(v.replace(/[^a-z0-9]/g, '')))) {
+      if (
+        variations.some((v) =>
+          normalizedHeader.includes(v.replace(/[^a-z0-9]/g, ""))
+        )
+      ) {
         return field;
       }
     }
     return null;
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -108,12 +129,12 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
 
         // Get headers from the first row
         const headers = Object.keys(results.data[0]);
-        setCsvHeaders(headers.filter(header => header !== ""));
+        setCsvHeaders(headers.filter((header) => header !== ""));
         setCsvData(results.data);
 
         // Initialize field mapping with best guesses
         const initialMapping: FieldMapping = {};
-        headers.forEach(header => {
+        headers.forEach((header) => {
           const guessedField = guessFieldMapping(header);
           if (guessedField) {
             initialMapping[header] = guessedField;
@@ -124,17 +145,23 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
       },
       error: () => {
         toast.error("Failed to parse CSV file");
-      }
+      },
     });
   };
 
   const handleImport = async () => {
-
-
     if (step === "text") {
       toast.loading("Creating CSV file...");
       // lets create a csv file from the text
-      const csv = text.split("\n").map(line => line.split(",").map(cell => cell.trim()).join(",")).join("\n");
+      const csv = text
+        .split("\n")
+        .map((line) =>
+          line
+            .split(",")
+            .map((cell) => cell.trim())
+            .join(",")
+        )
+        .join("\n");
       setFile(new File([csv], "contacts.csv", { type: "text/csv" }));
       fieldMapping["name"] = "name";
       fieldMapping["email"] = "email";
@@ -150,12 +177,12 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
     try {
       setIsLoading(true);
 
-      // upload file 
+      // upload file
       // form data
       const formData = new FormData();
       formData.append("file", file);
       console.log("file", file);
-      const fileUpload = await fetch("/api/blobs", {
+      const fileUpload = await apiFetch("blobs", {
         method: "POST",
         body: formData,
       });
@@ -164,7 +191,7 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
 
       const fileId = fileUploadResponse.data.fileId;
 
-      const response = await fetch("/api/contacts/import", {
+      const response = await apiFetch("imports/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -184,7 +211,6 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
       setStep("upload");
       setIsDialogOpen(false);
       onImportComplete();
-
     } catch (error) {
       toast.error("Failed to import contacts");
     } finally {
@@ -219,7 +245,7 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
           <DialogTitle>Import Contacts</DialogTitle>
           <DialogDescription>
             <div className="flex border-b py-4 mb-3 gap-4">
-              <Button 
+              <Button
                 variant={step === "upload" ? "secondary" : "ghost"}
                 onClick={() => setStep("upload")}
                 size="sm"
@@ -227,7 +253,7 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
                 CSV Import
               </Button>
               <Button
-                variant={step === "text" ? "secondary" : "ghost"} 
+                variant={step === "text" ? "secondary" : "ghost"}
                 onClick={() => setStep("text")}
                 size="sm"
               >
@@ -240,18 +266,16 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
           </DialogDescription>
         </DialogHeader>
 
-        {
-          step === 'text' && (
-            <div className="space-y-4 py-4">
-              <Textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Enter contacts here"
-                className="w-full"
-              />
-            </div>
-          )
-        }
+        {step === "text" && (
+          <div className="space-y-4 py-4">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Enter contacts here"
+              className="w-full"
+            />
+          </div>
+        )}
 
         {step === "upload" && (
           <div className="space-y-4 py-4">
@@ -266,7 +290,10 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
               <p>Your CSV file should include the following:</p>
               <ul className="list-disc list-inside mt-2">
                 <li>Required: email</li>
-                <li>Optional: firstName, lastName, phone, company, title, address, city, state, country, postalCode</li>
+                <li>
+                  Optional: firstName, lastName, phone, company, title, address,
+                  city, state, country, postalCode
+                </li>
                 <li>Any additional fields will be stored as metadata</li>
               </ul>
             </div>
@@ -277,7 +304,10 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
           <div className="space-y-4 py-4 overflow-y-auto max-h-[500px]">
             <div className="grid gap-4">
               {ALL_FIELDS.map((field) => (
-                <div key={field} className="grid grid-cols-2 items-center gap-4">
+                <div
+                  key={field}
+                  className="grid grid-cols-2 items-center gap-4"
+                >
                   <Label className="capitalize">
                     {field}
                     {REQUIRED_FIELDS.includes(field) && (
@@ -285,14 +315,16 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
                     )}
                   </Label>
                   <Select
-                    value={Object.keys(fieldMapping)?.find(
-                      key => fieldMapping[key] === field
-                    ) || "none"}
+                    value={
+                      Object.keys(fieldMapping)?.find(
+                        (key) => fieldMapping[key] === field
+                      ) || "none"
+                    }
                     key={field}
                     onValueChange={(value) => {
                       const newMapping = { ...fieldMapping };
                       // Remove old mapping if it exists
-                      Object.keys(newMapping).forEach(key => {
+                      Object.keys(newMapping).forEach((key) => {
                         if (newMapping[key] === field) {
                           delete newMapping[key];
                         }
@@ -305,7 +337,10 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
                     }}
                   >
                     <SelectTrigger className="text-muted-foreground">
-                      <SelectValue className="capitalize" placeholder="Select a column" />
+                      <SelectValue
+                        className="capitalize"
+                        placeholder="Select a column"
+                      />
                     </SelectTrigger>
                     <SelectContent className="h-54 overflow-y-auto">
                       <SelectItem value="none">Not mapped</SelectItem>
@@ -322,7 +357,9 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
 
             <div className="text-sm text-muted-foreground mt-4">
               <p>Preview: {csvData.length} contacts will be imported</p>
-              <p className="mt-1">Unmapped columns will be stored as metadata</p>
+              <p className="mt-1">
+                Unmapped columns will be stored as metadata
+              </p>
             </div>
           </div>
         )}
@@ -331,13 +368,14 @@ export function ContactImport({ listId, onImportComplete }: ContactImportProps) 
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          {step === "map" || step === "text" && (
-            <Button onClick={handleImport} disabled={isLoading}>
-              {isLoading ? "Importing..." : "Import Contacts"}
-            </Button>
-          )}
+          {step === "map" ||
+            (step === "text" && (
+              <Button onClick={handleImport} disabled={isLoading}>
+                {isLoading ? "Importing..." : "Import Contacts"}
+              </Button>
+            ))}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

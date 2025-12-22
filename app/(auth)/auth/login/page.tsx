@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Mail, Lock, MailIcon, Eye, EyeIcon, EyeOffIcon } from "lucide-react";
+import { Mail, Lock, EyeIcon, EyeOffIcon } from "lucide-react";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";

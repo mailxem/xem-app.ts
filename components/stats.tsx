@@ -19,28 +19,34 @@ export function Stats() {
           `/api/analytics/team/overview?teamId=${team?.id}`
         );
         if (!response.ok) {
-          throw new Error('Failed to fetch analytics');
+          throw new Error("Failed to fetch analytics");
         }
-        const { data } = await response.json();
         
+        const { data } = await response.json();
+
         // Transform team overview data for stats
         const currentPeriodData = {
           total: data.totalEmails,
           openRate: data.averageOpenRate / 100,
           clickRate: data.averageClickRate / 100,
-          bounceRate: data.bounceRate / 100,
+          bounceRate: data.bounceRate ? (data.bounceRate / 100) : 0,
         };
 
         // Get previous period from monthly stats
-        const previousPeriodData = data?.monthlyStats?.[data?.monthlyStats?.length - 2] || null;
-        const transformedPreviousData = previousPeriodData ? {
-          total: previousPeriodData.totalEmails,
-          openRate: previousPeriodData.openRate / 100,
-          clickRate: previousPeriodData.clickRate / 100,
-          bounceRate: previousPeriodData.bounceRate / 100,
-        } : null;
+        const previousPeriodData =
+          data?.monthlyStats?.[data?.monthlyStats?.length - 2] || null;
+        const transformedPreviousData = previousPeriodData
+          ? {
+              total: previousPeriodData.totalEmails,
+              openRate: previousPeriodData.openRate / 100,
+              clickRate: previousPeriodData.clickRate / 100,
+              bounceRate: previousPeriodData.bounceRate ? (previousPeriodData.bounceRate / 100) : 0,
+            }
+          : null;
 
-        setMetricsData([currentPeriodData, transformedPreviousData].filter(Boolean));
+        setMetricsData(
+          [currentPeriodData, transformedPreviousData].filter(Boolean)
+        );
       } catch (error) {
         console.error("Failed to fetch metrics:", error);
       } finally {

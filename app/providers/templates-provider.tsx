@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { EmailTemplate } from "@/lib";
 import { useTeam } from "./team-provider";
+import { useApi } from "@/hooks/use-api";
 
 type TemplatesContextType = {
   templates: EmailTemplate[];
@@ -37,6 +38,7 @@ export function TemplatesProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -46,7 +48,7 @@ export function TemplatesProvider({ children }: { children: React.ReactNode }) {
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/templates?teamId=" + team?.id);
+      const response = await apiFetch("templates?teamId=" + team?.id);
       if (!response.ok) {
         throw new Error("Failed to fetch templates");
       }

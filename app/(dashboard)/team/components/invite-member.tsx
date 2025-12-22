@@ -15,6 +15,7 @@ import {
   SelectContent,
   SelectValue,
 } from "@/components/ui/select";
+import { useApi } from "@/hooks/use-api";
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -26,6 +27,7 @@ type InviteFormData = z.infer<typeof inviteSchema>;
 
 export function InviteTeamMember() {
   const { refreshTeam } = useTeam();
+  const { apiFetch } = useApi();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -41,7 +43,7 @@ export function InviteTeamMember() {
   const onSubmit = async (data: InviteFormData) => {
     try {
       setLoading(true);
-      const response = await fetch("/api/team/invite", {
+      const response = await apiFetch("team/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

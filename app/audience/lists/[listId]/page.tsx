@@ -11,7 +11,7 @@ export default function ContactListPage() {
   return (
     <div className="flex-1 space-y-4">
       <PageHeader
-        heading="Contacts"
+        heading="Audience"
         description="Manage contacts in this list"
         backButton={{
           href: "/audience/lists",

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Form } from "@/app/types";
 import { useTeam } from "./team-provider";
+import { useApi } from "@/hooks/use-api";
 
 type FormsContextType = {
   forms: Form[];
@@ -31,11 +32,12 @@ export function FormsProvider({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const fetchForms = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/forms?teamId=" + team?.id);
+      const response = await apiFetch("forms?teamId=" + team?.id);
       if (!response.ok) {
         throw new Error("Failed to fetch forms");
       }

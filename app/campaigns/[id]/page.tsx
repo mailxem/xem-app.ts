@@ -10,11 +10,13 @@ import { Campaign } from "@/lib";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 const CampaignViewPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const { id } = use(params);
   const { getCampaign, refetch, campaign } = useCampaigns();
+  const { apiFetch } = useApi();
 
   useEffect(() => {
     console.log("id data", id);
@@ -28,7 +30,7 @@ const CampaignViewPage = ({ params }: { params: Promise<{ id: string }> }) => {
   }, [campaign]);
 
   const handleDelete = async () => {
-    const response = await fetch(`/api/campaigns/${id}`, {
+    const response = await apiFetch("campaigns/" + id, {
       method: "DELETE",
     });
 

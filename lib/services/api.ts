@@ -1,10 +1,18 @@
 import { ApiError } from "@/lib";
 import axios from "axios";
+
 export class APIService {
   private readonly baseUrl: string;
   private readonly accessToken: any;
+  
   constructor(endpoint: string, session?: any) {
-    this.baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/${endpoint}`;
+    let baseUrl = "";
+    if (typeof window === "undefined") {
+      baseUrl = process.env.INTERNAL_API_URL as string;
+    } else {
+      baseUrl = process.env.NEXT_PUBLIC_API_URL as string;
+    }
+    this.baseUrl = `${baseUrl}/${endpoint}`;
     this.accessToken = session?.accessToken;
   }
 

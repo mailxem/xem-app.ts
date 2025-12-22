@@ -13,11 +13,11 @@ import { Maily } from "@maily-to/render";
 
 interface ComposeEmailProps {
   onSend?: (email: {
-    email: string;
+    to: string; 
     subject: string;
     html: string;
-    cc: string[];
-    bcc: string[];
+    cc: string;
+    bcc: string;
   }) => void;
 }
 
@@ -39,11 +39,11 @@ export function ComposeEmail({ onSend }: ComposeEmailProps) {
 
     if (onSend) {
       onSend({
-        email: to,
+        to: to,
         subject,
         html: html,
-        cc: cc.trim().split(",").filter(Boolean),
-        bcc: bcc.trim().split(",").filter(Boolean),
+        cc: cc.trim().split(",").filter(Boolean).join(","),
+        bcc: bcc.trim().split(",").filter(Boolean).join(","),
       });
     }
 

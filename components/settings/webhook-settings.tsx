@@ -41,6 +41,7 @@ import { format } from "date-fns";
 import { ExternalLink, Loader2, Plus, RefreshCw, Trash } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useApi } from "@/hooks/use-api";
 
 interface WebhookWithEvents extends Webhook {
   events: WebhookEventType[];
@@ -48,6 +49,7 @@ interface WebhookWithEvents extends Webhook {
 
 export function WebhookSettings() {
   const { team } = useTeam();
+  const { apiFetch } = useApi();
   const [webhooks, setWebhooks] = useState<WebhookWithEvents[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -55,7 +57,7 @@ export function WebhookSettings() {
   // Fetch webhooks
   const fetchWebhooks = async () => {
     try {
-      const response = await fetch(`/api/webhooks?teamId=${team?.id}`);
+      const response = await apiFetch(`webhooks?teamId=${team?.id}`);
       if (!response.ok) throw new Error("Failed to fetch webhooks");
       const data = await response.json();
       setWebhooks(data);
@@ -75,7 +77,7 @@ export function WebhookSettings() {
   // Delete webhook
   const deleteWebhook = async (id: string) => {
     try {
-      const response = await fetch(`/api/webhooks/${id}`, {
+      const response = await apiFetch(`webhooks/${id}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete webhook");
@@ -90,7 +92,7 @@ export function WebhookSettings() {
   // Toggle webhook active state
   const toggleWebhookActive = async (id: string, isActive: boolean) => {
     try {
-      const response = await fetch(`/api/webhooks/${id}`, {
+      const response = await apiFetch(`webhooks/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -227,6 +229,7 @@ function AddWebhookDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
+  const { apiFetch } = useApi();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -237,7 +240,7 @@ function AddWebhookDialog({
     setLoading(true);
 
     try {
-      const response = await fetch("/api/webhooks", {
+      const response = await apiFetch("webhooks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

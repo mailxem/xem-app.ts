@@ -60,7 +60,7 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-muted bg-background ">
-      <div className="flex h-16 items-center px-6">
+      <div className="flex h-14 items-center px-6">
         <img src="/android-chrome-512x512.png" alt="Xem" className="h-10 w-10" />
         <div className="flex flex-1 items-center gap-x-4 ml-auto">
           <div className="relative w-full max-w-md ml-4">

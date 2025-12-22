@@ -11,7 +11,9 @@ interface ExportResponse {
   error?: string;
 }
 
-export async function GET(request: Request): Promise<NextResponse<ExportResponse>> {
+export async function GET(
+  request: Request
+): Promise<NextResponse<ExportResponse>> {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -23,10 +25,7 @@ export async function GET(request: Request): Promise<NextResponse<ExportResponse
         value: { userId: null },
         message: "Unauthorized access attempt",
       });
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -64,7 +63,7 @@ export async function GET(request: Request): Promise<NextResponse<ExportResponse
 
     const apiService = new APIService(endpoint, session);
     const data = await apiService.get<Uint8Array>(`?${type}Id=${id}`);
-
+    const blob = new Blob([data.buffer as ArrayBuffer]);
     logger.info({
       fileName: FILE_NAME,
       emoji: "📊",
@@ -75,10 +74,11 @@ export async function GET(request: Request): Promise<NextResponse<ExportResponse
     });
 
     // Set appropriate headers for file download
-    return new NextResponse(data, {
+    return new NextResponse(blob, {
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename=${type}_analytics_${id}.xlsx`
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename=${type}_analytics_${id}.xlsx`,
       },
     });
   } catch (error) {

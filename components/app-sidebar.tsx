@@ -12,6 +12,7 @@ import { ComposeEmail } from "./compose-email";
 import { useSession } from "next-auth/react";
 import Intercom from "@intercom/messenger-js-sdk";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 type SubMenuItem = {
   name: string;
@@ -169,6 +170,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
 
   const { data: session } = useSession();
+  const { apiFetch } = useApi();
 
   const toggleExpand = (href: string) => {
     setExpandedItems((prev) => ({
@@ -217,10 +219,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <div key={item.href} className="mb-1">
                 <div
                   className={cn(
-                    "flex items-center px-4 py-2 text-sidebar-foreground hover:bg-accent cursor-pointer",
+                    "flex items-center px-4 py-1 text-sidebar-foreground hover:bg-accent cursor-pointer",
                     isItemActive &&
                       !item.subItems &&
-                      "text-sidebar-foreground font-medium"
+                      "text-sidebar-foreground font-medium text-primary bg-gray-100 border-l-2 border-primary "
                   )}
                   onClick={() => item.subItems && toggleExpand(item.href)}
                 >
@@ -230,7 +232,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     onClick={(e) => item.subItems && e.preventDefault()}
                   >
                     {Icon}
-                    <span>{item.name}</span>
+                    <span className="text-sm">{item.name}</span>
                   </Link>
                   {item.subItems &&
                     (isExpanded ? (
@@ -287,7 +289,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               onSend={async (email) => {
                 toast.promise(
                   async () => {
-                    await fetch("/api/email", {
+                    await apiFetch("emails", {
                       method: "POST",
                       body: JSON.stringify(email),
                     });

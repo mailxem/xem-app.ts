@@ -36,7 +36,7 @@ async function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider className="flex flex-col min-h-screen">
       <AppHeader heading="Xem ❇" className="shrink-0" />
-      <div className="flex flex-col lg:flex-row flex-1 w-full bg-sidebar relative">
+      <div className="flex flex-col lg:flex-row flex-1 w-full bg-sidebar relative overflow-hidden">
         <div className="lg:fixed lg:left-0 lg:top-[64px] lg:bottom-0 lg:w-64 overflow-y-auto overflow-x-hidden">
           <AppSidebar className="h-full w-full" />
         </div>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { TemplatesList } from "@/components/templates/templates-list";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";

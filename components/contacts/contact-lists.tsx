@@ -5,33 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Plus,
-  Trash2,
-  Users,
-  ArrowRight,
-  MoreHorizontal,
-  Search,
-  Download,
-  Upload,
-  Filter,
-} from "lucide-react";
+import { Plus, Download, Trash } from "lucide-react";
 import { useTeam } from "@/app/providers/team-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useMailingLists } from "@/app/providers/mailinglist-provider";
 import {
   SheetDescription,
@@ -43,20 +24,10 @@ import {
 } from "../ui/sheet";
 import { Sheet } from "../ui/sheet";
 import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "../page-header";
 import { DataTable } from "../ui/data-table";
 import { toast } from "sonner";
-
-interface MailingList {
-  id: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  _count?: {
-    subscribers: number;
-  };
-}
+import { useApi } from "@/hooks/use-api";
 
 export function ContactLists() {
   const [newList, setNewList] = useState({ name: "", description: "" });
@@ -64,10 +35,11 @@ export function ContactLists() {
   const router = useRouter();
   const { team } = useTeam();
   const { lists, isLoading, error, refetch } = useMailingLists();
+  const { apiFetch } = useApi();
 
   const createList = async () => {
     try {
-      const response = await fetch("/api/mailing-list", {
+      const response = await apiFetch("mailing-list", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...newList, teamId: team?.id }),
@@ -86,12 +58,9 @@ export function ContactLists() {
 
   const deleteList = async (id: string) => {
     try {
-      const response = await fetch(
-        `/api/mailing-list/${id}?teamId=${team?.id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await apiFetch(`mailing-list/${id}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) throw new Error("Failed to delete list");
 
@@ -99,6 +68,12 @@ export function ContactLists() {
       toast.success("Contact list deleted successfully");
     } catch (error) {
       toast.error("Failed to delete contact list");
+    }
+  };
+
+  const confirmDeleteList = async (id: string) => {
+    if (confirm("Are you sure you want to delete this list?")) {
+      await deleteList(id);
     }
   };
 
@@ -141,10 +116,7 @@ export function ContactLists() {
               </SheetHeader>
               <div className="space-y-6 py-6">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="name"
-                    className="text-sm font-medium "
-                  >
+                  <label htmlFor="name" className="text-sm font-medium ">
                     List Name
                   </label>
                   <Input
@@ -158,10 +130,7 @@ export function ContactLists() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label
-                    htmlFor="description"
-                    className="text-sm font-medium "
-                  >
+                  <label htmlFor="description" className="text-sm font-medium ">
                     Description
                   </label>
                   <Textarea
@@ -224,12 +193,24 @@ export function ContactLists() {
               header: "Actions",
               accessorKey: "actions",
               cell: ({ row }: any) => (
-                <Button
-                  onClick={() => router.push(`/audience/lists/${row.original.id}`)}
-                  variant="outline"
-                >
-                  View
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() =>
+                      router.push(`/audience/lists/${row.original.id}`)
+                    }
+                    variant="outline"
+                  >
+                    View
+                  </Button>
+                  <Button
+                    onClick={() => confirmDeleteList(row.original.id)}
+                    variant="destructive"
+                    className="text-white cursor-pointer bg-red-500 hover:bg-red-600"
+                  >
+                    <Trash className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               ),
             },
           ]}

@@ -23,6 +23,7 @@ import { SMTPProviders } from "./smtp-providers";
 import { ApiError, SMTPProviderType } from "@/lib";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 const DEFAULT_PROVIDERS: Record<SMTPProviderType, SMTPConfig> = {
   [SMTPProviderType.CUSTOM]: {
@@ -83,7 +84,8 @@ export function SMTPSettings({
   const [editConfig, setEditConfig] = useState<SMTPConfig | null>(null);
   const { team } = useTeam();
   const { configs: smtpConfigs, isLoading, refresh } = useSMTP();
-
+  const { apiFetch } = useApi();
+  
   const form = useForm<SMTPConfig>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -130,7 +132,7 @@ export function SMTPSettings({
 
   const removeSMTPConfig = async (id: string) => {
     try {
-      await fetch(`/api/smtp/${id}`, { method: "DELETE" });
+      await apiFetch("smtp-configs/" + id, { method: "DELETE" });
       refresh();
       toast.success("SMTP configuration removed successfully");
     } catch (error) {

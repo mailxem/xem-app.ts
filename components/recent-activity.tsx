@@ -34,22 +34,26 @@ export function RecentActivity() {
           `/api/analytics/team/overview?teamId=${team?.id}`
         );
         if (!response.ok) {
-          throw new Error('Failed to fetch team overview');
+          throw new Error("Failed to fetch team overview");
         }
         const { data } = await response.json();
 
+        console.log(data, "data recent activity pain");
+
         // Convert tracking events from team overview to email events
-        const recentEvents = (data.recentActivity || []).slice(0, 10).map((activity: any) => ({
-          eventId: activity.id,
-          eventType: activity.type.toUpperCase(),
-          timestamp: activity.timestamp,
-          campaignName: activity.campaignName || '',
-          emailSubject: activity.emailSubject || 'Email Campaign',
-          recipient: activity.recipient,
-          deviceInfo: activity.deviceInfo,
-          location: activity.location
-        }));
-        
+        const recentEvents = (data.recentActivity || [])
+          .slice(0, 10)
+          .map((activity: any) => ({
+            eventId: activity.id,
+            eventType: activity.type.toUpperCase(),
+            timestamp: activity.timestamp,
+            campaignName: activity.campaignName || "",
+            emailSubject: activity.emailSubject || "Email Campaign",
+            recipient: activity.recipient,
+            deviceInfo: activity.deviceInfo,
+            location: activity.location,
+          }));
+
         setEvents(recentEvents);
       } catch (error) {
         console.error("Failed to fetch events:", error);
@@ -107,9 +111,7 @@ export function RecentActivity() {
               {event.emailSubject}
             </p>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                {event.recipient}
-              </p>
+              <p className="text-sm text-muted-foreground">{event.recipient}</p>
               {event.deviceInfo && (
                 <span className="text-xs text-muted-foreground">
                   via {event.deviceInfo.type} ({event.deviceInfo.browser})

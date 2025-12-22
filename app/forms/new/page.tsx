@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMailingLists } from "@/app/providers/mailinglist-provider";
+import { useApi } from "@/hooks/use-api";
 import {
   Form,
   FormControl,
@@ -49,6 +50,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function NewFormPage() {
   const router = useRouter();
   const { lists } = useMailingLists();
+  const { apiFetch } = useApi();
   const [fields, setFields] = useState<CustomFormField[]>([
     {
       id: "1",
@@ -70,7 +72,7 @@ export default function NewFormPage() {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const response = await fetch("/api/forms", {
+      const response = await apiFetch("forms", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -26,15 +26,6 @@ import {
 import { subDays } from "date-fns";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
-interface CampaignMetrics {
-  id: string;
-  name: string;
-  total: number;
-  openRate: number;
-  clickRate: number;
-  bounceRate: number;
-  date: string;
-}
 
 export default function Home() {
   const [campaignMetrics, setCampaignMetrics] = useState<
@@ -69,7 +60,7 @@ export default function Home() {
           total: campaign.totalEmails || 0,
           openRate: campaign.openRate / 100, // Convert from percentage
           clickRate: campaign.clickRate / 100,
-          bounceRate: (campaign.bounceRate || 0) / 100,
+          bounceRate: campaign.bounceRate ? campaign.bounceRate / 100 : 0,
           date: campaign.lastUpdated || new Date().toISOString(),
         }));
 
@@ -96,8 +87,8 @@ export default function Home() {
         period === "week"
           ? subDays(new Date(), 7)
           : period === "month"
-          ? subDays(new Date(), 30)
-          : subDays(new Date(), 90);
+            ? subDays(new Date(), 30)
+            : subDays(new Date(), 90);
 
       await downloadReport({
         teamId: team.id,
@@ -224,28 +215,13 @@ export default function Home() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-7 px-4">
-          {/* Export Analytics */}
-          <div className="lg:col-span-7">
-            <AnalyticsExport teamId={team?.id} />
-          </div>
-
-          <div className="col-span-4">
+          <div className="col-span-7">
             <h2 className="text-2xl font-semibold mb-2">Overview</h2>
             <p className="text-muted-foreground mb-4">
               Campaign performance over time
             </p>
             <div className="pl-2 bg-primary/5 p-4 rounded-lg">
               <Overview />
-            </div>
-          </div>
-
-          <div className="col-span-3">
-            <h2 className="text-2xl font-semibold mb-2">Recent Activity</h2>
-            <p className="text-muted-foreground mb-4">
-              Your latest email campaign activities
-            </p>
-            <div>
-              <RecentActivity />
             </div>
           </div>
         </div>

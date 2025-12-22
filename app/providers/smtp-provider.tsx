@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useTeam } from "./team-provider";
 import { SMTPConfig } from "@/lib/validations/smtp-provider";
+import { useApi } from "@/hooks/use-api";
 
 type SMTPContextType = {
   configs: SMTPConfig[];
@@ -29,6 +30,7 @@ export function SMTPProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const refresh = () => {
     setIsLoading(true);
@@ -38,7 +40,9 @@ export function SMTPProvider({ children }: { children: React.ReactNode }) {
   const fetchConfig = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/smtp?teamId=" + team?.id);
+      const response = await apiFetch("smtp-configs", {
+        method: "GET",
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch SMTP configuration");
       }
@@ -57,7 +61,7 @@ export function SMTPProvider({ children }: { children: React.ReactNode }) {
   const updateConfig = async (newConfig: SMTPConfig) => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/smtp", {
+      const response = await apiFetch("smtp-configs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

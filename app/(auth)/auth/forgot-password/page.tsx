@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useApi } from "@/hooks/use-api";
 
 export default function ForgotPasswordPage() {
   // 🔐 Form schema for forgot password
@@ -29,13 +30,16 @@ export default function ForgotPasswordPage() {
     resolver: zodResolver(forgotPasswordSchema),
   });
 
+  const { apiFetch } = useApi();
+
   // 📧 Handle forgot password submission
   const handleForgotPassword = async (
     data: z.infer<typeof forgotPasswordSchema>
   ) => {
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await apiFetch("auth/password-reset", {
         method: "POST",
+        requireAuth: false,
         body: JSON.stringify(data),
       });
       const result = await response.json();

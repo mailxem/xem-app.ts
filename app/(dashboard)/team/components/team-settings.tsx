@@ -12,12 +12,14 @@ import {
 import { useTemplates } from "@/app/providers/templates-provider";
 import { useTeam } from "@/app/providers/team-provider";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 
 export function TeamSettings() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const { templates } = useTemplates();
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   useEffect(() => {
     if (team?.emailTemplateId) {
@@ -28,7 +30,7 @@ export function TeamSettings() {
   const handleTemplateChange = async (value: string) => {
     setSelectedTemplate(value);
     try {
-      const response = await fetch("/api/team/settings", {
+      const response = await apiFetch("team/settings", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

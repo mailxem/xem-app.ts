@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useTeam } from "@/app/providers/team-provider";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { useApi } from "@/hooks/use-api";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function OnboardingPage() {
   const {
     data: user,
   } = useSession();
+  const { apiFetch } = useApi();
 
   if (!user) {
     router.push("/auth/login");
@@ -45,7 +47,7 @@ export default function OnboardingPage() {
   const handleOnboarding = async (data: z.infer<typeof onboardingSchema>) => {
     try {
       toast.loading("Setting up team...");
-      const response = await fetch("/api/team", {
+      const response = await apiFetch("team", {
         method: "POST",
         body: JSON.stringify(data),
       });

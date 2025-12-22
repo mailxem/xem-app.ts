@@ -16,6 +16,7 @@ import React, { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useApi } from "@/hooks/use-api";
 
 const resetPasswordSchema = z
   .object({
@@ -38,6 +39,7 @@ export default function ResetPasswordPage({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { token } = use(params);
   const router = useRouter();
+  const { apiFetch } = useApi();
 
   const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
     defaultValues: {
@@ -52,12 +54,12 @@ export default function ResetPasswordPage({
     data: z.infer<typeof resetPasswordSchema>
   ) => {
     try {
-      const response = await fetch("/api/auth/forgot-password/verify", {
+      const response = await apiFetch("auth/password-reset/verify", {
         method: "POST",
+        requireAuth: false,
         body: JSON.stringify({
-          token,
-          password: data.password,
-          confirmPassword: data.confirmPassword,
+          code: token,
+          new_password: data.password,
         }),
       });
 
@@ -122,7 +124,7 @@ export default function ResetPasswordPage({
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={resetPasswordForm.control}
                   name="confirmPassword"

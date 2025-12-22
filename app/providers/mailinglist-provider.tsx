@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { MailingList } from "@/lib";
 import { useTeam } from "./team-provider";
+import { useApi } from "@/hooks/use-api";
 
 type MailingListContextType = {
   lists: MailingList[];
@@ -31,11 +32,12 @@ export function MailingListProvider({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const fetchLists = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/mailing-list?teamId=" + team?.id);
+      const response = await apiFetch("mailing-lists");
       if (!response.ok) {
         throw new Error("Failed to fetch mailing lists");
       }

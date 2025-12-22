@@ -43,6 +43,9 @@ import { Popover } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
+import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -66,14 +69,15 @@ export default function APIKeysPage() {
   });
 
   const router = useRouter();
-
+  const { apiFetch } = useApi();
+  const { data: session } = useSession();
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const deleteApiKey = async (id: string) => {
     try {
-      const response = await fetch(`/api/team/api-keys/${id}`, {
+      const response = await apiFetch(`api-keys/${id}`, {
         method: "DELETE",
       });
 
@@ -88,7 +92,7 @@ export default function APIKeysPage() {
 
   const toggleApiKey = async (id: string, isActive: boolean) => {
     try {
-      const response = await fetch(`/api/team/api-keys/${id}/toggle`, {
+      const response = await apiFetch(`api-keys/${id}/toggle`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +105,9 @@ export default function APIKeysPage() {
       setApiKeys(
         apiKeys?.map((key) => (key.id === id ? { ...key, isActive } : key))
       );
-      toast.success(`API key ${isActive ? "activated" : "deactivated"} successfully`);
+      toast.success(
+        `API key ${isActive ? "activated" : "deactivated"} successfully`
+      );
     } catch (error) {
       toast.error("Failed to update API key");
     }
@@ -109,22 +115,29 @@ export default function APIKeysPage() {
 
   const fetchApiKeys = async () => {
     try {
-      const response = await fetch("/api/team/api-keys");
-      const { data } = await response.json();
+      const response = await apiFetch("api-keys");
+      if (!response.ok) throw new Error("Failed to fetch API keys");
+      const data = await response.json();
       setApiKeys(data.data);
       if (data.total > 0) {
         setSelectedKey(data.data[0].id);
       }
-      console.log(apiKeys, "FETCHED");
     } catch (error) {
+      console.error(error, "Failed to fetch API keys");
       toast.error("Failed to fetch API keys");
     }
   };
 
+  useQuery({
+    queryKey: ["api-keys"],
+    queryFn: () => fetchApiKeys(),
+    enabled: !!session?.user,
+  });
+
   const createApiKey = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/team/api-keys", {
+      const response = await apiFetch("api-keys", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,10 +157,6 @@ export default function APIKeysPage() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchApiKeys();
-  }, []);
 
   return (
     <div className="flex-1">
@@ -232,9 +241,7 @@ export default function APIKeysPage() {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type={isLoading ? "button" : "submit"}
-                  >
+                  <Button type={isLoading ? "button" : "submit"}>
                     {isLoading ? "Creating..." : "Create Key"}
                   </Button>
                 </SheetFooter>
@@ -258,8 +265,8 @@ export default function APIKeysPage() {
               />
             </div>
             <p className="text-muted-foreground">
-              The Xem API makes it easy for programmers to integrate
-              Xem's features into other applications.
+              The Xem API makes it easy for programmers to integrate Xem's
+              features into other applications.
             </p>
           </div>
           <Button variant="outline" className="w-max justify-start">
@@ -279,8 +286,8 @@ export default function APIKeysPage() {
               />
             </div>
             <p className="text-muted-foreground">
-              Writing your own application that requires access to other
-              Xem users' accounts? Check out our{" "}
+              Writing your own application that requires access to other Xem
+              users' accounts? Check out our{" "}
               <Link href="#" className="text-primary hover:underline">
                 OAuth2 API documentation
               </Link>
@@ -325,8 +332,8 @@ export default function APIKeysPage() {
           .
         </p>
 
-        <DataTable columns={
-          [
+        <DataTable
+          columns={[
             {
               header: "Name",
               accessorKey: "name",
@@ -344,20 +351,37 @@ export default function APIKeysPage() {
               accessorKey: "actions",
               cell: ({ row }) => (
                 <div className="space-x-2">
-                  <Button onClick={() => router.push(`/settings/api-keys/${row.original.id}`)} variant="ghost" size="sm">
+                  <Button
+                    onClick={() =>
+                      router.push(`/settings/api-keys/${row.original.id}`)
+                    }
+                    variant="ghost"
+                    size="sm"
+                  >
                     Stats
                   </Button>
-                  <Button onClick={() => toggleApiKey(row.original.id, !row.original.isDeleted)} variant="ghost" size="sm">
+                  <Button
+                    onClick={() =>
+                      toggleApiKey(row.original.id, !row.original.isDeleted)
+                    }
+                    variant="ghost"
+                    size="sm"
+                  >
                     Toggle
                   </Button>
-                  <Button onClick={() => deleteApiKey(row.original.id)} variant="destructive" size="sm">
+                  <Button
+                    onClick={() => deleteApiKey(row.original.id)}
+                    variant="destructive"
+                    size="sm"
+                  >
                     Delete
                   </Button>
                 </div>
               ),
             },
-          ]
-        } data={apiKeys} />
+          ]}
+          data={apiKeys}
+        />
       </div>
     </div>
   );

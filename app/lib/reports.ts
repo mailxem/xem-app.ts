@@ -16,9 +16,11 @@ export interface ReportMetrics extends MetricsData {
   period?: string;
 }
 
-export async function generateReport(options: ReportOptions): Promise<string | Blob> {
+export async function generateReport(
+  options: ReportOptions
+): Promise<string | Blob> {
   const queryParams = new URLSearchParams();
-  
+
   if (options.startDate) {
     queryParams.append("startDate", options.startDate.toISOString());
   }
@@ -33,20 +35,22 @@ export async function generateReport(options: ReportOptions): Promise<string | B
   }
   queryParams.append("teamId", options.teamId);
 
-  const response = await fetch(`/api/email/track/metrics?${queryParams.toString()}`);
+  const response = await fetch(
+    `/api/email/track/metrics?${queryParams.toString()}`
+  );
   const data: ReportMetrics[] = await response.json();
 
   // Process the metrics data
-  const processedData = data.map(metric => ({
+  const processedData = data.map((metric) => ({
     Date: format(new Date(metric.date), "yyyy-MM-dd"),
     Period: metric.period || "N/A",
     Campaign: metric.campaignName || "All Campaigns",
     "Total Sent": metric.total,
-    "Opens": metric.openRate,
+    Opens: metric.openRate,
     "Open Rate": `${(metric.openRate * 100).toFixed(1)}%`,
-    "Clicks": metric.clickRate,
+    Clicks: metric.clickRate,
     "Click Rate": `${(metric.clickRate * 100).toFixed(1)}%`,
-    "Bounces": metric.bounceRate,
+    Bounces: metric.bounceRate,
     "Bounce Rate": `${(metric.bounceRate * 100).toFixed(1)}%`,
   }));
 
@@ -61,13 +65,13 @@ export async function generateReport(options: ReportOptions): Promise<string | B
 
 export async function downloadReport(options: ReportOptions): Promise<void> {
   const report = await generateReport(options);
-  
+
   if (report instanceof Blob) {
     // For CSV files
     const url = window.URL.createObjectURL(report);
     const link = document.createElement("a");
     const timestamp = format(new Date(), "yyyy-MM-dd");
-    
+
     link.href = url;
     link.setAttribute(
       "download",
@@ -82,7 +86,7 @@ export async function downloadReport(options: ReportOptions): Promise<void> {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     const timestamp = format(new Date(), "yyyy-MM-dd");
-    
+
     link.href = url;
     link.setAttribute(
       "download",
@@ -92,4 +96,4 @@ export async function downloadReport(options: ReportOptions): Promise<void> {
     link.click();
     link.remove();
   }
-} 
+}

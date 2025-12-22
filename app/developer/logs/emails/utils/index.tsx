@@ -10,3 +10,14 @@ export const parsedMailFrom = (mail: Mail | IMAPEmail) => {
   }
   return null;
 };
+
+export const parsedMailTo = (mail: Mail | IMAPEmail) => {
+  if (mail) {
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+    const match = mail.to?.toString().match(emailRegex);
+    // @ts-ignore
+    const name = mail.contact?.firstName || mail.data?.name;
+    return match ? `${name?.replace(/[^\w\s]/g, "")} <${match[0]}>` : mail.to;
+  }
+  return null;
+};

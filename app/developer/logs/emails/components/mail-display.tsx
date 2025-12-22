@@ -6,10 +6,14 @@ import {
   Archive,
   ArchiveX,
   Clock,
+  Code,
+  Copy,
   Forward,
+  Loader2,
   MoreVertical,
   Reply,
   ReplyAll,
+  Send,
   Trash2,
 } from "lucide-react";
 
@@ -43,9 +47,20 @@ import { useQuery } from "@tanstack/react-query";
 import { extract } from "letterparser";
 import { Letter } from "react-letter";
 import { IMAPEmail } from "@/app/api/imap/emails/route";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { parsedMailFrom } from "../utils";
+import { parsedMailFrom, parsedMailTo } from "../utils";
+import { useApi } from "@/hooks/use-api";
+import { HamburgerMenuIcon } from "@radix-ui/react-icons";
+import {
+  Sheet,
+  SheetHeader,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import JsonView, { ValueQuote } from "@uiw/react-json-view";
 
 interface MailDisplayProps {
   mail: IMAPEmail | Mail | null;
@@ -58,10 +73,19 @@ export default function MailDisplay({
 }: MailDisplayProps) {
   const today = new Date();
   const [reply, setReply] = useState("");
+  const [viewSourceOpen, setViewSourceOpen] = useState(false);
+  const { apiFetch } = useApi();
+
   const getMail = async (id: string) => {
-    const response = await fetch(`/api/emails?id=${id}`);
+    const response = await apiFetch(`/emails?id=${id}&include=Contact`);
     const data = await response.json();
-    return { ...data.data?.[0] };
+
+    if (id) {
+      const email = data.data?.[0];
+      data.data[0].body = Buffer.from(email.body, "base64").toString("utf-8");
+    }
+
+    return data.data?.[0];
   };
 
   const getParsedMail = (email: { body: string }) => {
@@ -82,10 +106,10 @@ ${decodedBody}
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let email = extractEmail(mailToRender?.replyTo ?? mailToRender?.from);
-    const response = await fetch(`/api/email`, {
+    const response = await apiFetch(`/emails`, {
       method: "POST",
       body: JSON.stringify({
-        email,
+        to: email,
         html: `
         ${reply}
         <div style="padding: 20px; border-left: 2px solid #ccc; margin: 10px 0;">
@@ -110,7 +134,7 @@ ${decodedBody}
     setReply("");
   };
 
-  const { data: fetchedMail } = useQuery({
+  const { data: fetchedMail, isLoading: isLoadingMail } = useQuery({
     queryKey: ["mail", mail?.id],
     queryFn: () => getMail(mail?.id),
     enabled: !!mail?.id && fetchMail,
@@ -119,7 +143,6 @@ ${decodedBody}
   const extractEmail = (email: string) => {
     const emailRegex = /<([^>]+)>/;
     const match = email.match(emailRegex);
-    console.log("match", match);
     return match ? match[1] : email;
   };
 
@@ -129,6 +152,27 @@ ${decodedBody}
     }
     return mail;
   }, [mail, fetchedMail, fetchMail]);
+
+  const handleCopyEmail = async () => {
+    if (!mailToRender) return;
+
+    try {
+      const emailContent = `From: ${mailToRender.from}
+To: ${mailToRender.to}
+Subject: ${mailToRender.subject}
+Date: ${format(new Date(mailToRender.createdAt ?? mailToRender.date), "PPpp")}
+${mailToRender.cc ? `CC: ${mailToRender.cc}` : ""}
+${mailToRender.bcc ? `BCC: ${mailToRender.bcc}` : ""}
+${mailToRender.replyTo ? `Reply-To: ${mailToRender.replyTo}` : ""}
+
+${getParsedMail(mailToRender).text || getParsedMail(mailToRender).html}`;
+
+      await navigator.clipboard.writeText(emailContent);
+      toast.success("Email copied to clipboard");
+    } catch (error) {
+      toast.error("Failed to copy email");
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -278,76 +322,191 @@ ${decodedBody}
           <Separator />
         </>
       )}
-      {mail ? (
+      {mail && !isLoadingMail ? (
         <div className="flex flex-1 flex-col">
           <div className="flex items-start p-4">
             <div className="flex items-start gap-4 text-sm">
-              <Avatar>
-                <AvatarImage alt={parsedMailFrom(mailToRender)} />
+              <Avatar className="bg-red-500 dark:bg-white">
+                <AvatarImage
+                  src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${parsedMailTo(mailToRender)}`}
+                  alt={parsedMailTo(mailToRender)?.toString()}
+                />
                 <AvatarFallback>
-                  {parsedMailFrom(mailToRender)
-                    ?.split(" ")
-                    .map((chunk) => chunk[0])
-                    .join("")}
+                  {parsedMailTo(mailToRender)
+                    ?.toString()
+                    .split(" ")[0]
+                    ?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="grid gap-1">
                 <div className="font-semibold">
-                  {parsedMailFrom(mailToRender)}
+                  {parsedMailTo(mailToRender)}
+                </div>
+                <div className="line-clamp-1 text-xs">
+                  Sent from: {parsedMailFrom(mailToRender)}
                 </div>
                 <div className="line-clamp-1 text-xs">
                   {mailToRender?.subject}
                 </div>
-                <div className="line-clamp-1 text-xs">
-                  <span className="font-medium">Reply-To:</span>{" "}
-                  {mailToRender?.replyTo}
-                </div>
-              </div>
-            </div>
-            {(mailToRender?.createdAt || mailToRender?.date) && (
-              <div className="ml-auto text-xs text-muted-foreground">
-                {format(
-                  new Date(mailToRender.createdAt ?? mailToRender.date),
-                  "PPpp"
+                {mailToRender?.replyTo && (
+                  <div className="line-clamp-1 text-xs">
+                    <span className="font-medium">Reply-To:</span>{" "}
+                    {mailToRender?.replyTo}
+                  </div>
+                )}
+                {mailToRender?.cc && (
+                  <div className="line-clamp-1 text-xs">
+                    <span className="font-medium">CC:</span> {mailToRender?.cc}
+                  </div>
+                )}
+                {mailToRender?.bcc && (
+                  <div className="line-clamp-1 text-xs">
+                    <span className="font-medium">BCC:</span>{" "}
+                    {mailToRender?.bcc}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
+            <div className="flex flex-col items-end ml-auto gap-2">
+              {(mailToRender?.createdAt || mailToRender?.date) && (
+                <div className="ml-auto text-xs text-muted-foreground">
+                  {format(
+                    new Date(mailToRender.createdAt ?? mailToRender.date),
+                    "PPpp"
+                  )}
+                </div>
+              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <HamburgerMenuIcon className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="flex flex-col gap-2 w-max">
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full items-start justify-start"
+                      >
+                        <Code className="h-4 w-4" />
+                        <span>See Email Variables</span>
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent className="sm:max-w-screen-xl max-h-screen overflow-y-auto">
+                      <SheetHeader className="mb-4">
+                        <SheetTitle>Email Variables</SheetTitle>
+                      </SheetHeader>
+                      <JsonView value={mailToRender?.data ?? {}}>
+                        <JsonView.Url
+                          render={(props, { type, value }) => {
+                            if (type === "type" && value instanceof URL) {
+                              return <span />;
+                            }
+                            if (type === "value" && value instanceof URL) {
+                              return (
+                                <Fragment>
+                                  <a
+                                    href={value.href}
+                                    target="_blank"
+                                    {...props}
+                                  >
+                                    <ValueQuote />
+                                    {value.href}
+                                    <ValueQuote />
+                                  </a>
+                                  Open URL
+                                </Fragment>
+                              );
+                            }
+                          }}
+                        />
+                      </JsonView>
+                    </SheetContent>
+                  </Sheet>
+                  <Button
+                    variant="ghost"
+                    className="w-full items-start justify-start"
+                    onClick={handleCopyEmail}
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span>Copy Email</span>
+                  </Button>
+                  <Sheet open={viewSourceOpen} onOpenChange={setViewSourceOpen}>
+                    <SheetTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full items-start justify-start"
+                      >
+                        <Code className="h-4 w-4" />
+                        <span>View Source</span>
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent className="sm:max-w-screen-xl max-h-screen overflow-hidden flex flex-col">
+                      <SheetHeader className="mb-4">
+                        <SheetTitle>Email Source</SheetTitle>
+                        <SheetDescription>
+                          Raw email content and headers
+                        </SheetDescription>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        <pre className="h-full overflow-auto text-xs bg-muted p-4 rounded-lg">
+                          <code>{mailToRender?.body}</code>
+                        </pre>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           <Separator />
           <Letter html={getParsedMail(mailToRender).html} />
           <Separator className="mt-auto" />
-          {!fetchMail && (
-            <div className="p-4">
+          {
+            <div className="py-4 ml-1 mr-4">
               <form onSubmit={handleSubmit}>
                 <div className="grid gap-4">
                   <Textarea
-                    className="p-4"
+                    className="p-2 border-muted"
                     name="reply"
                     onChange={(e) => {
                       setReply(e.target.value);
                     }}
-                    placeholder={`Reply ${mailToRender?.from}...`}
+                    placeholder={`${fetchedMail ? "Follow up with" : "Reply to"} ${parsedMailTo(mailToRender)}...`}
+                    disabled={isLoadingMail}
                   />
-                  <div className="flex items-center">
-                    <Label
-                      htmlFor="mute"
-                      className="flex items-center gap-2 text-xs font-normal"
-                    >
-                      <Switch id="mute" aria-label="Mute thread" /> Mute this
-                      thread
-                    </Label>
-                    <Button type="submit" size="sm" className="ml-auto">
-                      Send
-                    </Button>
-                  </div>
+                  {
+                    <div className="flex gap-8 items-center">
+                      <Button type="submit" className="mr-auto px-8">
+                        <Send className="h-4 w-4" />
+                        Send
+                      </Button>
+                      {!fetchMail && (
+                        <Label
+                          htmlFor="mute"
+                          className="flex items-center gap-2 text-xs font-normal"
+                        >
+                          <Switch id="mute" aria-label="Mute thread" /> Mute
+                          this thread
+                        </Label>
+                      )}
+                    </div>
+                  }
                 </div>
               </form>
             </div>
-          )}
+          }
         </div>
       ) : (
         <div className="p-8 text-center text-muted-foreground">
-          No message selected
+          {isLoadingMail ? (
+            <div className="flex py-32 items-center justify-center">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : (
+            "No message selected"
+          )}
         </div>
       )}
     </div>

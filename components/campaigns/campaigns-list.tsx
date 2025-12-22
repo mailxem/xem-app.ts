@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
 
 export function CampaignsList() {
   const {
@@ -29,12 +30,15 @@ export function CampaignsList() {
     setLimit,
   } = useCampaigns();
   const router = useRouter();
+  
+  const { apiFetch } = useApi();
+
   const deleteCampaign = async (id: string) => {
-    const campaign = await fetch(`/api/campaigns/${id}`, {
+    const response = await apiFetch("campaigns/" + id, {
       method: "DELETE",
     });
 
-    if (campaign.ok) {
+    if (response.ok) {
       refetch();
       toast.success("Campaign deleted successfully");
     }

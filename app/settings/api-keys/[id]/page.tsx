@@ -30,6 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useApi } from "@/hooks/use-api";
 
 interface APIKeyUsage {
   id: string;
@@ -78,23 +80,27 @@ export default function APIKeyDetailsPage() {
     recentErrors: [],
   });
   const [timeRange, setTimeRange] = useState("24h");
-  const [isLoading, setIsLoading] = useState(true);
+  const { apiFetch } = useApi();
+  
+  const fetchUsageData = async () => {
+    try {
+      const response = await apiFetch(`api-key-usage?api_key_id=${params.id}`, {
+        method: "GET",
+      });
+      if (!response.ok) throw new Error("Failed to fetch API key usage data");
+      const data = await response.json();
+      setUsageStats(data.data);
+    } catch (error) {
+      console.error(error, "Failed to fetch API key usage data");
+      toast.error("Failed to fetch API key usage data");
+    }
+  };
 
-  useEffect(() => {
-    const fetchUsageData = async () => {
-      try {
-        const response = await fetch(`/api/team/api-keys/${params.id}/stats`);
-        const data = await response.json();
-        setUsageStats(data.data);
-      } catch (error) {
-        toast.error("Failed to fetch API key usage data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUsageData();
-  }, [params.id, timeRange, toast]);
+  useQuery({
+    queryKey: ["api-key-usage", params.id, timeRange],
+    queryFn: () => fetchUsageData(),
+    enabled: !!params.id,
+  });
 
   const getMethodColor = (method: string) => {
     switch (method) {

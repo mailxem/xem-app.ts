@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/accordion";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
 
 const campaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -218,6 +219,7 @@ const NewCampaignForm = () => {
   const { templates } = useTemplates();
   const { lists } = useMailingLists();
   const { configs: smtpConfigs } = useSMTP();
+  const { apiFetch } = useApi();
   const [currentStep, setCurrentStep] = useState("to");
   const [isScheduled, setIsScheduled] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
@@ -251,7 +253,7 @@ const NewCampaignForm = () => {
 
   const onSubmit = async (data: CampaignFormValues) => {
     try {
-      const response = await fetch("/api/campaigns", {
+      const response = await apiFetch("campaigns", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

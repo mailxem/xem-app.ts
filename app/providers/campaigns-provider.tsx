@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useTeam } from "./team-provider";
 import { Campaign } from "@/lib";
+import { useApi } from "@/hooks/use-api";
 type CampaignsContextType = {
   campaigns: Campaign[];
   loading: boolean;
@@ -42,10 +43,11 @@ export function CampaignsProvider({ children }: { children: React.ReactNode }) {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const { apiFetch } = useApi();
 
   const getCampaign = async (id: string) => {
     try {
-      const response = await fetch("/api/campaigns?id=" + id);
+      const response = await apiFetch("campaigns?id=" + id);
       if (!response.ok) {
         throw new Error("Failed to fetch campaign");
       }
@@ -60,8 +62,8 @@ export function CampaignsProvider({ children }: { children: React.ReactNode }) {
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "/api/campaigns?teamId=" + team?.id + "&page=" + page + "&limit=" + limit
+      const response = await apiFetch(
+        "campaigns?teamId=" + team?.id + "&page=" + page + "&limit=" + limit
       );
 
       if (!response.ok) {

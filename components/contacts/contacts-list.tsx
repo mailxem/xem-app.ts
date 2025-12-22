@@ -17,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
 
 interface Contact {
   id: string;
@@ -42,14 +44,25 @@ export function ContactsList({ listId }: { listId: string }) {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const fetchContacts = async () => {
     if (!listId) return;
 
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `/api/contacts?listId=${listId}&teamId=${team?.id}&page=${pagination.pageIndex}&limit=${pagination.pageSize}`
+      const response = await apiFetch(
+        "contacts?list_id=" +
+          listId +
+          "&team_id=" +
+          team?.id +
+          "&page=" +
+          pagination.pageIndex +
+          "&limit=" +
+          pagination.pageSize,
+        {
+          method: "GET",
+        }
       );
       if (!response.ok) throw new Error("Failed to fetch contacts");
       const data = await response.json();
@@ -59,7 +72,6 @@ export function ContactsList({ listId }: { listId: string }) {
         pageSize: data.limit,
       });
       setTotal(data.total);
-      toast.success("Contacts fetched successfully");
     } catch (error) {
       toast.error("Failed to fetch contacts");
     } finally {
@@ -73,12 +85,10 @@ export function ContactsList({ listId }: { listId: string }) {
   ) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/contacts/${contactId}`, {
+      const response = await apiFetch("contacts/" + contactId, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: newStatus,
-          teamId: team?.id,
         }),
       });
 
@@ -98,11 +108,10 @@ export function ContactsList({ listId }: { listId: string }) {
     }
   };
 
-  useEffect(() => {
-    if (team?.id && listId) {
-      fetchContacts();
-    }
-  }, [team?.id, listId]);
+  useQuery({
+    queryKey: ["contacts", listId, pagination.pageIndex, pagination.pageSize],
+    queryFn: () => fetchContacts(),
+  });
 
   const columns: ColumnDef<Contact>[] = [
     {
@@ -238,9 +247,6 @@ export function ContactsList({ listId }: { listId: string }) {
   return (
     <div className="space-y-4 pb-20">
       <div className="w-full overflow-visible">
-        <h1 className="inline-block text-2xl font-semibold mb-4" id="header">
-          Audience
-        </h1>
         <div className="pt-3 pb-4">
           <div className="hidden mb-4">
             <div>

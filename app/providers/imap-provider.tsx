@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useTeam } from "./team-provider";
 import { IMAPConfig } from "@/lib/validations/imap-provider";
+import { useApi } from "@/hooks/use-api";
 
 type IMAPContextType = {
   configs: IMAPConfig[];
@@ -29,6 +30,7 @@ export function IMAPProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const refresh = () => {
     setIsLoading(true);
@@ -38,7 +40,7 @@ export function IMAPProvider({ children }: { children: React.ReactNode }) {
   const fetchConfig = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/imap?teamId=" + team?.id);
+      const response = await apiFetch("imap?teamId=" + team?.id);
       if (!response.ok) {
         throw new Error("Failed to fetch IMAP configuration");
       }
@@ -57,7 +59,7 @@ export function IMAPProvider({ children }: { children: React.ReactNode }) {
   const updateConfig = async (newConfig: IMAPConfig) => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/imap", {
+      const response = await apiFetch("imap", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

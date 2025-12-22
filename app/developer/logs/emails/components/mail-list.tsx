@@ -8,7 +8,7 @@ import { Mail } from "@/app/types";
 import { useMail } from "@/hooks/use-mail";
 import { IMAPEmail } from "@/app/api/imap/emails/route";
 import { extract } from "letterparser";
-import { parsedMailFrom } from "../utils";
+import { parsedMailFrom, parsedMailTo } from "../utils";
 
 interface MailListProps {
   items: Mail[] | IMAPEmail[];
@@ -56,7 +56,7 @@ export default function MailList({
             <div className="flex w-full flex-col gap-1">
               <div className="flex items-center">
                 <div className="flex items-center gap-2">
-                  <div className="font-semibold">{parsedMailFrom(item)}</div>
+                  <div className="font-semibold">{parsedMailTo(item)}</div>
                   {/* {!item.read && (
                     <span className="flex h-2 w-2 rounded-full bg-blue-600" />
                   )} */}

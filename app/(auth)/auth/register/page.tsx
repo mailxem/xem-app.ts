@@ -9,25 +9,23 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { signIn, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import Link from "next/link";
-import { EyeOffIcon, MailIcon } from "lucide-react";
+import { EyeOffIcon } from "lucide-react";
 import { EyeIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import GoogleIcon from "@/components/icon/GoogleIcon";
+import { useApi } from "@/hooks/use-api";
 
 export default function RegisterPage() {
   const registerFormSchema = z
     .object({
       email: z.string().email(),
-      firstName: z.string().min(1),
-      lastName: z.string().min(1),
+      first_name: z.string().min(1),
+      last_name: z.string().min(1),
       password: z.string().min(8),
       confirmPassword: z.string().min(8),
     })
@@ -39,8 +37,8 @@ export default function RegisterPage() {
   const form = useForm<z.infer<typeof registerFormSchema>>({
     defaultValues: {
       email: "",
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       password: "",
       confirmPassword: "",
     },
@@ -49,9 +47,9 @@ export default function RegisterPage() {
   });
 
   const { data: session } = useSession();
+  const { apiFetch } = useApi();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showEmailRegister, setShowEmailRegister] = useState(false);
 
   if (session) {
     redirect("/");
@@ -59,8 +57,9 @@ export default function RegisterPage() {
 
   const handleRegister = async (data: z.infer<typeof registerFormSchema>) => {
     try {
-      const response = await fetch("/api/auth/signup", {
+      const response = await apiFetch("auth/signup", {
         method: "POST",
+        requireAuth: false,
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -110,7 +109,7 @@ export default function RegisterPage() {
                   <div className="grid gap-2 grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="firstName"
+                      name="first_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
@@ -127,7 +126,7 @@ export default function RegisterPage() {
 
                     <FormField
                       control={form.control}
-                      name="lastName"
+                      name="last_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>

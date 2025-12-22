@@ -23,12 +23,12 @@ export default function AnalyticsPage() {
           <Stats />
         </div>
 
-        <div className="grid gap-4">
+        {/* <div className="grid gap-4">
           <AnalyticsExport teamId={team?.id} />
-        </div>
+        </div> */}
 
         <div className="grid gap-4 lg:grid-cols-7">
-          <div className="col-span-4">
+          {/* <div className="col-span-7">
             <h2 className="text-2xl font-semibold mb-2">Performance Overview</h2>
             <p className="text-muted-foreground mb-4">
               Campaign performance trends over time
@@ -36,9 +36,9 @@ export default function AnalyticsPage() {
             <div className="pl-2 bg-primary/5 p-4 rounded-lg">
               <Overview />
             </div>
-          </div>
+          </div> */}
 
-          <div className="col-span-3">
+          {/* <div className="col-span-3">
             <h2 className="text-2xl font-semibold mb-2">Recent Activity</h2>
             <p className="text-muted-foreground mb-4">
               Latest email campaign events and interactions
@@ -46,7 +46,7 @@ export default function AnalyticsPage() {
             <div>
               <RecentActivity />
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="grid gap-4">

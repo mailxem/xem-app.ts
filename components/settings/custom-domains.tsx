@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, RefreshCw, Globe, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useApi } from "@/hooks/use-api";
 
 const SERVER_IP = process.env.NEXT_PUBLIC_SERVER_IP || "127.0.0.1";
 
@@ -23,6 +24,7 @@ export function CustomDomains() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState<string | null>(null);
   const { team, refreshTeam } = useTeam();
+  const { apiFetch } = useApi();
 
   const addDomain = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +32,7 @@ export function CustomDomains() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/settings/domains", {
+      const response = await apiFetch("settings/domains", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,7 +61,7 @@ export function CustomDomains() {
   const verifyDomain = async (domainId: string) => {
     setIsVerifying(domainId);
     try {
-      const response = await fetch(`/api/settings/domains/${domainId}/verify`, {
+      const response = await apiFetch(`settings/domains/${domainId}/verify`, {
         method: "POST",
       });
 
@@ -87,7 +89,7 @@ export function CustomDomains() {
 
   const deleteDomain = async (domainId: string) => {
     try {
-      const response = await fetch(`/api/settings/domains/${domainId}`, {
+      const response = await apiFetch(`settings/domains/${domainId}`, {
         method: "DELETE",
       });
 

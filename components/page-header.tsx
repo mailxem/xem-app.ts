@@ -1,21 +1,9 @@
 "use client";
 
 import { logger } from "@/app/lib/logger";
-import { ChevronLeft, LogOut } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { auth } from "@/auth";
-import { signOut, useSession } from "next-auth/react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
 
 interface PageHeaderProps {
   heading: string;
@@ -53,7 +41,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 bg-sidebar",
+        "sticky top-0 z-10 bg-background",
         "border-b border-muted py-4 px-8",
         className
       )}

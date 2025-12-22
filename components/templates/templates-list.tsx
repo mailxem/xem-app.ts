@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import {
   MoreHorizontal,
   Pencil,
   Trash,
   Copy,
-  Mail,
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
@@ -26,10 +22,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmailTemplate } from "@/lib";
-import { useQuery } from "@tanstack/react-query";
-import { Pagination } from "../ui/pagination";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
+import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
 
 interface Template {
   id: string;
@@ -53,12 +49,19 @@ export function TemplatesList() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { team } = useTeam();
+  const { apiFetch } = useApi();
 
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `/api/templates?page=${pagination.pageIndex}&limit=${pagination.pageSize}`
+      const response = await apiFetch(
+        "templates?page=" +
+          pagination.pageIndex +
+          "&limit=" +
+          pagination.pageSize,
+        {
+          method: "GET",
+        }
       );
       if (!response.ok) throw new Error("Failed to fetch templates");
       const data = await response.json();
@@ -78,7 +81,7 @@ export function TemplatesList() {
   const deleteTemplate = async (id: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/templates/${id}?teamId=${team?.id}`, {
+      const response = await apiFetch(`templates/${id}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete template");
@@ -96,11 +99,8 @@ export function TemplatesList() {
   const duplicateTemplate = async (data: EmailTemplate) => {
     try {
       setIsLoading(true);
-      const createResponse = await fetch("/api/templates", {
+      const createResponse = await apiFetch("templates", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           ...data,
           id: undefined,
@@ -121,11 +121,11 @@ export function TemplatesList() {
     }
   };
 
-  useEffect(() => {
-    if (team?.id) {
-      fetchTemplates();
-    }
-  }, [team?.id]);
+  useQuery({
+    queryKey: ["templates", pagination.pageIndex, pagination.pageSize],
+    queryFn: fetchTemplates,
+    enabled: !!team?.id,
+  });
 
   return (
     <div className="space-y-4 pb-12">
@@ -138,17 +138,13 @@ export function TemplatesList() {
           <p className="text-muted-foreground">No templates found</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid">
           {templates?.map((template) => (
             <div
               key={template.id}
               className="flex items-center justify-between p-4 border border-muted rounded-lg"
             >
               <div className="flex items-center gap-4">
-                <img
-                  src="/assets/pixeltrue-icons-browser-window-with-website-code-and-paint-roller.png"
-                  className="h-16"
-                />
                 <div>
                   <h3 className="font-medium">{template.name}</h3>
                   <p className="text-sm text-muted-foreground">
@@ -202,7 +198,7 @@ export function TemplatesList() {
           {pagination && (
             <div className="flex justify-between items-center mt-4 text-sm text-[#606060]">
               <div>
-                Showing results {pagination.pageIndex} - {" "}
+                Showing results {pagination.pageIndex} -{" "}
                 {pagination.pageIndex * pagination.pageSize} of {totalCount}
               </div>
               <div className="flex items-center gap-2">
