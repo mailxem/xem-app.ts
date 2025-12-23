@@ -1,5 +1,5 @@
-import { IMAPEmail } from "@/app/api/imap/emails/route";
 import { Mail } from "@/app/types";
+import { IMAPEmail } from "@/types/imap";
 
 export const parsedMailFrom = (mail: Mail | IMAPEmail) => {
   if (mail) {

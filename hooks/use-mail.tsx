@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import { Mail } from "@/app/types";
-import { IMAPEmail } from "@/app/api/imap/emails/route";
+import { IMAPEmail } from "@/types/imap";
 
 type MailState = {
   selected: string | null;
   mail: Mail | IMAPEmail | null;
-  setMail: (state: { selected: string | null; mail: Mail | IMAPEmail | null }) => void;
+  setMail: (state: {
+    selected: string | null;
+    mail: Mail | IMAPEmail | null;
+  }) => void;
 };
 
 export const useMail = create<MailState>((set) => ({

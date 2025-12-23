@@ -46,7 +46,6 @@ import { Mail } from "@/app/types";
 import { useQuery } from "@tanstack/react-query";
 import { extract } from "letterparser";
 import { Letter } from "react-letter";
-import { IMAPEmail } from "@/app/api/imap/emails/route";
 import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { parsedMailFrom, parsedMailTo } from "../utils";
@@ -61,6 +60,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import JsonView, { ValueQuote } from "@uiw/react-json-view";
+import { IMAPEmail } from "@/types/imap";
 
 interface MailDisplayProps {
   mail: IMAPEmail | Mail | null;

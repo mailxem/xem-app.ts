@@ -29,7 +29,7 @@ import { type Mail } from "@/app/types";
 import { useMail } from "@/hooks/use-mail";
 import { cn } from "@/lib/utils";
 import { Nav } from "./components/nav";
-import { IMAPEmail, IMAPEmailResponse } from "../api/imap/emails/route";
+import { IMAPEmail, IMAPEmailResponse } from "@/types/imap";
 import { useMemo } from "react";
 import { useApi } from "@/hooks/use-api";
 

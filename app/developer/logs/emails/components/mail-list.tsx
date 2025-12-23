@@ -6,9 +6,9 @@ import { cn, generateKey } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mail } from "@/app/types";
 import { useMail } from "@/hooks/use-mail";
-import { IMAPEmail } from "@/app/api/imap/emails/route";
 import { extract } from "letterparser";
 import { parsedMailFrom, parsedMailTo } from "../utils";
+import { IMAPEmail } from "@/types/imap";
 
 interface MailListProps {
   items: Mail[] | IMAPEmail[];
