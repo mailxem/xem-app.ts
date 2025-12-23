@@ -1,15 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { useTeam } from "./team-provider";
 import { IMAPConfig } from "@/lib/validations/imap-provider";
 import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
 
 type IMAPContextType = {
   configs: IMAPConfig[];
   isLoading: boolean;
   error: Error | null;
-  updateConfig: (config: IMAPConfig) => Promise<void>;
   refresh: () => void;
 };
 
@@ -17,7 +17,6 @@ const IMAPContext = createContext<IMAPContextType>({
   configs: [],
   isLoading: true,
   error: null,
-  updateConfig: async () => {},
   refresh: () => {},
 });
 
@@ -40,13 +39,15 @@ export function IMAPProvider({ children }: { children: React.ReactNode }) {
   const fetchConfig = async () => {
     try {
       setIsLoading(true);
-      const response = await apiFetch("imap?teamId=" + team?.id);
+      const response = await apiFetch("imap?limit=100&team_id=" + team?.id);
       if (!response.ok) {
         throw new Error("Failed to fetch IMAP configuration");
       }
       const { data } = await response.json();
       setConfigs(data);
       setError(null);
+      setIsLoading(false);
+      return data;
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error("Unknown error occurred")
@@ -56,42 +57,11 @@ export function IMAPProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateConfig = async (newConfig: IMAPConfig) => {
-    try {
-      setIsLoading(true);
-      const response = await apiFetch("imap", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...newConfig,
-          teamId: team?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update IMAP configuration");
-      }
-
-      const data = await response.json();
-      setConfigs(data);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Unknown error occurred")
-      );
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (team?.id) {
-      fetchConfig();
-    }
-  }, [team?.id]);
+  useQuery({
+    queryKey: ["imap-configs", team?.id],
+    queryFn: fetchConfig,
+    enabled: !!team?.id,
+  });
 
   return (
     <IMAPContext.Provider
@@ -99,7 +69,6 @@ export function IMAPProvider({ children }: { children: React.ReactNode }) {
         configs,
         isLoading,
         error,
-        updateConfig,
         refresh,
       }}
     >

@@ -85,7 +85,7 @@ export function SMTPSettings({
   const { team } = useTeam();
   const { configs: smtpConfigs, isLoading, refresh } = useSMTP();
   const { apiFetch } = useApi();
-  
+
   const form = useForm<SMTPConfig>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -101,20 +101,19 @@ export function SMTPSettings({
       // first test the configuration
       await testConfiguration(data);
 
-      const response = await fetch(data.id ? `/api/smtp` : "/api/smtp", {
-        method: data.id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          smtpConfigs: [
-            {
-              ...data,
-              port: Number(data.port),
-              maxSendRate: Number(data.maxSendRate),
-            },
-          ],
-          teamId: team.id,
-        }),
-      });
+      const response = await apiFetch(
+        data.id ? "smtp-configs/" + data.id : "smtp-configs",
+        {
+          method: data.id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...data,
+            port: Number(data.port),
+            requireTls: Number(data.port) === 587,
+            maxSendRate: Number(data.maxSendRate),
+          }),
+        }
+      );
 
       if (!response.ok) {
         const apiError = (await response.json()) as ApiError;
@@ -142,12 +141,14 @@ export function SMTPSettings({
 
   const testConfiguration = async (config: SMTPConfig) => {
     try {
-      const response = await fetch(`/api/smtp/test`, {
+      const response = await apiFetch("smtp/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...config,
+          from: config.fromEmail,
           port: Number(config.port),
+          requireTls: Number(config.port) === 587,
           maxSendRate: Number(config.maxSendRate),
         }),
       });

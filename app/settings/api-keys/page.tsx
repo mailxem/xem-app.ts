@@ -92,12 +92,12 @@ export default function APIKeysPage() {
 
   const toggleApiKey = async (id: string, isActive: boolean) => {
     try {
-      const response = await apiFetch(`api-keys/${id}/toggle`, {
-        method: "POST",
+      const response = await apiFetch(`api-keys/${id}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ isActive }),
+        body: JSON.stringify({ isDeleted: !isActive }),
       });
 
       if (!response.ok) throw new Error("Failed to update API key");

@@ -8,7 +8,6 @@ FROM oven/bun:alpine AS builder
 
 WORKDIR /app
 
-
 # 📚 Copy package files 📚
 # ======================
 

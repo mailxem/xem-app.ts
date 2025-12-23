@@ -22,6 +22,7 @@ import { useIMAP } from "@/app/providers/imap-provider";
 import { IMAPConfig, IMAPConfigSchema } from "@/lib/validations/imap-provider";
 import { ApiError } from "@/lib";
 import { IMAPProviders } from "./imap-providers";
+import { useApi } from "@/hooks/use-api";
 
 export function IMAPSettings({
   isDialogOpen,
@@ -31,9 +32,8 @@ export function IMAPSettings({
   setIsDialogOpen: (open: boolean) => void;
 }) {
   const [editConfig, setEditConfig] = useState<IMAPConfig | null>(null);
-  const { team } = useTeam();
   const { configs: imapConfigs, isLoading, refresh } = useIMAP();
-
+  const { apiFetch } = useApi();
   const form = useForm<IMAPConfig>({
     resolver: zodResolver(IMAPConfigSchema),
     defaultValues: {
@@ -50,17 +50,12 @@ export function IMAPSettings({
       // first test the configuration
       await testConfiguration(data);
 
-      const response = await fetch(data.id ? `/api/imap` : "/api/imap", {
+      const response = await apiFetch(data.id ? "imap/" + data.id : "imap", {
         method: data.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imapConfigs: [
-            {
-              ...data,
-              port: Number(data.port),
-            },
-          ],
-          teamId: team.id,
+          ...data,
+          port: Number(data.port),
         }),
       });
 
@@ -80,7 +75,7 @@ export function IMAPSettings({
 
   const removeSMTPConfig = async (id: string) => {
     try {
-      await fetch(`/api/imap/${id}`, { method: "DELETE" });
+      await apiFetch("imap/" + id, { method: "DELETE" });
       refresh();
       toast.success("IMAP configuration removed successfully");
     } catch (error) {
@@ -90,7 +85,7 @@ export function IMAPSettings({
 
   const testConfiguration = async (config: IMAPConfig) => {
     try {
-      const response = await fetch(`/api/imap/test`, {
+      const response = await apiFetch("imap/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

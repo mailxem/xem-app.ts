@@ -4,13 +4,14 @@ import axios from "axios";
 export class APIService {
   private readonly baseUrl: string;
   private readonly accessToken: any;
-  
+
   constructor(endpoint: string, session?: any) {
     let baseUrl = "";
     if (typeof window === "undefined") {
       baseUrl = process.env.INTERNAL_API_URL as string;
     } else {
-      baseUrl = process.env.NEXT_PUBLIC_API_URL as string;
+      const { API_BASE_URL } = require("@/hooks/use-api");
+      baseUrl = API_BASE_URL as string;
     }
     this.baseUrl = `${baseUrl}/${endpoint}`;
     this.accessToken = session?.accessToken;

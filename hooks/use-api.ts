@@ -4,7 +4,9 @@ import { useSession } from "next-auth/react";
 
 type ApiFetchOptions = RequestInit & { requireAuth?: boolean };
 
-const baseApiUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+const env = process.env;
+
+export const API_BASE_URL = env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
 
 export function useApi() {
   const { data: session, status } = useSession();
@@ -31,7 +33,7 @@ export function useApi() {
     }
 
     const normalizedPath = path.replace(/^\/+/, "");
-    const url = `${baseApiUrl}/${normalizedPath}`;
+    const url = `${API_BASE_URL}/${normalizedPath}`;
 
     const response = await fetch(url, {
       ...options,

@@ -31,36 +31,9 @@ import { cn } from "@/lib/utils";
 import { Nav } from "./components/nav";
 import { IMAPEmail, IMAPEmailResponse } from "../api/imap/emails/route";
 import { useMemo } from "react";
+import { useApi } from "@/hooks/use-api";
 
 const PAGE_SIZE = 20;
-
-async function fetchFolders() {
-  const response = await fetch(`/api/imap/folders`);
-  const data = await response.json();
-  const folders = data.folders;
-  // we need to sort the foldesr we need to put inbox first
-  const sortedFolders = folders.sort(
-    (a: { Name: string }, b: { Name: string }) => {
-      if (a.Name.toUpperCase().includes("INBOX")) return -1;
-      if (b.Name.toUpperCase().includes("INBOX")) return 1;
-      return 0;
-    }
-  );
-  return sortedFolders;
-}
-
-async function fetchEmails({ pageParam = 1, folder = "INBOX", search = "" }) {
-  const response = await fetch(
-    `/api/imap/emails?page=${pageParam}&folder=${folder}&limit=${PAGE_SIZE}&subject=${search}&body=${search}`
-  );
-  const data: IMAPEmailResponse = await response.json();
-  return {
-    results: data.emails,
-    offset: data.offset,
-    total: data.total_emails,
-    limit: data.limit,
-  };
-}
 
 export default function Mail() {
   const defaultLayout = [265, 440, 655];
@@ -71,25 +44,52 @@ export default function Mail() {
     React.useState<NodeJS.Timeout | null>(null);
 
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const { apiFetch } = useApi();
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-    isLoading,
-  } = useInfiniteQuery({
-    queryKey: ["emails", activeTab, search],
-    queryFn: ({ pageParam }) =>
-      fetchEmails({ pageParam, folder: activeTab, search }),
-    getNextPageParam: (lastPage, pages) => {
-      return lastPage.offset + PAGE_SIZE < lastPage.total
-        ? pages.length + 1
-        : undefined;
-    },
-    initialPageParam: 0,
-  });
+  const fetchFolders = async () => {
+    const response = await apiFetch("imap/folders");
+    const data = await response.json();
+    const folders = data.folders;
+    // we need to sort the foldesr we need to put inbox first
+    const sortedFolders = folders.sort(
+      (a: { Name: string }, b: { Name: string }) => {
+        if (a.Name.toUpperCase().includes("INBOX")) return -1;
+        if (b.Name.toUpperCase().includes("INBOX")) return 1;
+        return 0;
+      }
+    );
+    return sortedFolders;
+  };
+
+  const fetchEmails = async ({
+    pageParam = 1,
+    folder = "INBOX",
+    search = "",
+  }) => {
+    const response = await apiFetch(
+      `imap/emails?page=${pageParam}&folder=${folder}&limit=${PAGE_SIZE}&subject=${search}&body=${search}`
+    );
+    const data: IMAPEmailResponse = await response.json();
+    return {
+      results: data.emails,
+      offset: data.offset,
+      total: data.total_emails,
+      limit: data.limit,
+    };
+  };
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteQuery({
+      queryKey: ["emails", activeTab, search],
+      queryFn: ({ pageParam }) =>
+        fetchEmails({ pageParam, folder: activeTab, search }),
+      getNextPageParam: (lastPage, pages) => {
+        return lastPage.offset + PAGE_SIZE < lastPage.total
+          ? pages.length + 1
+          : undefined;
+      },
+      initialPageParam: 0,
+    });
 
   const { data: folders, isLoading: isFoldersLoading } = useQuery({
     queryKey: ["folders"],
@@ -231,11 +231,7 @@ export default function Mail() {
               >
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    name="search"
-                    placeholder="Search"
-                    className="pl-8"
-                  />
+                  <Input name="search" placeholder="Search" className="pl-8" />
                 </div>
               </form>
             </div>

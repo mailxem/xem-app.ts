@@ -1,15 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { useTeam } from "./team-provider";
 import { SMTPConfig } from "@/lib/validations/smtp-provider";
 import { useApi } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
 
 type SMTPContextType = {
   configs: SMTPConfig[];
   isLoading: boolean;
   error: Error | null;
-  updateConfig: (config: SMTPConfig) => Promise<void>;
   refresh: () => void;
 };
 
@@ -17,7 +17,6 @@ const SMTPContext = createContext<SMTPContextType>({
   configs: [],
   isLoading: true,
   error: null,
-  updateConfig: async () => {},
   refresh: () => {},
 });
 
@@ -34,13 +33,13 @@ export function SMTPProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = () => {
     setIsLoading(true);
-    fetchConfig();
+    refetchConfigs();
   };
 
   const fetchConfig = async () => {
     try {
       setIsLoading(true);
-      const response = await apiFetch("smtp-configs", {
+      const response = await apiFetch("smtp-configs?limit=100", {
         method: "GET",
       });
       if (!response.ok) {
@@ -49,51 +48,21 @@ export function SMTPProvider({ children }: { children: React.ReactNode }) {
       const { data } = await response.json();
       setConfigs(data);
       setError(null);
+      setIsLoading(false);
+      return data;
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error("Unknown error occurred")
       );
-    } finally {
-      setIsLoading(false);
+      throw new Error("Failed to fetch SMTP configuration: " + err.message);
     }
   };
 
-  const updateConfig = async (newConfig: SMTPConfig) => {
-    try {
-      setIsLoading(true);
-      const response = await apiFetch("smtp-configs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...newConfig,
-          teamId: team?.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update SMTP configuration");
-      }
-
-      const data = await response.json();
-      setConfigs(data);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Unknown error occurred")
-      );
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (team?.id) {
-      fetchConfig();
-    }
-  }, [team?.id]);
+  const { refetch: refetchConfigs } = useQuery({
+    queryKey: ["smtp-configs", team?.id],
+    queryFn: fetchConfig,
+    enabled: !!team?.id,
+  });
 
   return (
     <SMTPContext.Provider
@@ -101,7 +70,6 @@ export function SMTPProvider({ children }: { children: React.ReactNode }) {
         configs,
         isLoading,
         error,
-        updateConfig,
         refresh,
       }}
     >

@@ -37,6 +37,7 @@ export function ContactLists() {
   const { lists, isLoading, error, refetch, pagination, setPagination } =
     useMailingLists();
   const { apiFetch } = useApi();
+  
   const createList = async () => {
     try {
       const response = await apiFetch("mailing-list", {

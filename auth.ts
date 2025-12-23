@@ -5,8 +5,8 @@ import { logger } from "./app/lib/logger";
 import GoogleProvider from "next-auth/providers/google";
 import { isJwtExpired } from "./lib/utils";
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const env = process.env;
+export const API_URL = env.NEXT_PUBLIC_API_URL;
 
 const nextAuthConfig: NextAuthConfig = {
   callbacks: {

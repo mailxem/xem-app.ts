@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Overview } from "@/components/overview";
-import { RecentActivity } from "@/components/recent-activity";
 import { Stats } from "@/components/stats";
 import { Button } from "@/components/ui/button";
 import { Download, Plus } from "lucide-react";
-import { AnalyticsExport } from "@/components/analytics/analytics-export";
 import { DataTable } from "@/components/ui/data-table";
 import { useEffect, useState } from "react";
 import { useTeam } from "@/app/providers/team-provider";
