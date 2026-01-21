@@ -84,7 +84,6 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    console.log("useEffect", session?.user);
     fetchTeamData();
   }, [session?.user]);
 

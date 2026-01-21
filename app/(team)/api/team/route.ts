@@ -74,7 +74,7 @@ export async function GET(
     const team = await apiServiceTeam.get<{
       data: Team[];
     }>("", {
-      include: "Users",
+      include: "Users,Invites",
       id: session.user.teamId,
     });
 
