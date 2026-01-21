@@ -57,7 +57,7 @@ export default function RegisterPage() {
 
   const handleRegister = async (data: z.infer<typeof registerFormSchema>) => {
     try {
-      const response = await apiFetch("auth/signup", {
+      const response = await apiFetch("auth/register", {
         method: "POST",
         requireAuth: false,
         body: JSON.stringify(data),
