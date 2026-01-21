@@ -152,6 +152,7 @@ jobs:
           build-args: |
             CACHEBUST=$(date +%s)
             APP_ENV=${{ vars.APP_ENV }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
           network: host
           cache-from: type=gha
           cache-to: type=gha,mode=max

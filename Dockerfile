@@ -3,6 +3,9 @@
 
 FROM oven/bun:alpine AS builder
 
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 # 📂 Set working directory 📂
 # ==========================
 
