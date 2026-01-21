@@ -2,14 +2,17 @@
 
 import { useTeam } from "@/app/providers/team-provider";
 import { Button } from "@/components/ui/button";
+import { useApi } from "@/hooks/use-api";
+import { useCallback } from "react";
 import { toast } from "sonner";
 
 export function TeamInvites() {
   const { team, refreshTeam } = useTeam();
+  const { apiFetch } = useApi();
 
-  const handleCancelInvite = async (inviteId: string) => {
+  const handleCancelInvite = async (code: string) => {
     try {
-      const response = await fetch(`/api/team/invite/${inviteId}`, {
+      const response = await apiFetch(`/users/invite/${code}`, {
         method: "DELETE",
       });
 
@@ -22,9 +25,9 @@ export function TeamInvites() {
     }
   };
 
-  const resendInvite = async (inviteId: string) => {
+  const resendInvite = async (code: string) => {
     try {
-      const response = await fetch(`/api/team/invite/${inviteId}/resend`, {
+      const response = await apiFetch(`/users/invite/resend/${code}`, {
         method: "POST",
       });
 
@@ -40,6 +43,10 @@ export function TeamInvites() {
     (invite) => invite.status === "PENDING"
   );
 
+  const getInviter = useCallback(() => {
+    return team?.users.find((user) => user.id === pendingInvites?.[0]?.inviterId) ?? null;
+  }, [pendingInvites, team?.users]);
+
   if (!pendingInvites?.length) {
     return <p className="text-muted-foreground">No pending invites</p>;
   }
@@ -52,16 +59,16 @@ export function TeamInvites() {
           className="flex items-center justify-between p-4 border rounded-lg"
         >
           <div>
-            <p className="font-medium">{invite.email}</p>
+            <p className="font-medium"> {invite.name} &lt;{invite.email}&gt;</p>
             <p className="text-sm text-muted-foreground">
-              Invited by: {invite.inviter.name ?? invite.inviter.email}
+              Invited by: {getInviter()?.firstName + " " + getInviter()?.lastName}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
-              onClick={() => resendInvite(invite.id)}
+              onClick={() => resendInvite(invite.code)}
               disabled={invite.status !== "PENDING"}
             >
               Resend Invite
@@ -69,7 +76,7 @@ export function TeamInvites() {
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => handleCancelInvite(invite.id)}
+              onClick={() => handleCancelInvite(invite.code)}
             >
               Cancel Invite
             </Button>

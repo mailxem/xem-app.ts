@@ -72,7 +72,7 @@ export default function TagsPage() {
     <div className="container mx-auto py-8 max-w-[1200px]">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold mb-1">Tags</h1>
+          <h1 className="text-2xl font-medium mb-1">Tags</h1>
           <div className="text-sm text-muted-foreground">
             Audience: TheBoringTeam
           </div>
@@ -162,7 +162,7 @@ export default function TagsPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-xl font-semibold mb-2">Automate Tagging</h3>
+            <h3 className="text-xl font-medium mb-2">Automate Tagging</h3>
             <p className="text-muted-foreground mb-4">
               You can automate tagging your contacts with our API
             </p>

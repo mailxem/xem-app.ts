@@ -339,7 +339,7 @@ ${getParsedMail(mailToRender).text || getParsedMail(mailToRender).html}`;
                 </AvatarFallback>
               </Avatar>
               <div className="grid gap-1">
-                <div className="font-semibold">
+                <div className="font-medium">
                   {parsedMailTo(mailToRender)}
                 </div>
                 <div className="line-clamp-1 text-xs">

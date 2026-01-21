@@ -22,7 +22,7 @@ export default function AudiencePage() {
         {/* Header Section */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold">TheBoringTeam</h1>
+            <h1 className="text-2xl font-medium">TheBoringTeam</h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>
                 <strong className="text-[#007C89]">2</strong> total contacts
@@ -71,7 +71,7 @@ export default function AudiencePage() {
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <div className="text-3xl font-semibold">2</div>
+                  <div className="text-3xl font-medium">2</div>
                   <div className="text-sm text-muted-foreground">
                     New Contacts
                   </div>
@@ -195,7 +195,7 @@ export default function AudiencePage() {
                   />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">
+                  <h3 className="text-lg font-medium mb-2">
                     Organize and target your audience based on what you know
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">

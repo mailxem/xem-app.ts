@@ -29,7 +29,7 @@ export default function AnalyticsPage() {
 
         <div className="grid gap-4 lg:grid-cols-7">
           {/* <div className="col-span-7">
-            <h2 className="text-2xl font-semibold mb-2">Performance Overview</h2>
+            <h2 className="text-2xl font-medium mb-2">Performance Overview</h2>
             <p className="text-muted-foreground mb-4">
               Campaign performance trends over time
             </p>
@@ -39,7 +39,7 @@ export default function AnalyticsPage() {
           </div> */}
 
           {/* <div className="col-span-3">
-            <h2 className="text-2xl font-semibold mb-2">Recent Activity</h2>
+            <h2 className="text-2xl font-medium mb-2">Recent Activity</h2>
             <p className="text-muted-foreground mb-4">
               Latest email campaign events and interactions
             </p>
@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="grid gap-4">
-          <h2 className="text-2xl font-semibold">Team Analytics</h2>
+          <h2 className="text-2xl font-medium">Team Analytics</h2>
           <p className="text-muted-foreground">
             Performance metrics across your entire team
           </p>

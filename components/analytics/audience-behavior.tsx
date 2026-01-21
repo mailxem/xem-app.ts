@@ -121,7 +121,7 @@ export function AudienceBehavior({ teamId }: { teamId: string }) {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-2xl font-semibold">
+                      <div className="text-2xl font-medium">
                         {behavior.engagementRate.toFixed(1)}%
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -129,7 +129,7 @@ export function AudienceBehavior({ teamId }: { teamId: string }) {
                       </div>
                     </div>
                     <div>
-                      <div className="text-2xl font-semibold">
+                      <div className="text-2xl font-medium">
                         {behavior.count.toLocaleString()}
                       </div>
                       <div className="text-sm text-muted-foreground">

@@ -6,7 +6,6 @@ import {
   ArchiveX,
   FileIcon,
   Inbox,
-  MailX,
   Search,
   Send,
   Trash2,
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/resizable";
 
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import MailDisplay from "@/app/developer/logs/emails/components/mail-display";
 import MailList from "@/app/developer/logs/emails/components/mail-list";
@@ -175,31 +174,40 @@ export default function Mail() {
           }}
           className={cn(
             isCollapsed &&
-              "min-w-[50px] transition-all duration-300 ease-in-out"
+            "min-w-[50px] transition-all duration-300 ease-in-out"
           )}
         >
           <div
             className={cn(
-              "flex h-[52px] items-center justify-center",
+              "flex h-[52px] items-center justify-start px-4",
               isCollapsed ? "h-[52px]" : "px-2"
             )}
-          ></div>
+          >
+            <h1 className="text-xl font-bold">Folders</h1>
+          </div>
           <Separator />
           {!isFoldersLoading && (
-            <Nav
-              isCollapsed={isCollapsed}
-              onSelect={(folder) => {
-                setActiveTab(folder);
-              }}
-              links={folders?.map(
-                (folder: { Name: string; Total: number }) => ({
-                  title: folder.Name,
-                  label: folder.Total,
-                  icon: getTentativeIcon(folder.Name),
-                  variant: folder.Name === activeTab ? "default" : "ghost",
-                })
-              )}
-            />
+            <>
+              <Nav
+                isCollapsed={isCollapsed}
+                onSelect={(folder) => {
+                  setActiveTab(folder);
+                }}
+                links={folders && folders.length > 0 ? folders.map(
+                  (folder: { Name: string; Total: number }) => ({
+                    title: folder.Name,
+                    label: folder.Total,
+                    icon: getTentativeIcon(folder.Name),
+                    variant: folder.Name === activeTab ? "default" : "ghost",
+                  })
+                ) : [{
+                  title: "Inbox",
+                  label: "0",
+                  icon: Inbox,
+                  variant: "default",
+                }]}
+              />
+            </>
           )}
 
           {isFoldersLoading && (
@@ -210,7 +218,7 @@ export default function Mail() {
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center px-4 py-3 relative">
-              <h1 className="text-xl font-bold">Inbox</h1>
+              <h1 className="text-xl font-bold">Mailbox</h1>
             </div>
             <Separator />
             <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -239,11 +247,11 @@ export default function Mail() {
             {isLoading ? (
               <div className="text-center p-4">Loading...</div>
             ) : (
-              <MailList
+              emails && emails.length > 0 ? <MailList
                 items={emails}
                 isFetchingNextPage={isFetchingNextPage}
                 observerTarget={observerTarget}
-              />
+              /> : <div className="text-center p-4">No emails found</div>
             )}
           </Tabs>
         </ResizablePanel>

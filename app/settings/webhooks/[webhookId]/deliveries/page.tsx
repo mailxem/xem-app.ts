@@ -45,7 +45,7 @@ export default function WebhookDeliveriesPage({
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-lg font-semibold">Webhook not found</h2>
+          <h2 className="text-lg font-medium">Webhook not found</h2>
           <p className="text-muted-foreground">
             The webhook you're looking for doesn't exist or you don't have access to it.
           </p>

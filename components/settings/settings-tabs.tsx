@@ -45,7 +45,7 @@ export function SettingsTabs() {
 
       <TabsContent value="profile" className="space-y-4">
         <div className="border rounded-lg p-6">
-          <h3 className="font-semibold mb-4">Profile Settings</h3>
+          <h3 className="font-medium mb-4">Profile Settings</h3>
           <div className="max-w-2xl">
             <ProfileSettings />
           </div>
@@ -68,7 +68,7 @@ export function SettingsTabs() {
 
       <TabsContent value="notifications" className="space-y-4">
         <div className="border rounded-lg p-6">
-          <h3 className="font-semibold mb-4">Notification Preferences</h3>
+          <h3 className="font-medium mb-4">Notification Preferences</h3>
           <div className="space-y-4 max-w-2xl">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

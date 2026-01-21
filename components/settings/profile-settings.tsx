@@ -44,7 +44,6 @@ export function ProfileSettings() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Profile Settings</h2>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField

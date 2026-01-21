@@ -10,6 +10,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { QueryProvider } from "./providers/query-provider";
 import { AppHeader } from "@/components/app-header";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 
 export const metadata: Metadata = {
   keywords: [
@@ -53,6 +55,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -93,20 +96,12 @@ export default async function RootLayout({
           name="format-detection"
           content="telephone=no, date=no, email=no, address=no"
         />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=sentient@400&display=swap"
-          rel="stylesheet"
-        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap"
-          rel="stylesheet"
-        ></link>
         {/* publoic manifest */}
         <link rel="manifest" href="/site.webmanifest" />
         {/* publoic icons */}
@@ -134,7 +129,9 @@ export default async function RootLayout({
       </head>
       <body
         className={cn(
-          "antialiased bg-background text-foreground font-sentient text-base lg:text-lg"
+          "antialiased bg-background text-foreground font-mono text-base lg:text-lg",
+          GeistSans.variable,
+          GeistMono.variable
         )}
       >
         <ThemeProvider

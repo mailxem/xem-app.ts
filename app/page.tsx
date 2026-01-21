@@ -207,7 +207,7 @@ export default function Home() {
 
         <div className="grid gap-4 lg:grid-cols-7 px-4">
           <div className="col-span-7">
-            <h2 className="text-2xl font-semibold mb-2">Overview</h2>
+            <h2 className="text-2xl font-medium mb-2">Overview</h2>
             <p className="text-muted-foreground mb-4">
               Campaign performance over time
             </p>
@@ -219,7 +219,7 @@ export default function Home() {
 
         {campaignMetrics?.length > 0 && (
           <div className="grid gap-4 px-4 mt-6">
-            <span className="text-2xl font-semibold">
+            <span className="text-2xl font-medium">
               📊 Campaign Performance
             </span>
             <span className="text-muted-foreground">

@@ -10,9 +10,7 @@ interface TeamWithUsers extends Team {
   id: string;
   firstName: string;
   lastName: string;
-  invites: (TeamInvite & {
-    inviter: User;
-  })[];
+  invites: TeamInvite[];
   customDomains: Domain[];
   emailTemplateId: string;
 }

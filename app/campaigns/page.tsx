@@ -27,7 +27,7 @@ export default function CampaignsPage() {
 
       <div className="flex bg-primary/10 p-8 items-center gap-4 justify-between">
         <div className="flex flex-col w-1/2 gap-2">
-          <span className="text-4xl font-semibold">
+          <span className="text-4xl font-medium">
             Create and manage your email campaigns
           </span>
           <span className="text-muted-foreground font-inter">

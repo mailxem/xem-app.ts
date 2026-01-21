@@ -148,7 +148,7 @@ export function CustomDomains() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border p-4">
-            <h4 className="font-semibold mb-2">Step 1: Add A Record</h4>
+            <h4 className="font-medium mb-2">Step 1: Add A Record</h4>
             <p className="text-sm text-muted-foreground mb-4">
               Add the following A record to your domain&apos;s DNS settings:
             </p>
@@ -167,7 +167,7 @@ export function CustomDomains() {
           </div>
 
           <div className="rounded-lg border p-4">
-            <h4 className="font-semibold mb-2">Step 2: Verify Domain</h4>
+            <h4 className="font-medium mb-2">Step 2: Verify Domain</h4>
             <p className="text-sm text-muted-foreground">
               After adding the DNS record, click verify on your domain to
               complete the setup.

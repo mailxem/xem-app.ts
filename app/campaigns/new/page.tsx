@@ -343,7 +343,7 @@ const NewCampaignForm = () => {
                 render={({ field }) => (
                   <FormItem className="space-y-4">
                     <div>
-                      <FormLabel className="text-base font-semibold text-sidebar-foreground">
+                      <FormLabel className="text-base font-medium text-sidebar-foreground">
                         From Address
                       </FormLabel>
                       <FormDescription className="text-sidebar-foreground">
@@ -388,7 +388,7 @@ const NewCampaignForm = () => {
                   className="pt-6 border-t border-muted space-y-4"
                 >
                   <div>
-                    <h4 className="font-semibold text-sidebar-foreground mb-3">
+                    <h4 className="font-medium text-sidebar-foreground mb-3">
                       Preview
                     </h4>
                     <div className="rounded-lg border border-muted p-6 bg-muted">
@@ -453,7 +453,7 @@ const NewCampaignForm = () => {
                 render={({ field }) => (
                   <FormItem className="space-y-4">
                     <div>
-                      <FormLabel className="text-base font-semibold text-sidebar-foreground">
+                      <FormLabel className="text-base font-medium text-sidebar-foreground">
                         Subject Line
                       </FormLabel>
                       <FormDescription className="text-sidebar-foreground">
@@ -480,7 +480,7 @@ const NewCampaignForm = () => {
                   className="pt-6 border-t border-muted space-y-6"
                 >
                   <div>
-                    <h4 className="font-semibold text-sidebar-foreground mb-3">
+                    <h4 className="font-medium text-sidebar-foreground mb-3">
                       Preview
                     </h4>
                     <div className="rounded-lg border border-muted p-6 bg-muted space-y-4">
@@ -510,7 +510,7 @@ const NewCampaignForm = () => {
                   </div>
 
                   <div className="bg-muted border border-muted rounded-lg p-6">
-                    <h4 className="font-semibold text-sidebar-foreground mb-3">
+                    <h4 className="font-medium text-sidebar-foreground mb-3">
                       Subject Line Tips
                     </h4>
                     <ul className="text-sm text-sidebar-foreground space-y-2">
@@ -555,7 +555,7 @@ const NewCampaignForm = () => {
                 )}
                 onClick={() => setIsScheduled(false)}
               >
-                <h3 className="font-semibold text-sidebar-foreground mb-2">
+                <h3 className="font-medium text-sidebar-foreground mb-2">
                   Send now
                 </h3>
                 <p className="text-sm text-sidebar-foreground">
@@ -571,7 +571,7 @@ const NewCampaignForm = () => {
                 )}
                 onClick={() => setIsScheduled(true)}
               >
-                <h3 className="font-semibold text-sidebar-foreground mb-2">
+                <h3 className="font-medium text-sidebar-foreground mb-2">
                   Schedule
                 </h3>
                 <p className="text-sm text-sidebar-foreground">
@@ -798,7 +798,7 @@ const NewCampaignForm = () => {
                 render={({ field }) => (
                   <FormItem className="space-y-6">
                     <div>
-                      <FormLabel className="text-base font-semibold text-sidebar-foreground">
+                      <FormLabel className="text-base font-medium text-sidebar-foreground">
                         Email Template
                       </FormLabel>
                       <FormDescription className="text-sidebar-foreground">
@@ -836,7 +836,7 @@ const NewCampaignForm = () => {
             </Link>
             {form.watch("templateId") && (
               <div className="pt-6 border-t border-muted">
-                <h4 className="font-semibold text-sidebar-foreground mb-3">
+                <h4 className="font-medium text-sidebar-foreground mb-3">
                   Preview
                 </h4>
                 <div className="rounded-lg border border-muted p-6 bg-muted">
@@ -965,7 +965,7 @@ const NewCampaignForm = () => {
                     <div className="flex items-start text-left gap-4">
                       {renderStepIcon("to")}
                       <div>
-                        <div className="font-semibold text-muted-foreground">
+                        <div className="font-medium text-muted-foreground">
                           To
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -992,7 +992,7 @@ const NewCampaignForm = () => {
                     <div className="flex items-start text-left gap-4">
                       {renderStepIcon("from")}
                       <div>
-                        <div className="font-semibold text-muted-foreground">
+                        <div className="font-medium text-muted-foreground">
                           From
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -1020,7 +1020,7 @@ const NewCampaignForm = () => {
                     <div className="flex items-start text-left gap-4">
                       {renderStepIcon("subject")}
                       <div>
-                        <div className="font-semibold text-muted-foreground">
+                        <div className="font-medium text-muted-foreground">
                           Subject
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -1042,7 +1042,7 @@ const NewCampaignForm = () => {
                     <div className="flex items-start text-left gap-4">
                       {renderStepIcon("schedule")}
                       <div>
-                        <div className="font-semibold text-muted-foreground">
+                        <div className="font-medium text-muted-foreground">
                           Send time
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -1068,7 +1068,7 @@ const NewCampaignForm = () => {
                     <div className="flex items-start text-left gap-4">
                       {renderStepIcon("content")}
                       <div>
-                        <div className="font-semibold text-muted-foreground">
+                        <div className="font-medium text-muted-foreground">
                           Content
                         </div>
                         <div className="text-sm text-muted-foreground">

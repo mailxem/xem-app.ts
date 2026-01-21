@@ -27,7 +27,7 @@ export default function FormsPage() {
 
       <div className="flex bg-primary/10 p-16 items-center gap-4 justify-between">
         <div className="flex flex-col w-1/2 gap-2">
-          <span className="text-4xl font-semibold">
+          <span className="text-4xl">
             Transform site visitors into email subscribers
           </span>
           <span className="text-muted-foreground font-inter">
@@ -43,7 +43,7 @@ export default function FormsPage() {
       </div>
 
       <div className="mb-12 p-8">
-        <h2 className="text-2xl font-semibold mb-4">Recent forms</h2>
+        <h2 className="text-2xl font-medium mb-4">Recent forms</h2>
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
@@ -61,7 +61,7 @@ export default function FormsPage() {
         ) : forms.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
-              <h3 className="text-xl font-semibold mb-2">No forms yet</h3>
+              <h3 className="text-xl font-medium mb-2">No forms yet</h3>
               <p className="text-muted-foreground mb-4">
                 Create your first form to start collecting subscribers
               </p>

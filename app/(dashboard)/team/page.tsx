@@ -53,11 +53,11 @@ export default function TeamPage() {
           <TabsContent value="members" className="space-y-4">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
               <div className="col-span-4 border border-muted rounded-lg p-6">
-                <h3 className="font-semibold mb-4">Current Team Members</h3>
+                <h3 className="font-medium mb-4">Current Team Members</h3>
                 <TeamInfo />
               </div>
               <div className="col-span-3 border border-muted rounded-lg p-6">
-                <h3 className="font-semibold mb-4">Invite New Member</h3>
+                <h3 className="font-medium mb-4">Invite New Member</h3>
                 <InviteTeamMember />
               </div>
             </div>
@@ -65,7 +65,7 @@ export default function TeamPage() {
 
           <TabsContent value="invites" className="space-y-4">
             <div className="border border-muted rounded-lg p-6">
-              <h3 className="font-semibold mb-4">Pending Invites</h3>
+              <h3 className="font-medium mb-4">Pending Invites</h3>
               <TeamInvites />
             </div>
           </TabsContent>

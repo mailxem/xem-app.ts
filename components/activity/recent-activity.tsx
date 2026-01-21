@@ -23,7 +23,7 @@ const activities = [
 export function RecentActivity() {
   return (
     <Card className="p-6">
-      <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+      <h2 className="text-lg font-medium mb-4">Recent Activity</h2>
       <div className="space-y-4">
         {activities.map((activity, index) => (
           <ActivityItem key={index} {...activity} />

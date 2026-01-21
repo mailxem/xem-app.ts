@@ -25,7 +25,7 @@ export default function NewTemplatePage() {
           >
             ←
           </Button>
-          <h1 className="text-xl font-semibold">New Template</h1>
+          <h1 className="text-xl font-medium">New Template</h1>
         </div>
         <div className="flex items-center gap-3">
           <Sheet>

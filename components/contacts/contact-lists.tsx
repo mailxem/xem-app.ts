@@ -107,7 +107,7 @@ export function ContactLists() {
             </SheetTrigger>
             <SheetContent className="sm:max-w-[500px]">
               <SheetHeader className="space-y-4 pb-6 border-b">
-                <SheetTitle className="text-2xl font-semibold text-[#241C15]">
+                <SheetTitle className="text-2xl font-medium text-[#241C15]">
                   Create New Contact List
                 </SheetTitle>
                 <SheetDescription className="text-base text-gray-600">

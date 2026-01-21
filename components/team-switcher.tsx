@@ -36,7 +36,7 @@ export function TeamSwitcher({
               <div className="flex aspect-square size-5 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
                 <activeTeam.logo className="size-3" />
               </div>
-              <span className="truncate font-semibold">{activeTeam.name}</span>
+              <span className="truncate font-medium">{activeTeam.name}</span>
               <ChevronDownIcon className="opacity-50" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>

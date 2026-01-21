@@ -158,12 +158,17 @@ export default function APIKeysPage() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
   return (
     <div className="flex-1">
       <PageHeader heading="API keys">
         <Sheet open={isCreateKeyOpen} onOpenChange={setIsCreateKeyOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline">Create A Key</Button>
+            <Button variant="default">Create A Key</Button>
           </SheetTrigger>
           <SheetContent>
             <SheetHeader>
@@ -218,10 +223,10 @@ export default function APIKeysPage() {
                               selected={
                                 field.value
                                   ? new Date(
-                                      new Date(field.value).setDate(
-                                        new Date(field.value).getDate() + 90
-                                      )
+                                    new Date(field.value).setDate(
+                                      new Date(field.value).getDate() + 90
                                     )
+                                  )
                                   : undefined
                               }
                               onSelect={field.onChange}
@@ -241,7 +246,7 @@ export default function APIKeysPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type={isLoading ? "button" : "submit"}>
+                  <Button variant="default" type={isLoading ? "button" : "submit"}>
                     {isLoading ? "Creating..." : "Create Key"}
                   </Button>
                 </SheetFooter>
@@ -252,78 +257,25 @@ export default function APIKeysPage() {
       </PageHeader>
 
       {/* Three Column Section */}
-      <div className="grid grid-cols-3 gap-4 p-8">
+      <div className="grid gap-4 p-8">
         {/* About the API */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">About the API</h2>
+        <div className="space-y-4 grid">
+          <h2 className="text-2xl">About the API</h2>
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 flex-shrink-0">
-              <img
-                src="https://ouch-cdn2.icons8.com/zS22SHejvFvfPbRZo2sPhvNt_3z4AZHzT9_bRJKRSEc/rs:fit:541:456/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvNTYy/L2VkZjI2ODRkLWQw/MWEtNDFjYi04MTRk/LTgzNzZkOWVjZDk2/ZS5zdmc.png"
-                alt="API icon"
-                className="w-full h-full dark:invert dark:grayscale"
-              />
-            </div>
             <p className="text-muted-foreground">
               The Xem API makes it easy for programmers to integrate Xem's
               features into other applications.
             </p>
           </div>
-          <Button variant="outline" className="w-max justify-start">
+          <a href="https://docs.xem.email/api-reference/email/send-an-email" target="_blank"><Button variant="outline" className="w-max justify-start">
             Read The API Documentation
-          </Button>
-        </div>
-
-        {/* Developing an app? */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Developing an app?</h2>
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 flex-shrink-0">
-              <img
-                src="https://ouch-cdn2.icons8.com/7rw3oTP18wQ1-wbXmGrvGUnfU8neYH5YbCJ_kARPDJo/rs:fit:368:435/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvMjk3/LzVjNDFmYzNjLTJj/N2MtNGI3NS1hY2U1/LTdhMjQwMjQyYmI5/NC5zdmc.png"
-                alt="Developer icon"
-                className="w-full h-full dark:invert dark:grayscale"
-              />
-            </div>
-            <p className="text-muted-foreground">
-              Writing your own application that requires access to other Xem
-              users' accounts? Check out our{" "}
-              <Link href="#" className="text-primary hover:underline">
-                OAuth2 API documentation
-              </Link>
-              , then register your app.
-            </p>
-          </div>
-          <Button variant="outline" className="w-max justify-start">
-            Register And Manage Your Apps
-          </Button>
-        </div>
-
-        {/* API Security */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">API Security</h2>
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 flex-shrink-0">
-              <img
-                src="https://ouch-cdn2.icons8.com/JRinq59LHQii7iLIZpLJAAcM3NVFzlK8izhapTSFMyk/rs:fit:368:207/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvNjM1/LzQwMGQxYzA4LWNj/YTEtNDQxOS05ZjU0/LWVlYTAyMTQ3NjIw/Yy5zdmc.png"
-                alt="Security icon"
-                className="w-full h-full dark:invert"
-              />
-            </div>
-            <p className="text-muted-foreground">
-              Learn about our security best practices and how to keep your API
-              integrations safe.
-            </p>
-          </div>
-          <Button variant="outline" className="w-max justify-start">
-            View Security Guidelines
-          </Button>
+          </Button></a>
         </div>
       </div>
 
       {/* Your API keys section */}
-      <div className="space-y-4 p-16">
-        <h2 className="text-2xl font-semibold">Your API keys</h2>
+      <div className="space-y-4 py-8 px-8">
+        <h2 className="text-2xl font-medium">Your API keys</h2>
         <p className="text-muted-foreground">
           You can review, revoke or generate new API keys below.{" "}
           <Link href="#" className="text-primary hover:underline">
@@ -341,10 +293,22 @@ export default function APIKeysPage() {
             {
               header: "Key",
               accessorKey: "key",
+              cell: ({ row }) => (
+                <div onClick={() => copyToClipboard(row.original.key)} className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" className="cursor-pointer">
+                    ••••••••••••••••
+                  </Button>
+                </div>
+              ),
             },
             {
               header: "Status",
               accessorKey: "isDeleted",
+              cell: ({ row }) => (
+                <Badge variant={row.original.isDeleted ? "destructive" : "default"}>
+                  {row.original.isDeleted ? "Disabled" : "Enabled"}
+                </Badge>
+              ),
             },
             {
               header: "Actions",
@@ -355,19 +319,10 @@ export default function APIKeysPage() {
                     onClick={() =>
                       router.push(`/settings/api-keys/${row.original.id}`)
                     }
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                   >
                     Stats
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      toggleApiKey(row.original.id, !row.original.isDeleted)
-                    }
-                    variant="ghost"
-                    size="sm"
-                  >
-                    Toggle
                   </Button>
                   <Button
                     onClick={() => deleteApiKey(row.original.id)}

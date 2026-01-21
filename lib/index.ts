@@ -125,6 +125,8 @@ export interface TemplateEditorProps {
 
 export interface User {
   id: string;
+  firstName: string;
+  lastName: string;
   name: string;
   email: string;
   role: "USER" | "ADMIN";
@@ -140,11 +142,23 @@ export interface Team {
 
 export interface TeamInvite {
   id: string;
+  name: string;
   email: string;
+  code: string;
   teamId: string;
   status: "PENDING" | "ACCEPTED" | "REJECTED";
   expiresAt: Date;
-  user?: User;
+  inviterId: string;
+}
+
+export interface TeamInviteVerifyResponse {
+  valid: boolean;
+  email: string;
+  name: string;
+  role: string;
+  team_name: string;
+  expires_at: Date;
+  error?: string;
 }
 
 export interface Contact {

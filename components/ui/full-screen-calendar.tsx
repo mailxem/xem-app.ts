@@ -97,7 +97,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
               </div>
             </div>
             <div className="flex flex-col">
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="text-lg font-medium text-foreground">
                 {format(firstDayCurrentMonth, "MMMM, yyyy")}
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -159,7 +159,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
       {/* Calendar Grid */}
       <div className="lg:flex lg:flex-auto lg:flex-col">
         {/* Week Days Header */}
-        <div className="grid grid-cols-7 border text-center text-xs font-semibold leading-6 lg:flex-none">
+        <div className="grid grid-cols-7 border text-center text-xs font-medium leading-6 lg:flex-none">
           <div className="border-r py-2.5">Sun</div>
           <div className="border-r py-2.5">Mon</div>
           <div className="border-r py-2.5">Tue</div>
@@ -189,7 +189,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
                       !isSameMonth(day, firstDayCurrentMonth) &&
                       "text-muted-foreground",
                     (isEqual(day, selectedDay) || isToday(day)) &&
-                      "font-semibold",
+                      "font-medium",
                     "flex h-14 flex-col border-b border-r px-3 py-2 hover:bg-muted focus:z-10"
                   )}
                 >
@@ -262,7 +262,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
                           !isToday(day) &&
                           "bg-foreground",
                         (isEqual(day, selectedDay) || isToday(day)) &&
-                          "font-semibold",
+                          "font-medium",
                         "flex h-7 w-7 items-center justify-center  text-xs hover:border"
                       )}
                     >
@@ -319,7 +319,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
                     !isSameMonth(day, firstDayCurrentMonth) &&
                     "text-muted-foreground",
                   (isEqual(day, selectedDay) || isToday(day)) &&
-                    "font-semibold",
+                    "font-medium",
                   "flex h-14 flex-col border-b border-r px-3 py-2 hover:bg-muted focus:z-10"
                 )}
               >

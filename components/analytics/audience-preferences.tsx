@@ -135,7 +135,7 @@ export function AudiencePreferences({ teamId }: { teamId: string }) {
           {/* Summary Stats */}
           <div className="grid grid-cols-3 gap-4 pt-4 border-t">
             <div>
-              <div className="text-2xl font-semibold">
+              <div className="text-2xl font-medium">
                 {preferenceData.length}
               </div>
               <div className="text-sm text-muted-foreground">
@@ -143,7 +143,7 @@ export function AudiencePreferences({ teamId }: { teamId: string }) {
               </div>
             </div>
             <div>
-              <div className="text-2xl font-semibold">
+              <div className="text-2xl font-medium">
                 {Math.round(
                   preferenceData.reduce((acc, curr) => acc + curr.confidence, 0) /
                     preferenceData.length * 100
@@ -154,7 +154,7 @@ export function AudiencePreferences({ teamId }: { teamId: string }) {
               </div>
             </div>
             <div>
-              <div className="text-2xl font-semibold">
+              <div className="text-2xl font-medium">
                 {preferenceData
                   .reduce((acc, curr) => acc + curr.count, 0)
                   .toLocaleString()}

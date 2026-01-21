@@ -142,11 +142,8 @@ export default {
         "star-movement-top": "star-movement-top linear infinite alternate",
       },
       fontFamily: {
-        satoshi: ["Satoshi", "sans-serif"],
-        sentient: ["Sentient", "sans-serif"],
-        general: ["Inter", "sans-serif"],
-        sans: ["Inter", "sans-serif"],
-        instrument: ["Instrument Serif", "serif"],
+        inter: ["DM Sans", "sans-serif"],
+        azeret: ["Azeret Mono", "sans-serif"],
       },
       backgroundImage: {
         "grid-pattern": "url('/grid-pattern.svg')",

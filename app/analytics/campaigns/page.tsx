@@ -125,7 +125,7 @@ function CampaignsAnalytics() {
         )}
 
         <div className="grid gap-4">
-          <h2 className="text-2xl font-semibold">Campaign Performance</h2>
+          <h2 className="text-2xl font-medium">Campaign Performance</h2>
           <p className="text-muted-foreground">
             Select campaigns to view detailed analytics or compare multiple
             campaigns

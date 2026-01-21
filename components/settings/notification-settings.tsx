@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 export function NotificationSettings() {
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Notification Settings</h2>
+      <h2 className="text-lg font-medium">Notification Settings</h2>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label htmlFor="email-notifications">Email Notifications</Label>

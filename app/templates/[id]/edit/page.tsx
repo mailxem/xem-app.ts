@@ -19,7 +19,7 @@ export default async function EditTemplatePage({
         >
           ←
         </Button>
-        <h1 className="text-xl font-semibold ">Edit Template</h1>
+        <h1 className="text-xl font-medium ">Edit Template</h1>
       </div>
       <TemplateEditor templateId={(await params).id} />
     </div>
