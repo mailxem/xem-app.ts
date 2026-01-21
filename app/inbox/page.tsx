@@ -183,7 +183,7 @@ export default function Mail() {
               isCollapsed ? "h-[52px]" : "px-2"
             )}
           >
-            <h1 className="text-xl font-bold">Folders</h1>
+            <h1 className="text-xl font-semibold">Folders</h1>
           </div>
           <Separator />
           {!isFoldersLoading && (
@@ -218,7 +218,7 @@ export default function Mail() {
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center px-4 py-3 relative">
-              <h1 className="text-xl font-bold">Mailbox</h1>
+              <h1 className="text-xl font-semibold">Mailbox</h1>
             </div>
             <Separator />
             <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">

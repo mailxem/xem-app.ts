@@ -139,7 +139,7 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Open Rate
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {analytics?.openRate.toFixed(1)}%
             </div>
             <div className="text-xs text-muted-foreground mt-1">
@@ -152,7 +152,7 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Click Rate
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {analytics?.clickRate.toFixed(1)}%
             </div>
             <div className="text-xs text-muted-foreground mt-1">
@@ -165,7 +165,7 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Engagement Score
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {analytics?.engagementScore?.toFixed(1) || 0}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
@@ -178,7 +178,7 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Avg Read Time
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {Math.round(analytics?.averageReadTime / 1000) || 0}s
             </div>
             <div className="text-xs text-muted-foreground mt-1">

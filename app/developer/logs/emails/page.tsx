@@ -112,7 +112,7 @@ export default function Mail() {
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center px-4 py-2">
-              <h1 className="text-xl font-bold">Outbox</h1>
+              <h1 className="text-xl font-semibold">Outbox</h1>
               <TabsList className="ml-auto">
                 <TabsTrigger
                   onClick={() => setActiveTab("SENT")}

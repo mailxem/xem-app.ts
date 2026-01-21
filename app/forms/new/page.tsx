@@ -115,7 +115,7 @@ export default function NewFormPage() {
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeftIcon className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Create a new form</h1>
+          <h1 className="text-3xl font-semibold">Create a new form</h1>
         </div>
 
         <Form {...form}>

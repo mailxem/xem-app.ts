@@ -92,7 +92,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
               <h1 className="p-1 text-xs uppercase text-muted-foreground">
                 {format(today, "MMM")}
               </h1>
-              <div className="flex w-full items-center justify-center rounded-lg border bg-background p-0.5 text-lg font-bold">
+              <div className="flex w-full items-center justify-center rounded-lg border bg-background p-0.5 text-lg font-semibold">
                 <span>{format(today, "d")}</span>
               </div>
             </div>

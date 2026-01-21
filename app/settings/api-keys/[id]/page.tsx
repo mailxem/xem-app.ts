@@ -158,7 +158,7 @@ export default function APIKeyDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalRequests}</div>
+              <div className="text-2xl font-semibold">{stats.totalRequests}</div>
               <p className="text-xs text-gray-500">in selected period</p>
             </CardContent>
           </Card>
@@ -169,7 +169,7 @@ export default function APIKeyDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-semibold text-green-600">
                 {stats.successRate}%
               </div>
               <div className="h-2 bg-gray-100  mt-2">
@@ -187,7 +187,7 @@ export default function APIKeyDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-semibold">
                 {stats.avgResponseTime}ms
               </div>
               <p className="text-xs text-gray-500">across all endpoints</p>
@@ -200,7 +200,7 @@ export default function APIKeyDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-semibold text-red-600">
                 {stats.failureRate}%
               </div>
               <div className="h-2 bg-gray-100  mt-2">

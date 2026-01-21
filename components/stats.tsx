@@ -154,7 +154,7 @@ export function Stats() {
                 <span className="text-sm font-medium leading-none text-muted-foreground">
                   {stat.name}
                 </span>
-                <span className="text-2xl font-bold tracking-tight">
+                <span className="text-2xl font-semibold tracking-tight">
                   {stat.value}
                 </span>
                 <div className="flex items-center space-x-1">

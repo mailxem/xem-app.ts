@@ -135,7 +135,7 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Total Emails
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {overview.totalEmails.toLocaleString()}
             </div>
           </CardContent>
@@ -145,7 +145,7 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Avg Open Rate
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {overview.averageOpenRate.toFixed(1)}%
             </div>
           </CardContent>
@@ -155,7 +155,7 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Avg Click Rate
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {overview.averageClickRate.toFixed(1)}%
             </div>
           </CardContent>
@@ -165,7 +165,7 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             <div className="text-sm font-medium text-muted-foreground mb-2">
               Total Opens
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold">
               {overview.totalOpens.toLocaleString()}
             </div>
           </CardContent>

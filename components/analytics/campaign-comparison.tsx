@@ -213,7 +213,7 @@ export function CampaignComparison({ campaignIds }: { campaignIds: string[] }) {
                 <div className="text-sm font-medium text-muted-foreground">
                   Open Rate
                 </div>
-                <div className="text-2xl font-bold">{data.openRate?.toFixed(1) || 0}%</div>
+                <div className="text-2xl font-semibold">{data.openRate?.toFixed(1) || 0}%</div>
                 <div className="text-xs text-muted-foreground">
                   Industry avg: {data.industryAvgOpenRate?.toFixed(1) || 0}%
                 </div>
@@ -222,7 +222,7 @@ export function CampaignComparison({ campaignIds }: { campaignIds: string[] }) {
                 <div className="text-sm font-medium text-muted-foreground">
                   Click Rate
                 </div>
-                <div className="text-2xl font-bold">{data.clickRate?.toFixed(1) || 0}%</div>
+                <div className="text-2xl font-semibold">{data.clickRate?.toFixed(1) || 0}%</div>
                 <div className="text-xs text-muted-foreground">
                   Industry avg: {data.industryAvgClickRate?.toFixed(1) || 0}%
                 </div>
@@ -231,7 +231,7 @@ export function CampaignComparison({ campaignIds }: { campaignIds: string[] }) {
                 <div className="text-sm font-medium text-muted-foreground">
                   Engagement Score
                 </div>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-semibold">
                   {data.engagementScore?.toFixed(1) || 0}
                 </div>
               </div>
@@ -239,7 +239,7 @@ export function CampaignComparison({ campaignIds }: { campaignIds: string[] }) {
                 <div className="text-sm font-medium text-muted-foreground">
                   Avg Read Time
                 </div>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-semibold">
                   {Math.round(data.averageReadTime / 1000) || 0}s
                 </div>
               </div>

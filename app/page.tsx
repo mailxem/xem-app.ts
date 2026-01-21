@@ -195,7 +195,7 @@ export default function Home() {
           }
         />
         {/* / //{" "}
-            <h2 className="text-2xl font-bold tracking-tight">Analytics</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Analytics</h2>
             //{" "}
             <p className="text-muted-foreground">
               // Your email campaign performance metrics //{" "}

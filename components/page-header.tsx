@@ -48,7 +48,7 @@ export function PageHeader({
     >
       <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">{heading}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{heading}</h1>
           {description && (
             <p className="text-muted-foreground">{description}</p>
           )}

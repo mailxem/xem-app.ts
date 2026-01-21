@@ -287,7 +287,7 @@ export function ContactsList({ listId }: { listId: string }) {
         <div className="pt-3 pb-4">
           <div className="hidden mb-4">
             <div>
-              <p className="font-bold inline">Current audience</p>
+              <p className="font-semibold inline">Current audience</p>
               <span className="ml-1 hidden bg-green-500 text-white px-2 py-1 "></span>
             </div>
             <div className="pt-2"></div>
@@ -296,13 +296,13 @@ export function ContactsList({ listId }: { listId: string }) {
           <h4 className="text-sm text-gray-600">
             <a
               href="/audience/contacts?clear_segment=true&id=899295"
-              className="font-bold text-[#007C89] hover:underline"
+              className="font-semibold text-[#007C89] hover:underline"
               title="Your contacts"
             >
               {total}
             </a>{" "}
             total contacts.{" "}
-            <a className="font-bold text-[#007C89] hover:underline" href="#">
+            <a className="font-semibold text-[#007C89] hover:underline" href="#">
               {list?.subscribersCount}
             </a>{" "}
             email subscribers.
