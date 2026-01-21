@@ -43,7 +43,7 @@ export function InviteTeamMember() {
   const onSubmit = async (data: InviteFormData) => {
     try {
       setLoading(true);
-      const response = await apiFetch("team/invite", {
+      const response = await apiFetch("users/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
