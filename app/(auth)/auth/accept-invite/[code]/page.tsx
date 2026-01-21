@@ -50,17 +50,17 @@ export default function AcceptInvitePage() {
       <div className="w-full bg-transparent p-8">
         <div className="mb-8 grid gap-4">
           <div className="grid">
-            <h1 className="text-4xl text-center font-normal dark:text-foreground text-white">
-              hey {inviteData?.name}, accept the invite to join {inviteData?.team_name}
+            <h1 className="text-2xl text-center dark:text-foreground text-white">
+              hey {inviteData?.name}, <br /> <span className="text-base">accept the invite to join <span className="font-medium text-primary">{inviteData?.team_name}</span></span>
             </h1>
             {inviteData?.valid && <div className="text-center text-muted-foreground ">
               <Link href={"/auth/register"}>
-                <div className="cursor-pointer flex mx-auto justify-center items-center w-[150px] !rounded-xl border border-white bg-primary-foreground gap-2 dark:text-foreground text-white px-5 py-2 mt-8">
+                <div className="cursor-pointer flex mx-auto justify-center items-center w-fit !rounded-xl bg-background gap-2 text-sm dark:text-foreground px-5 py-2 mt-8">
                   <div>Accept Invite</div>
                 </div>
               </Link>
               <Link href={"/auth/login"}>
-                <div className="cursor-pointer flex mx-auto justify-center items-center w-[150px] gap-2 dark:text-foreground text-white mt-2">
+                <div className="cursor-pointer flex mx-auto justify-center items-center w-fit gap-2 text-sm dark:text-foreground text-white mt-2">
                   <div>reject invite</div>
                 </div>
               </Link>

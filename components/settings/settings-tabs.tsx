@@ -12,7 +12,7 @@ import { TeamProvider } from "@/app/providers/team-provider";
 export function SettingsTabs() {
   return (
     <Tabs defaultValue="profile" className="space-y-4">
-      <TabsList className="border-b rounded-none w-full justify-start gap-6 bg-transparent h-auto p-0">
+      <TabsList className="border-b border-muted rounded-none w-full justify-start gap-6 bg-transparent h-auto p-0">
         <TabsTrigger
           value="profile"
           className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
@@ -44,7 +44,7 @@ export function SettingsTabs() {
       </TabsList>
 
       <TabsContent value="profile" className="space-y-4">
-        <div className="border rounded-lg p-6">
+        <div className="border border-muted rounded-lg p-6">
           <h3 className="font-medium mb-4">Profile Settings</h3>
           <div className="max-w-2xl">
             <ProfileSettings />
@@ -67,7 +67,7 @@ export function SettingsTabs() {
       </TabsContent>
 
       <TabsContent value="notifications" className="space-y-4">
-        <div className="border rounded-lg p-6">
+        <div className="border border-muted rounded-lg p-6">
           <h3 className="font-medium mb-4">Notification Preferences</h3>
           <div className="space-y-4 max-w-2xl">
             <div className="flex items-center justify-between">

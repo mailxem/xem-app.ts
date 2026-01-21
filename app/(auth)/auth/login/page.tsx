@@ -49,12 +49,12 @@ export default function LoginPage({
       <div className="w-full bg-transparent p-8">
         <div className="mb-8 grid gap-4">
           <div className="grid">
-            <h1 className="text-4xl text-center font-normal dark:dark:text-foreground text-white text-white">
-              hey 👋🏻, welcome to Xem
+            <h1 className="text-4xl text-center dark:dark:text-foreground text-white text-white">
+              hey 👋🏻, welcome
             </h1>
             <div className="text-center">
               <div
-                className="cursor-pointer flex mx-auto justify-center items-center w-[200px] !rounded-xl border border-white bg-primary-foreground gap-2 px-5 py-2 mt-8"
+                className="cursor-pointer flex mx-auto justify-center text-sm items-center w-fit !rounded-xl border border-white bg-background gap-2 px-5 py-2 mt-8"
                 onClick={() => signIn("google")}
               >
                 <GoogleIcon />
@@ -62,7 +62,7 @@ export default function LoginPage({
               </div>
             </div>
 
-            <div className="mx-auto w-[300px] mt-4">
+            <div className="mx-auto w-[400px] mt-4">
               {showError && (
                 <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
                   Invalid email or password. Please try again.
@@ -112,19 +112,19 @@ export default function LoginPage({
               </form>
               <div className="flex items-center justify-center gap-4 mt-2">
                 <Link
-                  className="text-left dark:text-foreground text-white w-full hover:underline"
+                  className="text-left text-sm dark:text-foreground text-white w-full hover:underline"
                   href="/auth/forgot-password"
                 >
                   forgot password?
                 </Link>
-                <div className="text-right dark:text-foreground text-white w-full">
+                <div className="text-right text-sm dark:text-foreground text-white w-full">
                   press ⏎ to confirm
                 </div>
               </div>
               <div className="text-center mt-4">
-                <span className="dark:text-foreground text-white">
+                <span className="text-sm dark:text-foreground text-white">
                   Don't have an account?{" "}
-                  <Link href="/auth/register" className="hover:underline">
+                  <Link href="/auth/register" className="text-sm hover:underline">
                     Sign up
                   </Link>
                 </span>

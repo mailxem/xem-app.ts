@@ -128,6 +128,14 @@ export default {
           "0%": { transform: "translate(0%, 0%)", opacity: "1" },
           "100%": { transform: "translate(100%, 0%)", opacity: "0" },
         },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "fade-out": {
+          "0%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
       },
       animation: {
         first: "moveVertical 30s ease infinite",
@@ -135,6 +143,8 @@ export default {
         third: "moveInCircle 40s linear infinite",
         fourth: "moveHorizontal 40s ease infinite",
         fifth: "moveInCircle 20s ease infinite",
+        "fade-in": "fade-in 0.2s ease-out",
+        "fade-out": "fade-out 0.2s ease-out",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "star-movement-bottom":
@@ -142,7 +152,7 @@ export default {
         "star-movement-top": "star-movement-top linear infinite alternate",
       },
       fontFamily: {
-        inter: ["DM Sans", "sans-serif"],
+        inter: ["Azeret Mono", "sans-serif"],
         azeret: ["Azeret Mono", "sans-serif"],
       },
       backgroundImage: {

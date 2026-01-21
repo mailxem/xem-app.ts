@@ -188,6 +188,10 @@
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --radius: 0px;
   }
+
+  p {
+    font-family: 'Geist', monospace;
+  }
 }
 
 @keyframes overlayShow {

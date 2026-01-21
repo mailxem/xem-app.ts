@@ -96,6 +96,7 @@ export default async function RootLayout({
           name="format-detection"
           content="telephone=no, date=no, email=no, address=no"
         />
+        <link href="https://api.fontshare.com/v2/css?f[]=azeret-mono@400,500,600,700&display=swap" rel="stylesheet" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -129,7 +130,7 @@ export default async function RootLayout({
       </head>
       <body
         className={cn(
-          "antialiased bg-background text-foreground font-mono text-base lg:text-lg",
+          "antialiased bg-background text-foreground font-azeret text-base lg:text-lg",
           GeistSans.variable,
           GeistMono.variable
         )}

@@ -58,13 +58,13 @@ export default function ForgotPasswordPage() {
       <div className="w-full bg-transparent p-8">
         <div className="mb-8 grid gap-4">
           <div className="grid">
-            <h1 className="text-4xl text-center font-normal dark:text-foreground text-white">
+            <h1 className="text-4xl text-center dark:text-foreground text-white">
               Forgot Password 🫡
             </h1>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(handleForgotPassword)}
-                className="space-y-6 mx-auto w-[300px] mt-4"
+                className="space-y-6 mx-auto w-[400px] mt-4"
               >
                 <FormField
                   control={form.control}
@@ -86,14 +86,14 @@ export default function ForgotPasswordPage() {
                 <button type="submit"></button>
               </form>
             </Form>
-            <div className="flex items-center justify-center w-[300px] mx-auto gap-4 mt-2">
+            <div className="flex items-center justify-center w-[400px] mx-auto gap-4 mt-2">
               <Link
-                className="text-left dark:text-foreground text-white w-full hover:underline"
+                className="text-left text-sm dark:text-foreground text-white w-full hover:underline"
                 href={"/auth/login"}
               >
-                login
+               login
               </Link>
-              <div className="text-right dark:text-foreground text-white w-full">
+              <div className="text-right text-sm dark:text-foreground text-white w-full">
                 press ⏎ to confirm{" "}
               </div>
             </div>

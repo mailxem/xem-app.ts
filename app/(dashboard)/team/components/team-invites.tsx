@@ -48,7 +48,7 @@ export function TeamInvites() {
   }, [pendingInvites, team?.users]);
 
   if (!pendingInvites?.length) {
-    return <p className="text-muted-foreground">No pending invites</p>;
+    return <p className="text-sm text-muted-foreground">No pending invites</p>;
   }
 
   return (
@@ -56,7 +56,7 @@ export function TeamInvites() {
       {pendingInvites.map((invite) => (
         <div
           key={invite.id}
-          className="flex items-center justify-between p-4 border rounded-lg"
+          className="flex items-center justify-between p-4 border border-muted rounded-lg"
         >
           <div>
             <p className="font-medium"> {invite.name} &lt;{invite.email}&gt;</p>

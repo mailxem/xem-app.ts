@@ -252,7 +252,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           key={subItem.href}
                           href={subItem.href}
                           className={cn(
-                            "flex font-inter items-center px-4 py-2 text-sm text-sidebar-foreground hover:bg-accent",
+                            "flex font-geist items-center px-4 py-2 text-sm text-sidebar-foreground hover:bg-accent",
                             isSubActive &&
                               "text-primary bg-gray-100 border-l-2 border-primary -ml-[2px]"
                           )}
@@ -279,7 +279,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SheetTrigger>
 
           <SheetContent className="min-w-screen md:min-w-[800px] h-screen overflow-y-auto">
-            <SheetHeader className="flex flex-col gap-2">
+            <SheetHeader className="flex !mb-4 flex-col gap-2">
               <span className="text-2xl">Compose Email</span>
               <p className="text-sm">
                 Write your email below to send it over to anyone

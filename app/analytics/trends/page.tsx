@@ -89,7 +89,7 @@ export default function TrendsPage() {
               <div className="flex items-center justify-center h-[400px]">
                 Loading trend data...
               </div>
-            ) : trendData.length === 0 ? (
+            ) : trendData?.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[400px] gap-2 text-muted-foreground">
                 <h3 className="font-medium">No trend data available</h3>
                 <p>Start sending campaigns to see performance trends.</p>

@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { EyeOffIcon } from "lucide-react";
+import Link from "next/link";
 import { EyeIcon } from "lucide-react";
 import GoogleIcon from "@/components/icon/GoogleIcon";
 import { useApi } from "@/hooks/use-api";
@@ -87,12 +88,12 @@ export default function RegisterPage() {
       <div className="w-full bg-transparent p-8">
         <div className="mb-8 grid gap-4">
           <div className="grid">
-            <h1 className="text-4xl text-center font-normal dark:text-foreground text-white">
-              hey 👋🏻, welcome to Xem
+            <h1 className="text-4xl text-center dark:text-foreground text-white">
+              hey 👋🏻, welcome
             </h1>
             <div className="text-center">
               <div
-                className="cursor-pointer flex mx-auto justify-center items-center w-[200px] !rounded-xl border border-white bg-primary-foreground gap-2 px-5 py-2 mt-8"
+                className="cursor-pointer flex mx-auto justify-center items-center w-fit !rounded-xl border border-white text-sm bg-background gap-2 px-5 py-2 mt-8"
                 onClick={() => signIn("google")}
               >
                 <GoogleIcon />
@@ -100,7 +101,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="mx-auto w-[300px] mt-4">
+            <div className="mx-auto w-[400px] mt-4">
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(handleRegister)}
@@ -232,8 +233,13 @@ export default function RegisterPage() {
                   <button type="submit"></button>
                 </form>
               </Form>
-              <div className="flex items-center justify-center gap-4 mt-2">
-                <div className="text-right dark:text-foreground text-white w-full">
+              <div className="flex items-center justify-center gap-6 mt-2">
+                <span className="text-sm dark:text-foreground text-white">
+                  <Link href="/auth/login" className="text-sm hover:underline">
+                    login
+                  </Link>
+                </span>
+                <div className="text-right text-sm dark:text-foreground text-white w-full">
                   press ⏎ to confirm
                 </div>
               </div>

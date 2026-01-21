@@ -118,9 +118,10 @@ function CampaignsAnalytics() {
         ) : selectedCampaigns.length === 1 ? (
           <CampaignAnalytics campaignId={selectedCampaigns[0]} />
         ) : (
-          <Card className="p-8 text-center text-muted-foreground">
-            Select one campaign to view detailed analytics, or multiple
-            campaigns to compare them.
+          <Card className="p-8 text-muted-foreground">
+            <span className="font-geist text-center">
+              Select one campaign to view detailed analytics, or multiple
+              campaigns to compare them</span><br />
           </Card>
         )}
 
