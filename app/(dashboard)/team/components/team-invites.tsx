@@ -29,6 +29,8 @@ export function TeamInvites() {
     try {
       const response = await apiFetch(`/users/invite/resend/${code}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) throw new Error("Failed to resend invite");
