@@ -64,6 +64,7 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
   const getEmailCategories = async () => {
     try {
       const response = await apiFetch("categories");
+      if (!response.ok) throw new Error("Failed to fetch email categories");
       const data = await response.json();
       setEmailCategories(data.data);
       if (template.categoryId === "Transactional") {
@@ -79,10 +80,11 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
       const response = await apiFetch("templates/" + templateId, {
         method: "GET",
       });
+      if (!response.ok) throw new Error("Failed to fetch template");
       const data = await response.json();
-      setTemplate(data.data);
+      setTemplate(data);
     } catch (error) {
-      toast.error("Failed to load template");
+      toast.error("Failed to fetch template: " + error);
     }
   };
 

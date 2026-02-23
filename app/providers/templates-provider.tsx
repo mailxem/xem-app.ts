@@ -15,6 +15,11 @@ type TemplatesContextType = {
     limit: number;
     total: number;
   };
+  setPagination: (pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  }) => void;
 };
 
 const TemplatesContext = createContext<TemplatesContextType>({
@@ -27,6 +32,7 @@ const TemplatesContext = createContext<TemplatesContextType>({
     limit: 10,
     total: 0,
   },
+  setPagination: () => {},
 });
 
 export function useTemplates() {
@@ -48,7 +54,14 @@ export function TemplatesProvider({ children }: { children: React.ReactNode }) {
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
-      const response = await apiFetch("templates?limit=50&team_id=" + team?.id);
+      const response = await apiFetch(
+        "templates?limit=" +
+          pagination.limit +
+          "&page=" +
+          pagination.page +
+          "&team_id=" +
+          team?.id,
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch templates");
       }
@@ -61,7 +74,9 @@ export function TemplatesProvider({ children }: { children: React.ReactNode }) {
       });
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error("Unknown error occurred"));
+      setError(
+        err instanceof Error ? err : new Error("Unknown error occurred"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -74,13 +89,14 @@ export function TemplatesProvider({ children }: { children: React.ReactNode }) {
   }, [team?.id]);
 
   return (
-    <TemplatesContext.Provider 
+    <TemplatesContext.Provider
       value={{
         templates,
         pagination,
+        setPagination,
         isLoading,
         error,
-        refetch: fetchTemplates
+        refetch: fetchTemplates,
       }}
     >
       {children}

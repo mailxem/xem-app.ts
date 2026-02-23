@@ -26,6 +26,7 @@ import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
+import { useTemplates } from "@/app/providers/templates-provider";
 
 interface Template {
   id: string;
@@ -38,49 +39,15 @@ interface Template {
 }
 
 export function TemplatesList() {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 1,
-    pageSize: 50,
-  });
-
   const [totalCount, setTotalCount] = useState<number>(0);
-
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { team } = useTeam();
   const { apiFetch } = useApi();
-
-  const fetchTemplates = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiFetch(
-        "templates?page=" +
-          pagination.pageIndex +
-          "&limit=" +
-          pagination.pageSize,
-        {
-          method: "GET",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch templates");
-      const data = await response.json();
-      setTemplates(data.data);
-      setTotalCount(data.total);
-      setPagination({
-        pageIndex: data.page,
-        pageSize: data.limit,
-      });
-    } catch (error) {
-      toast.error("Failed to fetch templates");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { templates, isLoading, error, refetch, pagination, setPagination } =
+    useTemplates();
 
   const deleteTemplate = async (id: string) => {
     try {
-      setIsLoading(true);
       const response = await apiFetch(`templates/${id}`, {
         method: "DELETE",
       });
@@ -88,17 +55,14 @@ export function TemplatesList() {
 
       toast.success("Template deleted successfully");
 
-      await fetchTemplates();
+      await refetch();
     } catch (error) {
       toast.error("Failed to delete template");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const duplicateTemplate = async (data: EmailTemplate) => {
     try {
-      setIsLoading(true);
       const createResponse = await apiFetch("templates", {
         method: "POST",
         body: JSON.stringify({
@@ -113,17 +77,15 @@ export function TemplatesList() {
 
       toast.success("Template duplicated successfully");
 
-      await fetchTemplates();
+      await refetch();
     } catch (error) {
       toast.error("Failed to duplicate template");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   useQuery({
-    queryKey: ["templates", pagination.pageIndex, pagination.pageSize],
-    queryFn: fetchTemplates,
+    queryKey: ["templates", team?.id, pagination.page, pagination.limit],
+    queryFn: refetch,
     enabled: !!team?.id,
   });
 
@@ -198,28 +160,29 @@ export function TemplatesList() {
           {pagination && (
             <div className="flex justify-between items-center mt-4 text-sm text-[#606060]">
               <div>
-                Showing results {pagination.pageIndex} -{" "}
-                {pagination.pageIndex * pagination.pageSize} of {totalCount}
+                Showing results {pagination.page} -{" "}
+                {pagination.page * pagination.limit} of {totalCount}
               </div>
               <div className="flex items-center gap-2">
                 <span>Page</span>
                 <Input
                   className="w-12 h-8 text-center rounded-sm"
-                  value={pagination.pageIndex}
+                  value={pagination.page}
                   readOnly
                 />
-                <span>of {Math.ceil(totalCount / pagination.pageSize)}</span>
+                <span>of {Math.ceil(totalCount / pagination.limit)}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-[#403F3F]"
                   onClick={() => {
                     setPagination({
-                      pageIndex: pagination.pageIndex - 1,
-                      pageSize: pagination.pageSize,
+                      page: pagination.page - 1,
+                      limit: pagination.limit,
+                      total: pagination.total,
                     });
                   }}
-                  disabled={pagination.pageIndex === 1}
+                  disabled={pagination.page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -229,11 +192,12 @@ export function TemplatesList() {
                   className="h-8 w-8 text-[#403F3F]"
                   onClick={() => {
                     setPagination({
-                      pageIndex: pagination.pageIndex + 1,
-                      pageSize: pagination.pageSize,
+                      page: pagination.page + 1,
+                      limit: pagination.limit,
+                      total: pagination.total,
                     });
                   }}
-                  disabled={pagination.pageIndex === totalCount}
+                  disabled={pagination.page === totalCount}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
