@@ -42,11 +42,14 @@ export function TeamInvites() {
   };
 
   const pendingInvites = team?.invites?.filter(
-    (invite) => invite.status === "PENDING"
+    (invite) => invite.status === "PENDING" && invite.expiresAt > new Date(),
   );
 
   const getInviter = useCallback(() => {
-    return team?.users.find((user) => user.id === pendingInvites?.[0]?.inviterId) ?? null;
+    return (
+      team?.users.find((user) => user.id === pendingInvites?.[0]?.inviterId) ??
+      null
+    );
   }, [pendingInvites, team?.users]);
 
   if (!pendingInvites?.length) {
@@ -61,9 +64,13 @@ export function TeamInvites() {
           className="flex items-center justify-between p-4 border border-muted rounded-lg"
         >
           <div>
-            <p className="font-medium"> {invite.name} &lt;{invite.email}&gt;</p>
+            <p className="font-medium">
+              {" "}
+              {invite.name} &lt;{invite.email}&gt;
+            </p>
             <p className="text-sm text-muted-foreground">
-              Invited by: {getInviter()?.firstName + " " + getInviter()?.lastName}
+              Invited by:{" "}
+              {getInviter()?.firstName + " " + getInviter()?.lastName}
             </p>
           </div>
           <div className="flex items-center gap-2">
