@@ -21,7 +21,7 @@ export default function Error({
     <div className="container mx-auto flex flex-col items-center justify-center h-full py-12">
       <div className="mb-6">
         <img
-          src="https://ouch-cdn2.icons8.com/4QALLVYyfmhsvooj66mKvnovu8oIJfS1qdxTPdiyGoE/rs:fit:456:456/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvMjU2/L2RhMTFkMzJiLWJk/NGQtNDBhZC1hMDhj/LTEwMjI0NjYyODQz/Zi5zdmc.png"
+          src="/assets/404.png"
           alt="Page not found illustration"
           width={250}
           height={200}
