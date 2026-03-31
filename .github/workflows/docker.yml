@@ -153,6 +153,7 @@ jobs:
             CACHEBUST=$(date +%s)
             APP_ENV=${{ vars.APP_ENV }}
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_PAYWALL_URL=${{ vars.NEXT_PUBLIC_PAYWALL_URL }}
           network: host
           cache-from: type=gha
           cache-to: type=gha,mode=max

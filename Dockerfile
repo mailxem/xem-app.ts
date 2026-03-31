@@ -6,6 +6,9 @@ FROM oven/bun:alpine AS builder
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+ARG NEXT_PUBLIC_PAYWALL_URL
+ENV NEXT_PUBLIC_PAYWALL_URL=${NEXT_PUBLIC_PAYWALL_URL}
+
 # 📂 Set working directory 📂
 # ==========================
 
