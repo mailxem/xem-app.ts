@@ -75,22 +75,11 @@ export function AudienceInsights({ teamId }: { teamId: string }) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <PersonIcon className="h-5 w-5 text-muted-foreground" />
-          <div>
-            <CardTitle className="text-base">Audience Demographics</CardTitle>
-            <CardDescription>
-              Detailed breakdown of your audience demographics and segments
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
       <CardContent>
-        <div className="space-y-8">
+        <div className="space-y-4">
           {/* Demographics Chart */}
           <div>
-            <h4 className="text-sm font-medium mb-4">Demographics Distribution</h4>
+            <h4 className="text-sm font-medium my-4">Demographics Distribution</h4>
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={demographicData}>

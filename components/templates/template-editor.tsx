@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
     categoryId: "Transactional",
     designJson: "",
   });
+
   const [activeTab, setActiveTab] = useState("settings");
   const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
@@ -70,8 +71,10 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
       if (template.categoryId === "Transactional") {
         template.categoryId = data.data[0].id;
       }
+      return data;
     } catch (error) {
       toast.error("Failed to fetch email categories");
+      return null;
     }
   };
 
@@ -82,9 +85,14 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
       });
       if (!response.ok) throw new Error("Failed to fetch template");
       const data = await response.json();
-      setTemplate(data);
+      setTemplate({
+        ...data,
+        design: JSON.parse(Buffer.from(data.designJson, "base64").toString("utf-8")),
+      });
+      return data;
     } catch (error) {
       toast.error("Failed to fetch template: " + error);
+      return null;
     }
   };
 

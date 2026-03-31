@@ -1,26 +1,18 @@
 "use client";
 
 import { SMTPProvider as SmtpContextProvider } from "@/app/providers/smtp-provider";
-import { PageHeader } from "@/components/page-header";
 import { SMTPSettings } from "@/components/settings/smtp-settings";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-
-export default function SMTPPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const openCreateSMTPDialog = () => {
-    setIsDialogOpen(true);
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+export default function SMTPPage() {  
+  const searchParams = useSearchParams();
+  const isDialogOpen = searchParams.get("dialog") === "true";
+  const router = useRouter();
+  const setIsDialogOpen = (open: boolean) => {
+    router.push(`/settings/smtp?dialog=${open ? "true" : "false"}`);
   };
-
   return (
     <div className="flex-1 space-y-4">
-      <PageHeader
-        heading="SMTP Settings"
-        description="Manage your SMTP servers and configurations"
-      >
-        <Button onClick={openCreateSMTPDialog}>Add SMTP Server</Button>
-      </PageHeader>
       <div className="p-4 mx-auto">
         <SmtpContextProvider>
           <SMTPSettings

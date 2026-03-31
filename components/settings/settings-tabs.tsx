@@ -3,11 +3,17 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { User, Bell, Palette, Globe } from "lucide-react";
+import { User, Bell, Palette, Globe, CreditCard } from "lucide-react";
 import { ProfileSettings } from "./profile-settings";
 import { BrandingSettings } from "./branding-settings";
 import { CustomDomains } from "./custom-domains";
 import { TeamProvider } from "@/app/providers/team-provider";
+import dynamic from "next/dynamic";
+
+const BillingWrapper = dynamic(
+  () => import("@/app/settings/billing/billing-wrapper"),
+  { ssr: false }
+);
 
 export function SettingsTabs() {
   return (
@@ -40,6 +46,13 @@ export function SettingsTabs() {
         >
           <Bell className="h-4 w-4" />
           Notifications
+        </TabsTrigger>
+        <TabsTrigger
+          value="billing"
+          className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
+        >
+          <CreditCard className="h-4 w-4" />
+          Billing
         </TabsTrigger>
       </TabsList>
 
@@ -99,6 +112,10 @@ export function SettingsTabs() {
             </div>
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="billing" className="space-y-4">
+        <BillingWrapper />
       </TabsContent>
     </Tabs>
   );

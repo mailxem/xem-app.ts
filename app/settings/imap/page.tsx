@@ -1,26 +1,20 @@
 "use client";
 
 import { IMAPProvider } from "@/app/providers/imap-provider";
-import { PageHeader } from "@/components/page-header";
 import { IMAPSettings } from "@/components/settings/imap-settings";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SMTPPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const openCreateIMAPDialog = () => {
-    setIsDialogOpen(true);
+  const searchParams = useSearchParams();
+  const isDialogOpen = searchParams.get("dialog") === "true";
+  const router = useRouter();
+  
+  const setIsDialogOpen = (open: boolean) => {
+    router.push(`/settings/imap?dialog=${open ? "true" : "false"}`);
   };
 
   return (
     <div className="flex-1 space-y-4">
-      <PageHeader
-        heading="IMAP Settings"
-        description="Manage your IMAP servers and configurations"
-      >
-        <Button onClick={openCreateIMAPDialog}>Add IMAP Server</Button>
-      </PageHeader>
       <div className="p-4 mx-auto">
         <IMAPProvider>
           <IMAPSettings

@@ -106,6 +106,7 @@
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "5.2.2",
+    "usehooks-ts": "^3.1.1",
     "vaul": "^0.9.9",
     "winston": "^3.8.0",
     "yjs": "^13.6.24",

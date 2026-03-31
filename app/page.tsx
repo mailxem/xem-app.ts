@@ -37,7 +37,7 @@ export default function Home() {
     const fetchCampaignMetrics = async () => {
       try {
         const response = await fetch(
-          `/api/analytics/team/overview?teamId=${team?.id}`
+          `/api/analytics/team/overview?teamId=${team?.id}`,
         );
         if (!response.ok) {
           throw new Error("Failed to fetch analytics overview");
@@ -68,7 +68,7 @@ export default function Home() {
 
   const handleDownloadReport = async (
     period: "week" | "month" | "all",
-    format: "csv" | "json"
+    format: "csv" | "json",
   ) => {
     if (!team?.id || isDownloading) return;
 
@@ -139,68 +139,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex-1 space-y-8">
-        <PageHeader
-          heading="Analytics"
-          description="Your email campaign performance metrics"
-          children={
-            <div className="flex items-center space-x-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isDownloading}>
-                    <Download className="mr-2 h-4 w-4" />
-                    {isDownloading ? "Downloading..." : "Download Report"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  <DropdownMenuItem
-                    onClick={() => handleDownloadReport("week", "csv")}
-                  >
-                    This Week (CSV)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDownloadReport("week", "json")}
-                  >
-                    This Week (JSON)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDownloadReport("month", "csv")}
-                  >
-                    This Month (CSV)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDownloadReport("month", "json")}
-                  >
-                    This Month (JSON)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDownloadReport("all", "csv")}
-                  >
-                    All Time (CSV)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDownloadReport("all", "json")}
-                  >
-                    All Time (JSON)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Link href="/campaigns/new">
-                <Button size="sm" variant="default">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Campaign
-                </Button>
-              </Link>
-            </div>
-          }
-        />
-        {/* / //{" "}
-            <h2 className="text-2xl font-semibold tracking-tight">Analytics</h2>
-            //{" "}
-            <p className="text-muted-foreground">
-              // Your email campaign performance metrics //{" "}
-            </p> */}
-
+      <div className="flex-1 space-y-8 pt-4">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 px-4">
           <Stats />
         </div>

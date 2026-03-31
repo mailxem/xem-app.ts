@@ -62,11 +62,7 @@ export default function TrendsPage() {
 
   return (
     <div className="flex-1 space-y-4">
-      <PageHeader
-        heading="Trend Analysis"
-        description="Analyze your email marketing performance over time."
-      />
-      <div className="grid gap-4 p-4 md:p-8 pt-6">
+      <div className="grid gap-4 p-4 pt-4">
         <div className="flex justify-end ">
           <Select
             value={timeframe}

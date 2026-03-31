@@ -9,20 +9,10 @@ import { TemplatesProvider } from "../providers/templates-provider";
 export default function TemplatesPage() {
   const router = useRouter();
   return (
-    <div className="flex-1 space-y-4">
-      <PageHeader
-        heading="Templates"
-        description="Manage your email templates and preview the result"
-      >
-        <Button onClick={() => router.push("/templates/new")}>
-          <Plus className="mr-2 h-4 w-4" /> Create Template
-        </Button>
-      </PageHeader>
-      <div className="px-4">
-        <TemplatesProvider>
-          <TemplatesList />
-        </TemplatesProvider>
+    <TemplatesProvider>
+      <div className="flex-1 space-y-4">
+        <TemplatesList />
       </div>
-    </div>
+    </TemplatesProvider>
   );
 }

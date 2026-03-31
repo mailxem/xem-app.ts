@@ -15,34 +15,8 @@ export default function FormsPage() {
   const { lists } = useMailingLists();
 
   return (
-    <div className="container mx-auto">
-      <PageHeader heading="Other forms">
-        <Link href="/forms/new">
-          <Button>
-            <PlusIcon className="mr-2 h-4 w-4" />
-            Create form
-          </Button>
-        </Link>
-      </PageHeader>
-
-      <div className="flex bg-primary/10 p-16 items-center gap-4 justify-between">
-        <div className="flex flex-col w-1/2 gap-2">
-          <span className="text-4xl">
-            Transform site visitors into email subscribers
-          </span>
-          <span className="text-muted-foreground font-inter">
-            Grow your audience with customizable forms while gathering data to
-            personalize your marketing.
-          </span>
-        </div>
-        <img
-          src="https://ouch-cdn2.icons8.com/pH0dDQiwxlwXEzfiOsEhlSdpv1US9Twcij9ftQxKUzo/rs:fit:608:456/czM6Ly9pY29uczgu/b3VjaC1wcm9kLmFz/c2V0cy9zdmcvNjg5/L2E0M2QyM2U0LTQy/NjEtNDhjYi1hNDQw/LTc5MmZkMTQ0Njkx/YS5zdmc.png"
-          alt=""
-          width={200}
-        />
-      </div>
-
-      <div className="mb-12 p-8">
+    <div className="container p-4 mx-auto">
+      <div className="mb-12">
         <h2 className="text-2xl font-medium mb-4">Recent forms</h2>
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

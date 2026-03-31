@@ -36,15 +36,23 @@ async function MainLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider className="flex flex-col min-h-screen">
-      <AppHeader heading="Xem ❇" className="shrink-0" />
-      <div className="flex flex-col lg:flex-row flex-1 w-full bg-sidebar relative overflow-hidden">
-        <div className="lg:fixed lg:left-0 lg:top-[64px] lg:bottom-0 lg:w-64 overflow-y-auto overflow-x-hidden">
-          <AppSidebar className="h-full w-full" />
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        {/* Sidebar - Fixed on desktop */}
+        <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-background hidden lg:block">
+          <AppSidebar className="h-full" />
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex flex-col flex-1 lg:ml-64">
+          {/* Header */}
+          <AppHeader />
+
+          {/* Page Content */}
+          <main className="flex-1 overflow-y-auto bg-muted/10">
+            {children}
+          </main>
         </div>
-        <main className="flex-1 overflow-y-auto w-full lg:ml-64 max-h-svh">
-          {children}
-        </main>
       </div>
     </SidebarProvider>
   );

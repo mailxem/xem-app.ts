@@ -15,6 +15,16 @@ const nextConfig = {
         destination: "/auth/signup",
         permanent: true,
       },
+      {
+        source: "/billing",
+        destination: "/billing/overview",
+        permanent: true,
+      },
+      {
+        source: "/api/billing/:path*",
+        destination: `${process.env.NEXT_PUBLIC_PAYWALL_URL}/:path*`,
+        permanent: false,
+      },
     ];
   },
   images: {

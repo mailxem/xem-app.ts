@@ -5,30 +5,23 @@ import { Card } from "@/components/ui/card";
 import { TeamAnalytics } from "@/components/analytics/team-analytics";
 import { useTeam } from "@/app/providers/team-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BarChart2,
-  Users,
-  Mail,
-  TrendingUp
-} from "lucide-react";
+import { BarChart2, Users, Mail, TrendingUp } from "lucide-react";
 
 export default function TeamAnalyticsPage() {
   const { team } = useTeam();
 
   return (
     <div className="flex-1 space-y-4">
-      <PageHeader
-        heading="Team Analytics" 
-        description="Analyze your team's email marketing performance."
-      />
-      
-      <Tabs defaultValue="overview" className="p-4 md:p-8 pt-6 space-y-4">
+      <Tabs defaultValue="overview" className="p-4 pt-4 space-y-4">
         <TabsList>
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart2 className="h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="member-activity" className="flex items-center gap-2">
+          <TabsTrigger
+            value="member-activity"
+            className="flex items-center gap-2"
+          >
             <Users className="h-4 w-4" />
             Member Activity
           </TabsTrigger>

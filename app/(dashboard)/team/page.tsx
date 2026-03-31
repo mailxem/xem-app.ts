@@ -3,11 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeamInfo } from "./components/team-info";
 import { InviteTeamMember } from "./components/invite-member";
 import { TeamInvites } from "./components/team-invites";
-import { PageHeader } from "@/components/page-header";
-import { Users, Mail, Settings, Plus, BarChart2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TeamSettings } from "./components/team-settings";
-import { TemplatesProvider } from "@/app/providers/templates-provider";
+import { Users, Mail, BarChart2 } from "lucide-react";
 import { TeamAnalytics } from "@/components/analytics/team-analytics";
 
 export const metadata: Metadata = {
@@ -18,13 +14,7 @@ export const metadata: Metadata = {
 export default function TeamPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <PageHeader
-        heading="Team Management"
-        description="Manage your team members, invites, and settings"
-      >
-      </PageHeader>
-
-      <div className="flex-1 space-y-4 p-6 pt-4">
+      <div className="flex-1 space-y-4 p-4 pt-4">
         <Tabs defaultValue="members" className="space-y-4">
           <TabsList className="border-b border-muted rounded-none w-full justify-start gap-6 bg-transparent h-auto p-0">
             <TabsTrigger
