@@ -222,7 +222,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     "flex items-center px-4 py-1 text-sidebar-foreground hover:bg-accent cursor-pointer",
                     isItemActive &&
                       !item.subItems &&
-                      "text-sidebar-foreground font-medium text-primary bg-gray-100 border-l-2 border-primary "
+                      "text-sidebar-foreground font-medium text-primary dark:text-red-500 dark:bg-black/40 bg-gray-100 border-l-2 border-primary "
                   )}
                   onClick={() => item.subItems && toggleExpand(item.href)}
                 >

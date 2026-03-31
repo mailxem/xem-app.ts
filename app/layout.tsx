@@ -39,7 +39,7 @@ async function MainLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         {/* Sidebar - Fixed on desktop */}
-        <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-background hidden lg:block">
+        <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-background hidden lg:block">
           <AppSidebar className="h-full" />
         </aside>
 

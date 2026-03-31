@@ -177,12 +177,12 @@ export function AppHeader({ className }: AppHeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "sticky top-0 z-30 w-full border-b border-muted bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         className,
       )}
     >
       {/* Top Bar */}
-      <div className="flex h-12 items-center px-4 lg:px-6 border-b">
+      <div className="flex h-12 items-center px-4 lg:px-6 border-b border-muted">
         <div className="flex items-center gap-3">
           <img
             src="/android-chrome-512x512.png"
