@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { TeamProvider } from "@/app/providers/team-provider";
 import { CampaignAnalytics } from "@/components/analytics/campaign-analytics";
 import { CampaignComparison } from "@/components/analytics/campaign-comparison";
@@ -95,8 +96,8 @@ function CampaignsAnalytics() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 space-y-4 p-4 pt-4">
+    <div className={workspaceClassName("workspace-page")}>
+      <div className={workspaceClassName("workspace-page-body space-y-6")}>
         {selectedCampaigns.length > 1 ? (
           <CampaignComparison campaignIds={selectedCampaigns} />
         ) : selectedCampaigns.length === 1 ? (

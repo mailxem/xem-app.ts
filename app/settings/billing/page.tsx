@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { useState } from "react";
 import { PricingCard } from "@/components/billing/pricing-card";
 import { SubscriptionStatus } from "@/components/billing/subscription-status";
@@ -221,7 +222,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="flex-1 p-4 space-y-6">
+    <div className={workspaceClassName("workspace-page-body space-y-6")}>
       <Tabs defaultValue="plans" className="space-y-6">
         <TabsList>
           <TabsTrigger value="plans">

@@ -48,14 +48,14 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
 
       const teamData = await response.json();
 
-      console.log("teamData", teamData);
       setTeam(teamData);
+      setError(null);
 
       logger.info({
         fileName: "team-provider.tsx",
         action: "fetchTeamData",
         label: "teamData",
-        value: teamData,
+        value: { id: teamData.id },
         emoji: "✅",
         message: "Team data fetched successfully",
       });
@@ -83,7 +83,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchTeamData();
-  }, [session?.user]);
+  }, [session?.user?.teamId]);
 
   return (
     <TeamContext.Provider

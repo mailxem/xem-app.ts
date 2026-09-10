@@ -1,6 +1,7 @@
 "use client";
+import { resourceEntity } from "@/lib/resource-response";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,16 @@ import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
 import { MailingList } from "@/lib";
+import { useResourcePage } from "@/hooks/use-resource-page";
+import { QueryState, Metric } from "@/components/marketing/shared";
+import { workspaceClassName } from "@/lib/workspace-styles";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { CollectionPagination } from "@/components/ui/collection-pagination";
+import { Status } from "@/components/marketing/shared";
+import { ContactTagEditor } from "@/components/contacts/contact-tag-editor";
+import { ContactImport } from "@/components/contacts/contact-import";
+import { PageHeader } from "@/components/page-header";
+import { Users, ListFilter, CalendarDays } from "lucide-react";
 
 interface Contact {
   id: string;
@@ -27,8 +38,9 @@ interface Contact {
   firstName: string | null;
   lastName: string | null;
   isDeleted: boolean;
+  status: string;
   metadata: Record<string, any>;
-  tags: string[] | null;
+  tags: { id: string; name: string }[] | null;
   createdAt: string;
   updatedAt: string;
   listId: string;
@@ -37,82 +49,36 @@ interface Contact {
 }
 
 export function ContactsList({ listId }: { listId: string }) {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-  const [total, setTotal] = useState(0);
-    const [isLoading, setIsLoading] = useState(false);
-  const [listLoading, setListLoading] = useState(false);
-  const [list, setList] = useState<MailingList | null>(null);
+  const [tagContact, setTagContact] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const { team } = useTeam();
-  const { apiFetch } = useApi();
-
-  const fetchContacts = async () => {
-    if (!listId) return;
-
-    try {
-      setIsLoading(true);
-      const response = await apiFetch(
-        "contacts?list_id=" +
-          listId +
-          "&team_id=" +
-          team?.id +
-          "&page=" +
-          pagination.pageIndex +
-          "&limit=" +
-          pagination.pageSize,
-        {
-          method: "GET",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch contacts");
-      const data = await response.json();
-      setContacts(data.data);
-      setPagination({
-        pageIndex: data.page,
-        pageSize: data.limit,
-      });
-      setTotal(data.total);
-      return data.data;
-    } catch (error) {
-      toast.error("Failed to fetch contacts: " + error.message);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchList = async () => {
-    try {
-      const response = await apiFetch("/mailing-lists/" + listId, {
-        method: "GET",
-      });
-      if (!response.ok) throw new Error("Failed to fetch list");
-      const data = await response.json();
-      console.log("data fetchList", data.data);
-      setList(data.data);
-      return data.data;
-    } catch (error) {
-      toast.error("Failed to fetch list: " + error.message);
-      setList(null);
-      return {};
-    } finally {
-      setListLoading(false);
-    }
-  };
-
+  const { apiFetch, session } = useApi();
+  const contactsQuery = useResourcePage<Contact>("contacts", pagination.pageIndex + 1, pagination.pageSize, { list_id: listId, include: "Tags" });
+  const listQuery = useQuery<MailingList>({
+    queryKey: ["list", team?.id, listId],
+    enabled: !!listId && !!team?.id && !!session?.accessToken,
+    queryFn: async ({ signal }) => {
+      const response = await apiFetch(`mailing-lists/${listId}`, { signal });
+      if (!response.ok) throw new Error("Unable to load this contact list.");
+      const result = await response.json();
+      return resourceEntity<MailingList>(result);
+    },
+  });
+  const contacts = contactsQuery.data?.data ?? [];
+  const list = listQuery.data;
+  const total = contactsQuery.data?.total ?? 0;
+  const refresh = async () => { await Promise.all([contactsQuery.refetch(), listQuery.refetch()]); };
 
   const updateContactStatus = async (
     contactId: string,
     newStatus: "ACTIVE" | "UNSUBSCRIBED"
   ) => {
     try {
-      setIsLoading(true);
       const response = await apiFetch("contacts/" + contactId, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify({
+          email: contacts.find(contact => contact.id === contactId)?.email,
+          listId,
           status: newStatus,
         }),
       });
@@ -125,191 +91,35 @@ export function ContactsList({ listId }: { listId: string }) {
         } successfully`
       );
 
-      await fetchContacts();
+      await refresh();
     } catch (error) {
       toast.error("Failed to update contact status");
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  useQuery({
-    queryKey: ["contacts", listId, pagination.pageIndex, pagination.pageSize],
-    queryFn: () => fetchContacts(),
-    enabled: !!listId && pagination.pageIndex > 0 && pagination.pageSize > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true,
-  });
-
-  useQuery({
-    queryKey: ["list", listId],
-    queryFn: fetchList,
-    enabled: !!listId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true,
-  });
-
-
-  const columns: ColumnDef<Contact>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
-    {
-      id: "avatar",
-      header: "Avatar",
-      cell: ({ row }) => (
-        <div className="h-14 w-14 flex items-center justify-center">
-          <img
-            src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${row.original.email}`}
-            className="w-full h-full object-cover "
-          />
-        </div>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{row.getValue("email")}</span>
-          <span className="text-sm text-muted-foreground">
-            {row.original.firstName && row.original.lastName
-              ? `${row.original.firstName} ${row.original.lastName}`
-              : "No name"}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return (
-          <Badge
-            variant={status === "ACTIVE" ? "default" : "outline"}
-            className="capitalize"
-          >
-            {status === "ACTIVE" ? "Subscribed" : "Unsubscribed"}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Joined",
-      cell: ({ row }) => {
-        return (
-          <div className="font-medium">
-            {new Date(row.getValue("createdAt")).toLocaleDateString()}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "updatedAt",
-      header: "Last Updated",
-      cell: ({ row }) => {
-        return (
-          <div className="text-muted-foreground text-sm">
-            {new Date(row.getValue("updatedAt")).toLocaleDateString()}
-          </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const contact = row.original;
-        const isSubscribed = contact.isDeleted === false;
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <Mail className="mr-2 h-4 w-4" />
-                Send Email
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() =>
-                  updateContactStatus(
-                    contact.id,
-                    isSubscribed ? "UNSUBSCRIBED" : "ACTIVE"
-                  )
-                }
-              >
-                {isSubscribed ? (
-                  <>
-                    <UserX className="mr-2 h-4 w-4" />
-                    Unsubscribe
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="mr-2 h-4 w-4" />
-                    Resubscribe
-                  </>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
   return (
-    <div className="space-y-4 pb-20">
-      <div className="w-full overflow-visible">
-        <div className="pt-3 pb-4">
-          <div className="hidden mb-4">
-            <div>
-              <p className="font-semibold inline">Current audience</p>
-              <span className="ml-1 hidden bg-green-500 text-white px-2 py-1 "></span>
-            </div>
-            <div className="pt-2"></div>
-          </div>
-          <h3 className="text-xl font-medium">{team?.name}</h3>
-          <h4 className="text-sm text-gray-600">
-            <a
-              href="/audience/contacts?clear_segment=true&id=899295"
-              className="font-semibold text-[#007C89] hover:underline"
-              title="Your contacts"
-            >
-              {total}
-            </a>{" "}
-            total contacts.{" "}
-            <a className="font-semibold text-[#007C89] hover:underline" href="#">
-              {list?.subscribersCount}
-            </a>{" "}
-            email subscribers.
-          </h4>
-        </div>
+    <>
+      {tagContact && <ContactTagEditor contactId={tagContact} close={() => setTagContact(null)} onSaved={() => void refresh()}/>}
+      <PageHeader heading={list?.name || "Contact list"} description={list?.description || "Manage the contacts in this audience."} backButton={{ href: "/audience/lists", label: "Back to contact lists" }}>
+        <ContactImport listId={listId} onImportComplete={refresh}/>
+      </PageHeader>
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Metric label="Total contacts" value={contactsQuery.isLoading ? "—" : total} icon={<Users size={18}/>}/>
+        <Metric label="Subscribers" value={listQuery.isPending ? "—" : list?.subscribersCount ?? 0} icon={<UserCheck size={18}/>}/>
+        <Metric label="Created" value={list?.createdAt ? new Date(list.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—"} icon={<CalendarDays size={18}/>}/>
       </div>
-      <DataTable columns={columns} data={contacts} filterColumn="email" />
-    </div>
+      <section className={workspaceClassName("product-panel")}>
+        <div className={workspaceClassName("panel-toolbar")}><h2>All contacts</h2><span className="text-xs text-muted-foreground">{total.toLocaleString()} contacts</span></div>
+        <div className="px-5 pb-5">
+          {contactsQuery.error || listQuery.error ? <QueryState loading={false} error={contactsQuery.error || listQuery.error} retry={refresh}/> : contactsQuery.isLoading ? <QueryState loading/> : <>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{contacts.map(contact => <CollectionCard key={contact.id} icon={<Users size={22}/>} title={[contact.firstName, contact.lastName].filter(Boolean).join(" ") || contact.email} description={contact.firstName || contact.lastName ? contact.email : undefined} badge={<Status value={contact.status}/>} action="Manage tags" onAction={() => setTagContact(contact.id)} menu={
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${contact.email}`}><MoreHorizontal size={18}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setTagContact(contact.id)}>Manage tags</DropdownMenuItem><DropdownMenuItem onClick={() => updateContactStatus(contact.id, contact.status === "ACTIVE" ? "UNSUBSCRIBED" : "ACTIVE")}>{contact.status === "ACTIVE" ? "Unsubscribe" : "Resubscribe"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+            }><div className="mt-4 flex min-h-7 flex-wrap gap-1">{contact.tags?.map(tag => <span key={tag.id} className="rounded-full bg-violet-50 px-2 py-1 text-xs text-violet-600">{tag.name}</span>)}</div><p className="mt-2 text-xs text-muted-foreground">Joined {new Date(contact.createdAt).toLocaleDateString()}</p></CollectionCard>)}</div>
+            {!contacts.length && <p className="py-10 text-center text-sm text-muted-foreground">No contacts in this list yet. Import contacts to get started.</p>}
+            <CollectionPagination page={pagination.pageIndex + 1} limit={pagination.pageSize} total={total} onPageChange={page => setPagination({ ...pagination, pageIndex: page - 1 })}/>
+          </>}
+        </div>
+      </section>
+    </>
   );
 }

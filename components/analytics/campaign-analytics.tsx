@@ -1,4 +1,5 @@
 "use client";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 import { useEffect, useState } from "react";
 import {
@@ -215,7 +216,7 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <LineChart data={timelineData}>
                     <XAxis
                       dataKey="timestamp"
@@ -224,7 +225,7 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
                       }
                     />
                     <YAxis />
-                    <Tooltip
+                    <ChartTooltip
                       labelFormatter={(value) =>
                         new Date(value).toLocaleString()
                       }
@@ -233,18 +234,18 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
                       type="monotone"
                       dataKey="count"
                       name="Total Events"
-                      stroke="#007C89"
+                      stroke="var(--chart-1)"
                       strokeWidth={2}
                     />
                     <Line
                       type="monotone"
                       dataKey="uniqueCount"
                       name="Unique Events"
-                      stroke="#FF8C61"
+                      stroke="var(--chart-2)"
                       strokeWidth={2}
                     />
                   </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
@@ -260,14 +261,14 @@ export function CampaignAnalytics({ campaignId }: { campaignId: string }) {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <BarChart data={deviceData}>
                     <XAxis dataKey="device" />
                     <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#007C89" />
+                    <ChartTooltip content={<ChartTooltipContent/>}/>
+                    <Bar dataKey="count" fill="var(--chart-1)" />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>

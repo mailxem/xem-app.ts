@@ -63,7 +63,7 @@ export async function GET(
         emoji: "🚫",
         action: "authenticate",
         label: "team",
-        value: { userId: session.user.id },
+        value: { userId: null },
         message: "Unauthorized access attempt",
       });
       return new NextResponse("Unauthorized", { status: 401 });
@@ -78,6 +78,7 @@ export async function GET(
       id: session.user.teamId,
     });
 
+    if (!team.data?.[0]) return NextResponse.json({error:"Workspace not found"},{status:404});
     return NextResponse.json(team.data[0]);
   } catch (error) {
     const apiError = error as ApiError;

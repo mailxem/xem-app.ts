@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import * as React from "react";
 import {
   ColumnDef,
@@ -184,18 +185,16 @@ export function DataTable<TData, TValue>({
     pageSize: pageSize,
   });
 
-  React.useEffect(() => {
-    if (onPaginationChange) {
-      onPaginationChange(paginationData);
-    }
-  }, [paginationData]);
+  const controlled = typeof onPaginationChange === "function";
+  const currentPagination = controlled ? { pageIndex, pageSize } : paginationData;
+  const serverPagination = totalRows !== undefined;
 
   const table = useReactTable({
     data: data,
     columns,
     enableMultiRowSelection: true,
     state: {
-      pagination: { pageIndex, pageSize },
+      pagination: currentPagination,
     },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -204,15 +203,19 @@ export function DataTable<TData, TValue>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     enableRowSelection: true,
-    manualPagination: true,
-    pageCount: Math.ceil((totalRows ?? 0) / pageSize),
-    onPaginationChange: setPaginationData,
+    manualPagination: serverPagination,
+    pageCount: serverPagination ? Math.max(1, Math.ceil(totalRows / currentPagination.pageSize)) : undefined,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === "function" ? updater(currentPagination) : updater;
+      if (controlled) onPaginationChange(next);
+      else setPaginationData(next);
+    },
   });
 
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className={workspaceClassName("workspace-data-table grid grid-cols-1 gap-4")}>
       {" "}
-      <div className="bg-card rounded-lg border border-muted">
+      <div className="bg-card rounded-[20px] border border-border overflow-hidden">
         {isLoading && (
           <div className="flex justify-center items-center h-24">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -234,7 +237,7 @@ export function DataTable<TData, TValue>({
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className="bg-background px-4 py-1 overflow-hidden text-ellipsis whitespace-nowrap sticky top-0"
+                          className="bg-muted px-4 py-3 overflow-hidden text-ellipsis whitespace-nowrap"
                         >
                           {header.isPlaceholder
                             ? null
@@ -253,7 +256,7 @@ export function DataTable<TData, TValue>({
                       <TableRow
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
-                        className="cursor-pointer group relative bg-sidebar/90 hover:bg-muted"
+                        className="group relative bg-card hover:bg-muted"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell

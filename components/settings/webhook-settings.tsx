@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import { useTeam } from "@/app/providers/team-provider";
 import { Button } from "@/components/ui/button";
@@ -38,41 +39,37 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ExternalLink, Loader2, Plus, RefreshCw, Trash } from "lucide-react";
+import { ExternalLink, Loader2, Plus, RefreshCw, Trash, Webhook as WebhookIcon } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
+import { useResourcePage } from "@/hooks/use-resource-page";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { CollectionPagination } from "@/components/ui/collection-pagination";
+import { PageHeading, QueryState, Empty } from "@/components/marketing/shared";
+import { workspaceClassName } from "@/lib/workspace-styles";
 
 interface WebhookWithEvents extends Webhook {
   events: WebhookEventType[];
+  isActive: boolean;
+  secret: string;
 }
 
 export function WebhookSettings() {
   const { team } = useTeam();
   const { apiFetch } = useApi();
-  const [webhooks, setWebhooks] = useState<WebhookWithEvents[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const query = useResourcePage<WebhookWithEvents>("webhooks", page, 20);
+  const webhooks = query.data?.data ?? [];
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
-  // Fetch webhooks
-  const fetchWebhooks = async () => {
+  const fetchWebhooks = () => query.refetch();
+  const toggle = async (webhook: WebhookWithEvents) => {
     try {
-      const response = await apiFetch(`webhooks?teamId=${team?.id}`);
-      if (!response.ok) throw new Error("Failed to fetch webhooks");
-      const data = await response.json();
-      setWebhooks(data);
-    } catch (error) {
-      toast.error("Failed to load webhooks");
-    } finally {
-      setLoading(false);
-    }
+      const response = await apiFetch(`marketing/webhooks/${webhook.id}/status`, {method:"PUT",body:JSON.stringify({isActive:!webhook.isActive})});
+      if (!response.ok) throw new Error("Unable to update webhook");
+      await query.refetch();
+    } catch { toast.error("Unable to update webhook"); }
   };
-
-  useEffect(() => {
-    if (team?.id) {
-      fetchWebhooks();
-    }
-  }, [team?.id]);
 
   // Delete webhook
   const deleteWebhook = async (id: string) => {
@@ -82,132 +79,23 @@ export function WebhookSettings() {
       });
       if (!response.ok) throw new Error("Failed to delete webhook");
       
-      setWebhooks((prev) => prev.filter((webhook) => webhook.id !== id));
+      await fetchWebhooks();
       toast.success("Webhook deleted successfully");
     } catch (error) {
       toast.error("Failed to delete webhook");
     }
   };
 
-  // Toggle webhook active state
-  const toggleWebhookActive = async (id: string, isActive: boolean) => {
-    try {
-      const response = await apiFetch(`webhooks/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isActive }),
-      });
-      if (!response.ok) throw new Error("Failed to update webhook");
-      
-      setWebhooks((prev) =>
-        prev.map((webhook) =>
-          webhook.id === id ? { ...webhook, isActive } : webhook
-        )
-      );
-    } catch (error) {
-      toast.error("Failed to update webhook");
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {loading ? (
-        <div className="flex justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : webhooks.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No webhooks configured</CardTitle>
-            <CardDescription>
-              Add a webhook to receive real-time updates for various events
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Your First Webhook
-            </Button>
-          </CardFooter>
-        </Card>
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>URL</TableHead>
-                <TableHead>Events</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Delivery</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {webhooks.map((webhook) => (
-                <TableRow key={webhook.id}>
-                  <TableCell className="font-medium">{webhook.name}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {webhook.url}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {webhook.events.map((eventType) => (
-                        <Badge key={eventType} variant="secondary">
-                          {eventType}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={webhook.active}
-                      onCheckedChange={(checked) =>
-                        toggleWebhookActive(webhook.id, checked)
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {webhook.lastAttempt
-                      ? format(new Date(webhook.lastAttempt), "PPp")
-                      : "Never"}
-                    {webhook.lastStatus && (
-                      <Badge
-                        variant={webhook.lastStatus === 200 ? "default" : "destructive"}
-                        className="ml-2"
-                      >
-                        {webhook.lastStatus}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                    >
-                      <Link href={`/settings/webhooks/${webhook.id}/deliveries`}>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View Deliveries
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteWebhook(webhook.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
+      <PageHeading title="Webhooks" description="Send email events to your connected applications." action={<Button onClick={() => setIsAddDialogOpen(true)}><Plus size={16}/>Add webhook</Button>}/>
+      <section className={workspaceClassName("product-panel")}>
+        <div className={workspaceClassName("panel-toolbar")}><h2>Your webhooks</h2><span className="text-xs text-muted-foreground">{query.data?.total ?? 0} endpoints</span></div>
+        {query.isLoading || query.error ? <QueryState loading={query.isLoading} error={query.error} retry={() => void fetchWebhooks()}/> : !webhooks.length ? <Empty title="Connect your first endpoint" description="Receive updates when contacts open, click, reply, bounce, or report an email." action={<Button onClick={() => setIsAddDialogOpen(true)}>Add webhook</Button>}/> : <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{webhooks.map(webhook => <CollectionCard key={webhook.id} icon={<WebhookIcon size={22}/>} title={webhook.name} badge={webhook.isActive ? "Active" : "Inactive"} description={webhook.url} href={`/settings/webhooks/${webhook.id}/deliveries`} action="View deliveries" menu={<Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label={`Delete ${webhook.name}`} onClick={() => { if (confirm("Delete this webhook?")) void deleteWebhook(webhook.id); }}><Trash size={16}/></Button>}><div className="mt-4 flex items-center justify-between"><span className="text-xs text-muted-foreground">Receive events</span><Switch aria-label={`Enable ${webhook.name}`} checked={webhook.isActive} onCheckedChange={() => void toggle(webhook)}/></div><div className="mt-5 flex flex-wrap gap-1">{webhook.events.map(event => <span key={event} className="rounded-full bg-violet-50 px-2 py-1 text-xs text-violet-600">{event}</span>)}</div></CollectionCard>)}</div>
+          <CollectionPagination page={page} limit={20} total={query.data?.total ?? 0} onPageChange={setPage}/>
+        </>}
+      </section>
       <AddWebhookDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
@@ -233,6 +121,7 @@ function AddWebhookDialog({
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  const [secret, setSecret] = useState("");
   const [selectedEvents, setSelectedEvents] = useState<WebhookEventType[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -249,6 +138,8 @@ function AddWebhookDialog({
           name,
           url,
           events: selectedEvents,
+          secret,
+          isActive: true,
         }),
       });
 
@@ -299,6 +190,10 @@ function AddWebhookDialog({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="webhook-secret">Signing secret</Label>
+            <Input id="webhook-secret" type="password" required minLength={16} value={secret} onChange={event => setSecret(event.target.value)} autoComplete="new-password" placeholder="At least 16 characters"/>
+          </div>
+          <div className="space-y-2">
             <Label>Events</Label>
             <Select
               onValueChange={(value) =>
@@ -313,7 +208,7 @@ function AddWebhookDialog({
                 <SelectValue placeholder="Select events" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(WebhookEventType).map((event) => (
+                {["open", "click", "reply", "bounce", "complaint"].map((event) => (
                   <SelectItem key={event} value={event}>
                     {event}
                   </SelectItem>
@@ -348,7 +243,7 @@ function AddWebhookDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !selectedEvents.length}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Webhook
             </Button>

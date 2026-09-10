@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { IMAPProvider } from "@/app/providers/imap-provider";
 import { IMAPSettings } from "@/components/settings/imap-settings";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,7 +16,7 @@ export default function SMTPPage() {
 
   return (
     <div className="flex-1 space-y-4">
-      <div className="p-4 mx-auto">
+      <div className={workspaceClassName("workspace-page-body")}>
         <IMAPProvider>
           <IMAPSettings
             isDialogOpen={isDialogOpen}

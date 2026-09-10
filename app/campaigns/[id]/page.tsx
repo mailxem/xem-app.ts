@@ -28,8 +28,8 @@ import { useQuery } from "@tanstack/react-query";
 const CampaignViewPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const { id } = use(params);
-  const { getCampaign, refetch, campaign } = useCampaigns();
-  const { apiFetch } = useApi();
+  const { getCampaign, refetch } = useCampaigns();
+  const { apiFetch, session } = useApi();
   const [template, setTemplate] = useState<EmailTemplate | null>(null);
   const [templateVariables, setTemplateVariables] = useState<
     Record<string, any>
@@ -37,16 +37,14 @@ const CampaignViewPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
 
-  useQuery({
-    queryKey: ["campaign", id],
+  const { data: campaign, error: campaignError } = useQuery({
+    queryKey: ["campaign", session?.user?.teamId, id],
     queryFn: () => getCampaign(id as string),
-    enabled: !!id,
+    enabled: !!id && !!session?.accessToken,
   });
 
   useEffect(() => {
-    if (!campaign) {
-      toast.error("Campaign not found");
-    } else {
+    if (campaign) {
       // Initialize template variables from campaign
       if (campaign.template?.variables) {
         setTemplateVariables(
@@ -74,7 +72,8 @@ const CampaignViewPage = ({ params }: { params: Promise<{ id: string }> }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const payload = await response.json();
+        const data = { data: payload.data ?? payload };
         setTemplate(data.data);
 
         // Initialize empty values for variables that don't have values yet
@@ -153,7 +152,8 @@ const CampaignViewPage = ({ params }: { params: Promise<{ id: string }> }) => {
     }
   };
 
-  if (!campaign) return <div>Loading...</div>;
+  if (campaignError) return <div role="alert" className="rounded-2xl border border-border bg-white p-8">Unable to load this campaign. Please try again.</div>;
+  if (!campaign) return <div role="status" className="p-8 text-muted-foreground">Loading campaign…</div>;
 
   return (
     <div className="container mx-auto">

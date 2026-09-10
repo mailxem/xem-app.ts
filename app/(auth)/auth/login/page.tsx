@@ -50,7 +50,7 @@ export default function LoginPage({
         <div className="mb-8 grid gap-4">
           <div className="grid">
             <h1 className="text-4xl text-center dark:dark:text-foreground text-white text-white">
-              hey 👋🏻, welcome
+              Welcome back
             </h1>
             <div className="text-center">
               <div
@@ -86,7 +86,7 @@ export default function LoginPage({
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-foreground" />
                     <Input
-                      placeholder="password@123"
+                      placeholder="Enter your password"
                       id="password"
                       type={showPassword ? "text" : "password"}
                       className="pl-9 !rounded-xl !border-none"
@@ -108,17 +108,17 @@ export default function LoginPage({
                     </div>
                   </div>
                 </div>
-                <button type="submit"></button>
+                <button type="submit">Sign in</button>
               </form>
               <div className="flex items-center justify-center gap-4 mt-2">
                 <Link
                   className="text-left text-sm dark:text-foreground text-white w-full hover:underline"
                   href="/auth/forgot-password"
                 >
-                  forgot password?
+                  Forgot password?
                 </Link>
                 <div className="text-right text-sm dark:text-foreground text-white w-full">
-                  press ⏎ to confirm
+
                 </div>
               </div>
               <div className="text-center mt-4">

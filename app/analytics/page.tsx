@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { useTeam } from "@/app/providers/team-provider";
 import { TeamAnalytics } from "@/components/analytics/team-analytics";
 import { Stats } from "@/components/stats";
@@ -8,8 +9,8 @@ export default function AnalyticsPage() {
   const { team } = useTeam();
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 space-y-4 p-4 pt-4">
+    <div className={workspaceClassName("workspace-page")}>
+      <div className={workspaceClassName("workspace-page-body space-y-6")}>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Stats />
         </div>

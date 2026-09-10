@@ -33,8 +33,10 @@ export function ContactsListHeader() {
   const { refetch } = useMailingLists();
 
   const createList = async () => {
+    if (!newList.name.trim() || isLoading) return;
+    setIsLoading(true);
     try {
-      const response = await apiFetch("mailing-list", {
+      const response = await apiFetch("mailing-lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...newList, teamId: team?.id }),
@@ -48,24 +50,11 @@ export function ContactsListHeader() {
       toast.success("Contact list created successfully");
     } catch (error) {
       toast.error("Failed to create contact list");
-    }
+    } finally { setIsLoading(false); }
   };
 
   return (
     <div className="flex items-center gap-3">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="border-gray-200">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem>Export as CSV</DropdownMenuItem>
-          <DropdownMenuItem>Export as Excel</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <SheetTrigger asChild>
           <Button className="text-white">

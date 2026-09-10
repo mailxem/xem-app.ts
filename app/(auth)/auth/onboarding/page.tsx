@@ -72,7 +72,7 @@ export default function OnboardingPage() {
         <div className="mb-8 grid gap-4">
           <div className="grid">
             <h1 className="text-4xl text-center font-normal dark:text-foreground text-white">
-              hey 👋🏻, welcome to Posthoot
+              Welcome back to Xem
             </h1>
             <Form {...form}>
               <form
@@ -118,11 +118,11 @@ export default function OnboardingPage() {
                   )}
                 />
                 <button type='submit'></button>
-              </form>
+              <button type="submit">Create workspace</button></form>
             </Form>
             <div className="flex items-center justify-center w-[300px] mx-auto mt-2">
               <div className="text-right dark:text-foreground text-white w-full">
-                press ⏎ to confirm
+
               </div>
             </div>
           </div>

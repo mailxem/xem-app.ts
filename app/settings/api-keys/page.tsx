@@ -1,208 +1,62 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
+import { Copy, KeyRound, MoreHorizontal, Trash, ShieldCheck, Clock3 } from "lucide-react";
 import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import Link from "next/link";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/page-header";
 import { APIKey } from "@/lib";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Tooltip } from "@/components/ui/tooltip";
-import { TooltipContent } from "@/components/ui/tooltip";
-import { PopoverContent } from "@/components/ui/popover";
-import { PopoverTrigger } from "@/components/ui/popover";
-import { FormControl, FormMessage } from "@/components/ui/form";
-import { FormLabel } from "@/components/ui/form";
-import { FormField } from "@/components/ui/form";
-import { FormItem, Form } from "@/components/ui/form";
-import { Popover } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { DataTable } from "@/components/ui/data-table";
 import { useApi } from "@/hooks/use-api";
-import { useQuery } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
+import { useResourcePage } from "@/hooks/use-resource-page";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { CollectionPagination } from "@/components/ui/collection-pagination";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Metric, QueryState, Empty } from "@/components/marketing/shared";
+import { workspaceClassName } from "@/lib/workspace-styles";
 
 export default function APIKeysPage() {
-  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const query = useResourcePage<APIKey>("api-keys", page, 20);
+  const apiKeys = query.data?.data ?? [];
   const { apiFetch } = useApi();
-  const { data: session } = useSession();
-  const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const deleteApiKey = async (id: string) => {
+  const [busy, setBusy] = useState("");
+  const expired = (key: APIKey) => !!key.expiresAt && new Date(key.expiresAt) < new Date();
+  const remove = async (id: string) => {
+    if (!confirm("Delete this API key? Applications using it will lose access.")) return;
+    setBusy(id);
     try {
-      const response = await apiFetch(`api-keys/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Failed to delete API key");
-
-      setApiKeys(apiKeys.filter((key) => key.id !== id));
-      toast.success("API key deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete API key");
-    }
+      const response = await apiFetch(`api-keys/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Unable to delete API key");
+      await query.refetch();
+      toast.success("API key deleted");
+    } catch { toast.error("Unable to delete API key"); }
+    finally { setBusy(""); }
   };
-
-  const toggleApiKey = async (id: string, isActive: boolean) => {
-    try {
-      const response = await apiFetch(`api-keys/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isDeleted: !isActive }),
-      });
-
-      if (!response.ok) throw new Error("Failed to update API key");
-
-      setApiKeys(
-        apiKeys?.map((key) => (key.id === id ? { ...key, isActive } : key)),
-      );
-      toast.success(
-        `API key ${isActive ? "activated" : "deactivated"} successfully`,
-      );
-    } catch (error) {
-      toast.error("Failed to update API key");
-    }
+  const copy = async (key: string) => {
+    try { await navigator.clipboard.writeText(key); toast.success("API key copied"); }
+    catch { toast.error("Unable to copy API key"); }
   };
-
-  const fetchApiKeys = async () => {
-    try {
-      const response = await apiFetch("api-keys");
-      if (!response.ok) throw new Error("Failed to fetch API keys");
-      const data = await response.json();
-      setApiKeys(data.data);
-      if (data.total > 0) {
-        setSelectedKey(data.data[0].id);
-      }
-    } catch (error) {
-      console.error(error, "Failed to fetch API keys");
-      toast.error("Failed to fetch API keys");
-    }
-  };
-
-  useQuery({
-    queryKey: ["api-keys"],
-    queryFn: () => fetchApiKeys(),
-    enabled: !!session?.user,
-  });
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
-
-  return (
-    <div className="flex-1">
-      {/* Three Column Section */}
-      <div className="grid gap-4 p-4">
-        {/* About the API */}
-        <div className="space-y-4 grid">
-          <div className="flex items-center space-x-4">
-            <p className="text-muted-foreground">
-              The Xem API makes it easy for programmers to integrate Xem's
-              features into other applications.
-            </p>
-          </div>
-          <a
-            href="https://docs.xem.email/api-reference/email/send-an-email"
-            target="_blank"
-          >
-            <Button variant="outline" className="w-max justify-start">
-              Read The API Documentation
-            </Button>
-          </a>
-        </div>
-      </div>
-
-      {/* Your API keys section */}
-      <div className="space-y-4 py-4 px-4">
-        <DataTable
-          columns={[
-            {
-              header: "Name",
-              accessorKey: "name",
-            },
-            {
-              header: "Key",
-              accessorKey: "key",
-              cell: ({ row }) => (
-                <div
-                  onClick={() => copyToClipboard(row.original.key)}
-                  className="flex items-center space-x-2"
-                >
-                  <Button variant="ghost" size="sm" className="cursor-pointer">
-                    ••••••••••••••••
-                  </Button>
-                </div>
-              ),
-            },
-            {
-              header: "Status",
-              accessorKey: "isDeleted",
-              cell: ({ row }) => (
-                <Badge
-                  variant={row.original.isDeleted ? "destructive" : "default"}
-                >
-                  {row.original.isDeleted ? "Disabled" : "Enabled"}
-                </Badge>
-              ),
-            },
-            {
-              header: "Actions",
-              accessorKey: "actions",
-              cell: ({ row }) => (
-                <div className="space-x-2">
-                  <Button
-                    onClick={() =>
-                      router.push(`/settings/api-keys/${row.original.id}`)
-                    }
-                    variant="outline"
-                    size="sm"
-                  >
-                    Stats
-                  </Button>
-                  <Button
-                    onClick={() => deleteApiKey(row.original.id)}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ),
-            },
-          ]}
-          data={apiKeys}
-        />
-      </div>
+  return <>
+    <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <Metric label="API keys" value={query.isLoading ? "—" : query.data?.total ?? 0} icon={<KeyRound size={18}/>}/>
+      <Metric label="Active on this page" value={apiKeys.filter(key => !expired(key) && !key.isDeleted).length} icon={<ShieldCheck size={18}/>}/>
+      <Metric label="Expired on this page" value={apiKeys.filter(expired).length} icon={<Clock3 size={18}/>}/>
     </div>
-  );
+    <section className={workspaceClassName("product-panel")}>
+      <div className={workspaceClassName("panel-toolbar")}><h2>Your API keys</h2><a href="https://docs.xem.email/api-reference/email/send-an-email" target="_blank" rel="noreferrer" className="text-xs font-medium text-primary">API documentation ↗</a></div>
+      {query.isLoading || query.error ? <QueryState loading={query.isLoading} error={query.error} retry={() => void query.refetch()}/> : !apiKeys.length ? <Empty title="Connect your application" description="Create an API key to send email and access your workspace through the Xem API."/> : <>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {apiKeys.map(key => <CollectionCard key={key.id} icon={<KeyRound size={22}/>} badge={expired(key) ? "Expired" : key.isDeleted ? "Disabled" : "Active"} title={key.name} href={`/settings/api-keys/${key.id}`} action="View usage" description={`Created ${format(new Date(key.createdAt), "MMM d, yyyy")}`} menu={
+            <DropdownMenu><DropdownMenuTrigger asChild><Button disabled={busy === key.id} variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${key.name}`}><MoreHorizontal size={18}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => copy(key.key)} disabled={!key.key}><Copy className="mr-2 size-4"/>Copy key</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={() => remove(key.id)}><Trash className="mr-2 size-4"/>Delete key</DropdownMenuItem>
+            </DropdownMenuContent></DropdownMenu>
+          }>
+            <div className="mt-5 flex items-center justify-between rounded-xl bg-muted p-3"><span className="font-mono text-sm tracking-wider" aria-label="API key hidden">••••••••••••••••</span><Button variant="ghost" size="icon" className="size-8" disabled={!key.key} onClick={() => copy(key.key)} aria-label={`Copy ${key.name}`}><Copy size={15}/></Button></div>
+            <p className="mt-3 text-xs text-muted-foreground">{key.expiresAt ? `Expires ${format(new Date(key.expiresAt), "MMM d, yyyy")}` : "No expiration date"}</p>
+          </CollectionCard>)}
+        </div>
+        <CollectionPagination page={page} limit={20} total={query.data?.total ?? 0} onPageChange={setPage}/>
+      </>}
+    </section>
+  </>;
 }

@@ -121,6 +121,7 @@ export interface EmailTemplateCategory {
 
 export interface TemplateEditorProps {
   templateId: string;
+  starterKey?: string;
 }
 
 export interface User {

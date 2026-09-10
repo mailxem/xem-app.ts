@@ -1,10 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useForm, type FieldErrors } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import * as z from "zod";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  CheckCheck,
+  ChevronRight,
+  Clock3,
+  FileText,
+  LayoutTemplate,
+  Loader2,
+  Mail,
+  Plus,
+  Save,
+  Send,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
 import {
   TemplatesProvider,
   useTemplates,
@@ -14,6 +35,22 @@ import {
   useMailingLists,
 } from "@/app/providers/mailinglist-provider";
 import { SMTPProvider, useSMTP } from "@/app/providers/smtp-provider";
+import { useTeam } from "@/app/providers/team-provider";
+import { useApi } from "@/hooks/use-api";
+import { resourceEntity } from "@/lib/resource-response";
+import { workspaceClassName } from "@/lib/workspace-styles";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Form,
   FormControl,
@@ -30,57 +67,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  CalendarIcon,
-  CheckCircledIcon,
-  CircleIcon,
-  EnvelopeClosedIcon,
-  PersonIcon,
-  CaretDownIcon,
-  PlusIcon,
-  CheckIcon,
-} from "@radix-ui/react-icons";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { useTeam } from "@/app/providers/team-provider";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import Link from "next/link";
-import { toast } from "sonner";
-import { useApi } from "@/hooks/use-api";
-import { useQuery } from "@tanstack/react-query";
 
 const campaignSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().trim().min(1, "Give your campaign a name"),
   description: z.string().optional(),
-  data: z.record(z.string(), z.string()).optional(), // { variable: value }
-  templateId: z
-    .string()
-    .uuid("Template ID must be a valid UUID")
-    .min(1, "Template is required"),
-  status: z
-    .enum(["DRAFT", "SCHEDULED", "SENDING", "COMPLETED", "FAILED", "PAUSED"])
-    .default("DRAFT"),
+  data: z.record(z.string(), z.string()).optional(),
+  templateId: z.string().uuid("Choose an email template"),
+  status: z.literal("DRAFT").default("DRAFT"),
   scheduledFor: z.date().optional(),
-  schedule: z.enum(["ONE_TIME", "RECURRING"]).optional(),
-  listId: z
-    .string()
-    .uuid("List ID must be a valid UUID")
-    .min(1, "Mailing list is required"),
+  schedule: z.enum(["ONE_TIME", "RECURRING"]).default("ONE_TIME"),
+  listId: z.string().uuid("Choose a contact list"),
   recurringSchedule: z
     .enum(["DAILY", "WEEKLY", "MONTHLY", "CUSTOM"])
     .optional(),
@@ -88,15 +84,27 @@ const campaignSchema = z.object({
   batchSize: z.number().min(1).default(100),
   processed: z.number().default(0),
   batchDelay: z.number().min(1).optional(),
-  timezone: z.string().default("America/New_York"),
-  subject: z.string().min(1, "Subject is required"),
-  smtpConfigId: z
-    .string()
-    .uuid("SMTP configuration ID must be a valid UUID")
-    .min(1, "SMTP configuration is required"),
+  timezone: z.string().default("UTC"),
+  subject: z.string().trim().min(1, "Add a subject line"),
+  smtpConfigId: z.string().uuid("Choose a sender"),
 });
-
 type CampaignFormValues = z.infer<typeof campaignSchema>;
+type ContactPreview = {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+};
+const timezones = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Asia/Kolkata",
+  "Asia/Tokyo",
+  "Asia/Shanghai",
+];
 
 export default function NewCampaignPage() {
   return (
@@ -110,988 +118,1188 @@ export default function NewCampaignPage() {
   );
 }
 
-const NewCampaignForm = () => {
+function ResourceFeedback({
+  loading,
+  error,
+  retry,
+  empty,
+  href,
+  label,
+}: {
+  loading: boolean;
+  error: Error | null;
+  retry: () => void;
+  empty: boolean;
+  href: string;
+  label: string;
+}) {
+  if (loading)
+    return (
+      <p
+        role="status"
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+      >
+        <Loader2 className="size-4 animate-spin" />
+        Loading {label.toLowerCase()}…
+      </p>
+    );
+  if (error)
+    return (
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm"
+      >
+        <span>Unable to load {label.toLowerCase()}.</span>
+        <Button type="button" size="sm" variant="outline" onClick={retry}>
+          Try again
+        </Button>
+      </div>
+    );
+  if (empty)
+    return (
+      <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+        No {label.toLowerCase()} yet.{" "}
+        <Link
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-primary underline underline-offset-4"
+        >
+          Add one to get started
+        </Link>
+        .
+      </div>
+    );
+  return null;
+}
+
+function SetupSection({
+  id,
+  title,
+  description,
+  icon,
+  complete,
+  children,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  icon: ReactNode;
+  complete: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <AccordionItem
+      value={id}
+      className="overflow-hidden rounded-[20px] border border-border bg-white shadow-sm"
+    >
+      <AccordionTrigger className="min-h-[88px] gap-4 px-5 py-5 text-left hover:no-underline sm:px-6 [&>svg]:text-muted-foreground">
+        <span className="flex min-w-0 flex-1 items-center gap-3.5">
+          <span
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-xl border",
+              complete
+                ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+                : "border-primary/10 bg-primary/5 text-primary",
+            )}
+          >
+            {complete ? <Check size={20} /> : icon}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-foreground sm:text-base">
+              {title}
+            </span>
+            <span className="mt-1 block truncate text-xs font-normal text-muted-foreground sm:text-sm">
+              {description}
+            </span>
+          </span>
+        </span>
+        {complete && (
+          <span className="hidden text-xs font-medium text-emerald-600 sm:block">
+            Added
+          </span>
+        )}
+      </AccordionTrigger>
+      <AccordionContent className="border-t border-border px-5 pb-6 pt-5 sm:px-6">
+        <div className="space-y-5">{children}</div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
+function NewCampaignForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { team } = useTeam();
-  const { templates } = useTemplates();
-  const { lists } = useMailingLists();
-  const { configs: smtpConfigs } = useSMTP();
-  const { apiFetch } = useApi();
-  const [currentStep, setCurrentStep] = useState("to");
+  const templateResource = useTemplates();
+  const listResource = useMailingLists();
+  const senderResource = useSMTP();
+  const { templates } = templateResource;
+  const { lists } = listResource;
+  const { configs: senders } = senderResource;
+  const { apiFetch, session } = useApi();
+  const [currentStep, setCurrentStep] = useState("audience");
   const [isScheduled, setIsScheduled] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [deviceTimezone, setDeviceTimezone] = useState("UTC");
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
       name: "",
       description: "",
       templateId: "",
+      subject: "",
       status: "DRAFT",
       listId: "",
       smtpConfigId: "",
       schedule: "ONE_TIME",
-      data: {} as Record<string, string>,
-      scheduledFor: undefined,
-      recurringSchedule: undefined,
-      cronExpression: undefined,
+      data: {},
       batchSize: 100,
       processed: 0,
-      batchDelay: undefined,
-      timezone: "America/New_York",
+      timezone: "UTC",
     },
   });
-
-  const { data: contacts, isLoading: isLoadingContacts } = useQuery({
-    queryKey: ["contacts", form.watch("listId")],
-    queryFn: () =>
-      apiFetch(
-        "contacts?limit=5&sort=created_at&order=desc&list_id=" +
-          form.watch("listId"),
-        {
-          method: "GET",
-        }
-      )
-        .then((res) => res.json())
-        .then((data) => data.data),
-    enabled: !!form.watch("listId"),
-  });
-
   useEffect(() => {
-    if (form.formState.errors) {
-      toast.error("Please fill in all fields", {
-        description: Object.values(form.formState.errors).join(", "),
-      });
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setDeviceTimezone(timezone);
+    form.setValue("timezone", timezone);
+  }, [form]);
+  const draft = form.watch();
+  const selectedList = lists.find((list) => list.id === draft.listId);
+  const selectedSender = senders.find(
+    (sender) => sender.id === draft.smtpConfigId,
+  );
+  const selectedTemplate = templates.find(
+    (template) => template.id === draft.templateId,
+  );
+  const contactsQuery = useQuery<ContactPreview[]>({
+    queryKey: ["campaign-contact-preview", team?.id, draft.listId],
+    queryFn: async ({ signal }) => {
+      const response = await apiFetch(
+        `contacts?limit=5&sort=created_at&order=desc&list_id=${draft.listId}`,
+        { signal },
+      );
+      if (!response.ok) throw new Error("Unable to load the audience preview");
+      return (await response.json()).data || [];
+    },
+    enabled: !!draft.listId && !!team?.id && !!session?.accessToken,
+  });
+  const checklist = [
+    {
+      title: "Campaign details",
+      detail: draft.name.trim() || "Give your campaign a name",
+      done: !!draft.name.trim(),
+      step: "details",
+      icon: FileText,
+    },
+    {
+      title: "Audience",
+      detail: selectedList?.name || "Choose a contact list",
+      done: !!selectedList,
+      step: "audience",
+      icon: Users,
+    },
+    {
+      title: "Sender",
+      detail: selectedSender?.fromEmail || "Choose a sender",
+      done: !!selectedSender,
+      step: "sender",
+      icon: Send,
+    },
+    {
+      title: "Email content",
+      detail:
+        selectedTemplate && draft.subject.trim()
+          ? selectedTemplate.name
+          : "Add a subject and template",
+      done: !!selectedTemplate && !!draft.subject.trim(),
+      step: "content",
+      icon: LayoutTemplate,
+    },
+  ];
+  const completed = checklist.filter((item) => item.done).length;
+  const saving = form.formState.isSubmitting;
+  const goToStep = (step: string) => {
+    if (step === "details") {
+      form.setFocus("name");
+      return;
     }
-  }, [form.formState.errors]);
-
-  const onSubmit = async (data: CampaignFormValues) => {
+    setCurrentStep(step);
+  };
+  const invalidSubmit = (errors: FieldErrors<CampaignFormValues>) => {
+    if (errors.name) form.setFocus("name");
+    else if (errors.listId) setCurrentStep("audience");
+    else if (errors.smtpConfigId) setCurrentStep("sender");
+    else if (errors.subject || errors.templateId) setCurrentStep("content");
+    else setCurrentStep("delivery");
+    toast.error("Complete the highlighted campaign details.");
+  };
+  const onSubmit = async (values: CampaignFormValues) => {
+    if (
+      isScheduled &&
+      (!values.scheduledFor || values.scheduledFor.getTime() <= Date.now())
+    ) {
+      form.setError("scheduledFor", {
+        message: "Choose a date and time in the future",
+      });
+      setCurrentStep("delivery");
+      return;
+    }
+    if (
+      isScheduled &&
+      values.schedule === "RECURRING" &&
+      !values.recurringSchedule
+    ) {
+      form.setError("recurringSchedule", {
+        message: "Choose how often to repeat",
+      });
+      setCurrentStep("delivery");
+      return;
+    }
+    if (
+      isScheduled &&
+      values.schedule === "RECURRING" &&
+      values.recurringSchedule === "CUSTOM" &&
+      !values.cronExpression?.trim()
+    ) {
+      form.setError("cronExpression", { message: "Enter a cron expression" });
+      setCurrentStep("delivery");
+      return;
+    }
     try {
       const response = await apiFetch("campaigns", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
-          ...data,
+          ...values,
           teamId: team?.id,
           status: "DRAFT",
+          scheduledFor: isScheduled ? values.scheduledFor : undefined,
+          schedule: isScheduled ? values.schedule : "ONE_TIME",
+          recurringSchedule:
+            isScheduled && values.schedule === "RECURRING"
+              ? values.recurringSchedule
+              : undefined,
+          cronExpression:
+            isScheduled &&
+            values.schedule === "RECURRING" &&
+            values.recurringSchedule === "CUSTOM"
+              ? values.cronExpression
+              : undefined,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to create campaign");
-      }
-
-      const result = await response.json();
-      router.push(`/campaigns/${result.campaign.id}`);
-    } catch (error) {
-      console.error("Error creating campaign:", error);
-    }
-  };
-
-  const renderStepIcon = (step: string) => {
-    if (completedSteps.includes(step)) {
-      return (
-        <div className="h-6 w-6  bg-primary flex items-center justify-center">
-          <CheckIcon className="h-4 w-4 text-white" />
-        </div>
+      if (!response.ok)
+        throw new Error(
+          "Unable to save your campaign. Your changes are still here.",
+        );
+      const payload = await response.json();
+      const campaign = resourceEntity<{ id: string }>(
+        payload.campaign || payload,
       );
-    }
-
-    switch (step) {
-      case "to":
-        return <EnvelopeClosedIcon className="h-6 w-6 text-primary" />;
-      case "from":
-        return <PersonIcon className="h-6 w-6 text-primary" />;
-      case "subject":
-        return <CheckCircledIcon className="h-6 w-6 text-primary" />;
-      case "schedule":
-        return <CalendarIcon className="h-6 w-6 text-primary" />;
-      case "content":
-        return <CheckCircledIcon className="h-6 w-6 text-primary" />;
-      default:
-        return null;
-    }
-  };
-
-  const renderStepContent = (step: string) => {
-    switch (step) {
-      case "to":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6"
-          >
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="listId"
-                render={({ field }) => (
-                  <FormItem className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <FormLabel className="text-base">
-                          Mailing List
-                        </FormLabel>
-                        <FormDescription>
-                          Choose the list of subscribers for this campaign
-                        </FormDescription>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push("/audience/lists")}
-                      >
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Create New List
-                      </Button>
-                    </div>
-
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a mailing list" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {lists.map((list) => (
-                          <SelectItem key={list.id} value={list.id}>
-                            <div className="flex gap-2 items-center justify-between w-full">
-                              <span>{list.name}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {list?.subscribersCount} subscribers
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch("listId") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="pt-4 border-t border-muted"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium">List Preview</h4>
-                      <p className="text-sm text-muted-foreground">
-                        First {contacts?.length} subscribers in selected list
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/lists/${form.watch("listId")}`)
-                      }
-                    >
-                      View All
-                    </Button>
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    {contacts?.map((contact) => (
-                      <div
-                        key={contact.id}
-                        className="text-sm text-muted-foreground flex items-center gap-2"
-                      >
-                        <img
-                          src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${contact.email}`}
-                          className="size-8 bg-orange-500 rounded-sm"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">{contact.email}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {contact.firstName || contact.lastName
-                              ? `${contact.firstName || ""} ${contact.lastName || ""}`
-                              : "-"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        );
-
-      case "from":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6"
-          >
-            <div className="space-y-8">
-              <FormField
-                control={form.control}
-                name="smtpConfigId"
-                render={({ field }) => (
-                  <FormItem className="space-y-4">
-                    <div>
-                      <FormLabel className="text-base font-medium text-sidebar-foreground">
-                        From Address
-                      </FormLabel>
-                      <FormDescription className="text-sidebar-foreground">
-                        Choose the email address that will appear in the "From"
-                        field
-                      </FormDescription>
-                    </div>
-
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full border-muted h-11">
-                          <SelectValue placeholder="Select sender email" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {smtpConfigs.map((config) => (
-                          <SelectItem key={config.id} value={config.id}>
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {config.fromEmail}
-                              </span>
-                              <span className="text-sm">
-                                via {config.host} ({config.provider})
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch("smtpConfigId") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="pt-6 border-t border-muted space-y-4"
-                >
-                  <div>
-                    <h4 className="font-medium text-sidebar-foreground mb-3">
-                      Preview
-                    </h4>
-                    <div className="rounded-lg border border-muted p-6 bg-muted">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-gray-700">
-                            From:
-                          </span>
-                          <span className="text-sm text-sidebar-foreground">
-                            {
-                              smtpConfigs.find(
-                                (c) => c.id === form.watch("smtpConfigId")
-                              )?.fromEmail
-                            }
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-gray-700">
-                            Reply-To:
-                          </span>
-                          <span className="text-sm text-sidebar-foreground">
-                            {
-                              smtpConfigs.find(
-                                (c) => c.id === form.watch("smtpConfigId")
-                              )?.fromEmail
-                            }
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-gray-700">
-                            Provider:
-                          </span>
-                          <span className="text-sm text-sidebar-foreground">
-                            {
-                              smtpConfigs.find(
-                                (c) => c.id === form.watch("smtpConfigId")
-                              )?.provider
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        );
-
-      case "subject":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6"
-          >
-            <div className="space-y-8">
-              <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem className="space-y-4">
-                    <div>
-                      <FormLabel className="text-base font-medium text-sidebar-foreground">
-                        Subject Line
-                      </FormLabel>
-                      <FormDescription className="text-sidebar-foreground">
-                        Write a compelling subject line that will make
-                        subscribers want to open your email
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Write your subject line here..."
-                        className="w-full text-lg border-muted h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch("subject") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="pt-6 border-t border-muted space-y-6"
-                >
-                  <div>
-                    <h4 className="font-medium text-sidebar-foreground mb-3">
-                      Preview
-                    </h4>
-                    <div className="rounded-lg border border-muted p-6 bg-muted space-y-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10  bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <PersonIcon className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-sidebar-foreground">
-                              {smtpConfigs.find(
-                                (c) => c.id === form.watch("smtpConfigId")
-                              )?.username || "Sender"}
-                            </span>
-                            <span className="text-sm text-gray-500">Today</span>
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center gap-1">
-                            <span>to me</span>
-                            <CaretDownIcon className="h-4 w-4" />
-                          </div>
-                        </div>
-                      </div>
-                      <p className="font-medium text-sidebar-foreground">
-                        {form.watch("subject")}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-muted border border-muted rounded-lg p-6">
-                    <h4 className="font-medium text-sidebar-foreground mb-3">
-                      Subject Line Tips
-                    </h4>
-                    <ul className="text-sm text-sidebar-foreground space-y-2">
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5  bg-primary" />
-                        Keep it short and clear (4-7 words)
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5  bg-primary" />
-                        Create a sense of urgency or curiosity
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5  bg-primary" />
-                        Avoid spam trigger words
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5  bg-primary" />
-                        Personalize when possible
-                      </li>
-                    </ul>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        );
-
-      case "schedule":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6 space-y-8"
-          >
-            <div className="grid grid-cols-2 gap-6">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className={cn(
-                  "p-6 border border-muted rounded-lg cursor-pointer transition-all",
-                  !isScheduled && "border-primary bg-primary/5 shadow-sm"
-                )}
-                onClick={() => setIsScheduled(false)}
-              >
-                <h3 className="font-medium text-sidebar-foreground mb-2">
-                  Send now
-                </h3>
-                <p className="text-sm text-sidebar-foreground">
-                  Your email will be sent immediately after review
-                </p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className={cn(
-                  "p-6 border border-muted rounded-lg cursor-pointer transition-all",
-                  isScheduled && "border-primary bg-primary/5 shadow-sm"
-                )}
-                onClick={() => setIsScheduled(true)}
-              >
-                <h3 className="font-medium text-sidebar-foreground mb-2">
-                  Schedule
-                </h3>
-                <p className="text-sm text-sidebar-foreground">
-                  Pick a date and time to send your email
-                </p>
-              </motion.div>
-            </div>
-
-            <AnimatePresence>
-              {isScheduled && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-6"
-                >
-                  <div className="flex gap-4">
-                    <FormField
-                      control={form.control}
-                      name="scheduledFor"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className={cn(
-                                    "w-[240px] pl-3 text-left font-normal border-muted",
-                                    !field.value && "text-gray-500"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={(date) =>
-                                  field.onChange(date || undefined)
-                                }
-                                disabled={(date) =>
-                                  date < new Date() ||
-                                  date < new Date("1900-01-01")
-                                }
-                                hasTime
-                                initialFocus
-                                className="rounded-md border border-muted"
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="timezone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-[200px] border-muted">
-                                <SelectValue placeholder="Select timezone" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="UTC">UTC</SelectItem>
-                              <SelectItem value="America/New_York">
-                                Eastern Time
-                              </SelectItem>
-                              <SelectItem value="America/Chicago">
-                                Central Time
-                              </SelectItem>
-                              <SelectItem value="America/Los_Angeles">
-                                Pacific Time
-                              </SelectItem>
-                              <SelectItem value="Asia/Tokyo">
-                                Tokyo Time
-                              </SelectItem>
-                              <SelectItem value="Asia/Shanghai">
-                                Shanghai Time
-                              </SelectItem>
-                              <SelectItem value="Europe/London">
-                                London Time
-                              </SelectItem>
-                              <SelectItem value="Asia/Kolkata">
-                                Kolkata Time
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="pt-6 border-t border-muted">
-                    <FormField
-                      control={form.control}
-                      name="schedule"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base font-medium text-sidebar-foreground">
-                            Schedule Type
-                          </FormLabel>
-                          <FormDescription className="text-sm text-sidebar-foreground">
-                            Choose how to schedule this campaign
-                          </FormDescription>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-[200px] border-muted">
-                                <SelectValue placeholder="Select schedule type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="ONE_TIME">One Time</SelectItem>
-                              <SelectItem value="RECURRING">
-                                Recurring
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {form.watch("schedule") === "RECURRING" && (
-                    <div className="pt-6 border-t">
-                      <FormField
-                        control={form.control}
-                        name="recurringSchedule"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base font-medium text-sidebar-foreground">
-                              Recurrence
-                            </FormLabel>
-                            <FormDescription className="text-sm text-sidebar-foreground">
-                              Choose how often to send this email
-                            </FormDescription>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-[200px] border-muted">
-                                  <SelectValue placeholder="Select recurrence" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="DAILY">Daily</SelectItem>
-                                <SelectItem value="WEEKLY">Weekly</SelectItem>
-                                <SelectItem value="MONTHLY">Monthly</SelectItem>
-                                <SelectItem value="CUSTOM">
-                                  Custom (Cron)
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  {form.watch("recurringSchedule") === "CUSTOM" && (
-                    <div className="pt-6 border-t">
-                      <FormField
-                        control={form.control}
-                        name="cronExpression"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base font-medium text-sidebar-foreground">
-                              Cron Expression
-                            </FormLabel>
-                            <FormDescription className="text-sm text-sidebar-foreground">
-                              Enter a cron expression for custom scheduling
-                            </FormDescription>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="* * * * *"
-                                className="w-full border-muted"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        );
-
-      case "content":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="p-6 grid gap-3"
-          >
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="templateId"
-                render={({ field }) => (
-                  <FormItem className="space-y-6">
-                    <div>
-                      <FormLabel className="text-base font-medium text-sidebar-foreground">
-                        Email Template
-                      </FormLabel>
-                      <FormDescription className="text-sidebar-foreground">
-                        Choose a template for your email content
-                      </FormDescription>
-                    </div>
-
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full border-muted">
-                          <SelectValue placeholder="Select a template" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {templates.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <Link href="/templates/new" className="!mt-2">
-              <Button type="button" variant="secondary">
-                Design email
-              </Button>
-            </Link>
-            {form.watch("templateId") && (
-              <div className="pt-6 border-t border-muted">
-                <h4 className="font-medium text-sidebar-foreground mb-3">
-                  Preview
-                </h4>
-                <div className="rounded-lg border border-muted p-6 bg-muted">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-700">
-                        Subject:
-                      </span>
-                      <span className="text-sm text-sidebar-foreground">
-                        {
-                          templates.find(
-                            (t) => t.id === form.watch("templateId")
-                          )?.subject
-                        }
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-start gap-3">
-                      <span className="text-sm font-medium text-gray-700">
-                        Variables:
-                      </span>
-                      <div className="text-sm text-sidebar-foreground">
-                        <div className="space-y-2">
-                          {templates
-                            .find((t) => t.id === form.watch("templateId"))
-                            ?.variables?.map((variable: string) => (
-                              <div
-                                key={variable}
-                                className="flex items-center gap-2"
-                              >
-                                <span className="text-xs px-2 py-1 rounded-md bg-accent text-accent-foreground min-w-0 flex-shrink-0">
-                                  {`{{${variable}}:`}
-                                </span>
-                                {variable === "name" ? (
-                                  "Auto filled"
-                                ) : (
-                                  <Input
-                                    placeholder={`Enter value for ${variable}`}
-                                    className="h-8 text-xs flex-1"
-                                    onChange={(e) => {
-                                      form.setValue("data", {
-                                        ...form.getValues("data"),
-                                        [variable]: e.target.value,
-                                      });
-                                    }}
-                                  />
-                                )}
-                              </div>
-                            )) || (
-                            <span className="text-xs text-muted-foreground">
-                              No variables in this template
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        );
-
-      default:
-        return null;
+      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      toast.success("Campaign draft saved");
+      router.push(`/campaigns/${campaign.id}`);
+    } catch (error) {
+      toast.error((error as Error).message);
     }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="min-h-screen">
-          <div className="border-b border-muted">
-            <div className="container mx-auto">
-              <div className="flex items-center justify-between py-4 px-4">
-                <div className="flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => router.back()}
+      <form
+        onSubmit={form.handleSubmit(onSubmit, invalidSubmit)}
+        className="min-w-0"
+      >
+        <PageHeader
+          heading="New campaign"
+          description="A great email starts with the right details."
+          backButton={{ href: "/campaigns", label: "Back to campaigns" }}
+        >
+          <Button type="button" variant="outline" asChild>
+            <Link href="/campaigns">Cancel</Link>
+          </Button>
+          <Button type="submit" disabled={saving || !team?.id}>
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            {saving ? "Saving…" : "Save draft"}
+          </Button>
+        </PageHeader>
+
+        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="min-w-0 space-y-5">
+            <section
+              className={workspaceClassName("product-panel")}
+              aria-labelledby="campaign-details-heading"
+            >
+              <div className="mb-6 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                    <FileText size={19} />
+                  </span>
+                  <h2
+                    id="campaign-details-heading"
+                    className="text-base font-semibold tracking-tight"
                   >
-                    ←
-                  </Button>
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Give your campaign a name"
-                        className="w-full"
-                      />
-                    )}
-                  />
+                    Campaign details
+                  </h2>
                 </div>
-                <div className="flex gap-3">
+                <Badge
+                  variant="secondary"
+                  className="rounded-full px-3 py-1 text-xs font-normal"
+                >
+                  Draft
+                </Badge>
+              </div>
+              <div className="space-y-5">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Campaign name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="e.g. September product update"
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        A name to help you find this campaign. Only your team
+                        sees it.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Description{" "}
+                        <span className="ml-1 font-normal text-muted-foreground">
+                          (optional)
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          rows={2}
+                          placeholder="What’s this campaign about?"
+                          className="min-h-[80px] resize-y rounded-xl border-input bg-white"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </section>
+
+            <Accordion
+              type="single"
+              collapsible
+              value={currentStep}
+              onValueChange={setCurrentStep}
+              className="space-y-4"
+            >
+              <SetupSection
+                id="audience"
+                title="Audience"
+                description={
+                  selectedList
+                    ? `${selectedList.name} · ${selectedList.subscribersCount.toLocaleString()} subscribers`
+                    : "Who would you like to reach?"
+                }
+                icon={<Users size={20} />}
+                complete={!!selectedList}
+              >
+                <ResourceFeedback
+                  loading={listResource.isLoading}
+                  error={listResource.error}
+                  retry={listResource.refetch}
+                  empty={!lists.length}
+                  href="/audience/lists"
+                  label="Contact lists"
+                />
+                <FormField
+                  control={form.control}
+                  name="listId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact list</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={
+                          listResource.isLoading ||
+                          !!listResource.error ||
+                          !lists.length
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Select your audience" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {lists.map((list) => (
+                            <SelectItem key={list.id} value={list.id}>
+                              {list.name} ·{" "}
+                              {list.subscribersCount.toLocaleString()}{" "}
+                              subscribers
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {selectedList && (
+                  <div className="rounded-xl border border-border bg-muted/40 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-medium text-muted-foreground">
+                        Contact preview
+                      </h3>
+                      <Link
+                        href={`/audience/lists/${selectedList.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-medium text-primary"
+                      >
+                        View list
+                        <ArrowUpRight size={13} />
+                      </Link>
+                    </div>
+                    {contactsQuery.isPending ? (
+                      <p
+                        role="status"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Loading contacts…
+                      </p>
+                    ) : contactsQuery.error ? (
+                      <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                        Unable to load contacts.
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void contactsQuery.refetch()}
+                        >
+                          Try again
+                        </Button>
+                      </div>
+                    ) : !contactsQuery.data?.length ? (
+                      <p className="text-sm text-muted-foreground">
+                        No contacts in this list yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {contactsQuery.data.map((contact) => (
+                          <div
+                            key={contact.id}
+                            className="flex min-w-0 items-center gap-3"
+                          >
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-white text-xs font-medium text-primary">
+                              {(contact.firstName || contact.email)
+                                .slice(0, 1)
+                                .toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm">
+                                {contact.email}
+                              </p>
+                              {(contact.firstName || contact.lastName) && (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {[contact.firstName, contact.lastName]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <Button type="button" variant="ghost" size="sm" asChild>
+                    <Link
+                      href="/audience/lists"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Plus size={15} />
+                      Manage lists
+                    </Link>
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.back()}
+                    size="sm"
+                    onClick={() => setCurrentStep("sender")}
                   >
-                    Finish later
-                  </Button>
-                  <Button type="submit" className="text-white shadow-sm">
-                    Send
+                    Sender details
+                    <ArrowRight size={14} />
                   </Button>
                 </div>
-              </div>
-            </div>
-          </div>
+              </SetupSection>
 
-          <div className="container mx-auto py-8">
-            <div className="max-w-3xl mx-auto">
-              <Accordion
-                type="single"
-                collapsible
-                defaultValue="to"
-                value={currentStep}
-                onValueChange={setCurrentStep}
-                className="space-y-4"
+              <SetupSection
+                id="sender"
+                title="Sender"
+                description={
+                  selectedSender?.fromEmail ||
+                  "Make it clear who’s saying hello."
+                }
+                icon={<Send size={20} />}
+                complete={!!selectedSender}
               >
-                <AccordionItem
-                  value="to"
-                  className="border border-muted rounded-lg overflow-hidden"
-                >
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-card [&[data-state=open]]:bg-card dark:text-white">
-                    <div className="flex items-start text-left gap-4">
-                      {renderStepIcon("to")}
-                      <div>
-                        <div className="font-medium text-muted-foreground">
-                          To
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {form.watch("listId")
-                            ? `${
-                                lists.find((l) => l.id === form.watch("listId"))
-                                  ?.name || "Selected list"
-                              }`
-                            : "Choose your recipients"}
-                        </div>
-                      </div>
+                <ResourceFeedback
+                  loading={senderResource.isLoading}
+                  error={senderResource.error}
+                  retry={senderResource.refresh}
+                  empty={!senders.length}
+                  href="/settings/smtp"
+                  label="Senders"
+                />
+                <FormField
+                  control={form.control}
+                  name="smtpConfigId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>From address</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={
+                          senderResource.isLoading ||
+                          !!senderResource.error ||
+                          !senders.length
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Choose a sender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {senders.map((sender) => (
+                            <SelectItem key={sender.id} value={sender.id}>
+                              {sender.fromEmail || sender.username} ·{" "}
+                              {sender.provider}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Use one of your connected email senders.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {selectedSender && (
+                  <div className="flex items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-primary">
+                      <Mail size={18} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {selectedSender.fromEmail}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Connected via {selectedSender.provider}
+                      </p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="border-t border-muted">
-                    {renderStepContent("to")}
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <Button type="button" size="sm" variant="ghost" asChild>
+                    <Link
+                      href="/settings/smtp"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Plus size={15} />
+                      Manage senders
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentStep("content")}
+                  >
+                    Email content
+                    <ArrowRight size={14} />
+                  </Button>
+                </div>
+              </SetupSection>
 
-                <AccordionItem
-                  value="from"
-                  className="border border-muted rounded-lg overflow-hidden"
-                >
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-card [&[data-state=open]]:bg-card dark:text-white">
-                    <div className="flex items-start text-left gap-4">
-                      {renderStepIcon("from")}
-                      <div>
-                        <div className="font-medium text-muted-foreground">
-                          From
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {form.watch("smtpConfigId")
-                            ? `${
-                                smtpConfigs.find(
-                                  (c) => c.id === form.watch("smtpConfigId")
-                                )?.fromEmail || "Selected sender"
-                              }`
-                            : "Set sender details"}
-                        </div>
+              <SetupSection
+                id="content"
+                title="Email content"
+                description={
+                  selectedTemplate && draft.subject.trim()
+                    ? draft.subject
+                    : "Choose your template and find the right words."
+                }
+                icon={<LayoutTemplate size={20} />}
+                complete={!!selectedTemplate && !!draft.subject.trim()}
+              >
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject line</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Give your readers a reason to open"
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Keep it clear, personal, and true to your message.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <ResourceFeedback
+                  loading={templateResource.isLoading}
+                  error={templateResource.error}
+                  retry={templateResource.refetch}
+                  empty={!templates.length}
+                  href="/templates/new"
+                  label="Templates"
+                />
+                <FormField
+                  control={form.control}
+                  name="templateId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email template</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("data", {});
+                        }}
+                        disabled={
+                          templateResource.isLoading ||
+                          !!templateResource.error ||
+                          !templates.length
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Choose from your template library" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {templates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {selectedTemplate && (
+                  <div className="overflow-hidden rounded-xl border border-border">
+                    <div className="flex items-center gap-3 bg-muted/40 p-4">
+                      <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-white text-primary">
+                        <LayoutTemplate size={23} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {selectedTemplate.name}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {selectedTemplate.subject ||
+                            "Your existing email design"}
+                        </p>
                       </div>
+                      <Button type="button" variant="ghost" size="sm" asChild>
+                        <Link
+                          href={`/templates/${selectedTemplate.id}/edit`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Edit
+                          <ArrowUpRight size={14} />
+                        </Link>
+                      </Button>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="border-t border-muted">
-                    {renderStepContent("from")}
-                  </AccordionContent>
-                </AccordionItem>
+                    {!!selectedTemplate.variables?.length && (
+                      <div className="space-y-4 border-t border-border p-4">
+                        <h3 className="text-sm font-medium">Personalization</h3>
+                        {selectedTemplate.variables.map((variable) => (
+                          <div key={variable} className="space-y-1.5">
+                            <label
+                              htmlFor={`campaign-variable-${variable}`}
+                              className="font-mono text-xs text-muted-foreground"
+                            >{`{{${variable}}}`}</label>
+                            {variable === "name" ? (
+                              <p className="text-sm">
+                                Filled from each contact’s name
+                              </p>
+                            ) : (
+                              <Input
+                                id={`campaign-variable-${variable}`}
+                                value={draft.data?.[variable] || ""}
+                                onChange={(event) =>
+                                  form.setValue(
+                                    "data",
+                                    {
+                                      ...form.getValues("data"),
+                                      [variable]: event.target.value,
+                                    },
+                                    { shouldDirty: true },
+                                  )
+                                }
+                                placeholder={`Value for ${variable}`}
+                                className="h-10"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <Button type="button" size="sm" variant="ghost" asChild>
+                    <Link
+                      href="/templates/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Plus size={15} />
+                      Create template
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentStep("delivery")}
+                  >
+                    Delivery timing
+                    <ArrowRight size={14} />
+                  </Button>
+                </div>
+              </SetupSection>
 
-                <AccordionItem
-                  value="subject"
-                  className="border border-muted rounded-lg overflow-hidden"
+              <SetupSection
+                id="delivery"
+                title="Delivery timing"
+                description={
+                  isScheduled && draft.scheduledFor
+                    ? format(draft.scheduledFor, "MMM d, yyyy · h:mm a")
+                    : "Choose your timing when you’re ready."
+                }
+                icon={<CalendarDays size={20} />}
+                complete={false}
+              >
+                <div
+                  role="group"
+                  aria-label="Delivery timing"
+                  className="grid gap-3 sm:grid-cols-2"
                 >
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-card [&[data-state=open]]:bg-card dark:text-white">
-                    <div className="flex items-start text-left gap-4">
-                      {renderStepIcon("subject")}
-                      <div>
-                        <div className="font-medium text-muted-foreground">
-                          Subject
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {form.watch("subject") || "Write your subject line"}
-                        </div>
-                      </div>
+                  {[
+                    {
+                      scheduled: false,
+                      title: "Decide later",
+                      description: "Keep this campaign as a draft.",
+                      icon: FileText,
+                    },
+                    {
+                      scheduled: true,
+                      title: "Plan a send time",
+                      description: "Save a date with your draft.",
+                      icon: CalendarDays,
+                    },
+                  ].map((option) => (
+                    <button
+                      key={option.title}
+                      type="button"
+                      aria-pressed={isScheduled === option.scheduled}
+                      onClick={() => {
+                        setIsScheduled(option.scheduled);
+                        form.clearErrors([
+                          "scheduledFor",
+                          "recurringSchedule",
+                          "cronExpression",
+                        ]);
+                      }}
+                      className={cn(
+                        "rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        isScheduled === option.scheduled
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border bg-white hover:bg-muted/30",
+                      )}
+                    >
+                      <span className="mb-3 flex items-center justify-between">
+                        <option.icon
+                          size={18}
+                          className={
+                            isScheduled === option.scheduled
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                          }
+                        />
+                        <span
+                          className={cn(
+                            "flex size-4 items-center justify-center rounded-full border",
+                            isScheduled === option.scheduled
+                              ? "border-primary bg-primary text-white"
+                              : "border-border",
+                          )}
+                        >
+                          {isScheduled === option.scheduled && (
+                            <Check size={10} />
+                          )}
+                        </span>
+                      </span>
+                      <span className="block text-sm font-medium">
+                        {option.title}
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {isScheduled && (
+                  <div className="space-y-5 border-t border-border pt-5">
+                    <FormField
+                      control={form.control}
+                      name="scheduledFor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date and time</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="datetime-local"
+                              value={
+                                field.value
+                                  ? format(field.value, "yyyy-MM-dd'T'HH:mm")
+                                  : ""
+                              }
+                              onChange={(event) =>
+                                field.onChange(
+                                  event.target.value
+                                    ? new Date(event.target.value)
+                                    : undefined,
+                                )
+                              }
+                              className="h-11"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Choose a time in your device’s timezone:{" "}
+                            {deviceTimezone}.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="schedule"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Frequency</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-11">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="ONE_TIME">
+                                  One time
+                                </SelectItem>
+                                <SelectItem value="RECURRING">
+                                  Recurring
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {draft.schedule === "RECURRING" && (
+                        <FormField
+                          control={form.control}
+                          name="recurringSchedule"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Repeat</FormLabel>
+                              <Select
+                                value={field.value || ""}
+                                onValueChange={field.onChange}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-11">
+                                    <SelectValue placeholder="Choose frequency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="DAILY">Daily</SelectItem>
+                                  <SelectItem value="WEEKLY">Weekly</SelectItem>
+                                  <SelectItem value="MONTHLY">
+                                    Monthly
+                                  </SelectItem>
+                                  <SelectItem value="CUSTOM">
+                                    Custom (cron)
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="border-t border-muted">
-                    {renderStepContent("subject")}
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem
-                  value="schedule"
-                  className="border border-muted rounded-lg overflow-hidden"
-                >
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-card [&[data-state=open]]:bg-card dark:text-white">
-                    <div className="flex items-start text-left gap-4">
-                      {renderStepIcon("schedule")}
-                      <div>
-                        <div className="font-medium text-muted-foreground">
-                          Send time
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {isScheduled
-                            ? form.watch("scheduledFor")
-                              ? format(form.watch("scheduledFor"), "PPP")
-                              : "Pick a date"
-                            : "Send immediately"}
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="border-t border-muted">
-                    {renderStepContent("schedule")}
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem
-                  value="content"
-                  className="border border-muted rounded-lg overflow-hidden"
-                >
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-card [&[data-state=open]]:bg-card dark:text-white">
-                    <div className="flex items-start text-left gap-4">
-                      {renderStepIcon("content")}
-                      <div>
-                        <div className="font-medium text-muted-foreground">
-                          Content
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {form.watch("templateId")
-                            ? `${
-                                templates.find(
-                                  (t) => t.id === form.watch("templateId")
-                                )?.name || "Selected template"
-                              }`
-                            : "Design your email"}
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="border-t border-muted">
-                    {renderStepContent("content")}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
+                    {draft.schedule === "RECURRING" && (
+                      <FormField
+                        control={form.control}
+                        name="timezone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Recurring timezone</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-11">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Array.from(
+                                  new Set([deviceTimezone, ...timezones]),
+                                ).map((timezone) => (
+                                  <SelectItem key={timezone} value={timezone}>
+                                    {timezone.replaceAll("_", " ")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {draft.schedule === "RECURRING" &&
+                      draft.recurringSchedule === "CUSTOM" && (
+                        <FormField
+                          control={form.control}
+                          name="cronExpression"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cron expression</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="0 9 * * 1"
+                                  className="h-11 font-mono"
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                For example, 0 9 * * 1 means Mondays at 9am.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                  </div>
+                )}
+                <p className="flex items-start gap-2 rounded-xl bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
+                  <Clock3 className="mt-0.5 size-3.5 shrink-0" />
+                  Saving creates a draft. Your campaign will not send until you
+                  launch it.
+                </p>
+              </SetupSection>
+            </Accordion>
           </div>
+
+          <aside
+            className="min-w-0 space-y-5 xl:sticky xl:top-6"
+            aria-label="Campaign summary"
+          >
+            <section className={workspaceClassName("product-panel")}>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-semibold tracking-tight">
+                  Campaign checklist
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                  {completed} of 4
+                </span>
+              </div>
+              <div
+                className="mb-5 mt-4 flex gap-1.5"
+                role="img"
+                aria-label={`${completed} of 4 campaign details completed`}
+              >
+                {checklist.map((item, index) => (
+                  <span
+                    key={item.step}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full",
+                      index < completed ? "bg-primary" : "bg-muted",
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="space-y-1">
+                {checklist.map((item) => (
+                  <button
+                    key={item.step}
+                    type="button"
+                    onClick={() => goToStep(item.step)}
+                    className="flex w-full min-w-0 items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-full border",
+                        item.done
+                          ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+                          : "border-border text-muted-foreground",
+                      )}
+                    >
+                      {item.done ? (
+                        <Check size={14} />
+                      ) : (
+                        <item.icon size={13} />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-medium">
+                        {item.title}
+                      </span>
+                      <span className="mt-1 block truncate text-xs text-muted-foreground">
+                        {item.detail}
+                      </span>
+                    </span>
+                    <ChevronRight
+                      size={13}
+                      className="shrink-0 text-muted-foreground"
+                    />
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 border-t border-border pt-4">
+                <div className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                  <CheckCheck
+                    size={16}
+                    className="mt-0.5 shrink-0 text-primary"
+                  />
+                  <p>
+                    {completed === 4
+                      ? "All the essentials are in place. Save your draft to continue."
+                      : "Work through the details at your own pace. Save when the essentials are ready."}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section
+              className="overflow-hidden rounded-[20px] border border-border bg-white shadow-sm"
+              aria-labelledby="inbox-preview-heading"
+            >
+              <div className="flex items-center justify-between border-b border-border bg-muted/30 px-5 py-4">
+                <h2 id="inbox-preview-heading" className="text-sm font-medium">
+                  Inbox preview
+                </h2>
+                <Mail size={16} className="text-muted-foreground" />
+              </div>
+              <div className="p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Mail size={18} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">
+                      {selectedSender?.fromEmail || "Your sender address"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      to {selectedList?.name || "your audience"}
+                    </p>
+                  </div>
+                </div>
+                <p
+                  className={cn(
+                    "break-words text-base font-semibold leading-relaxed tracking-tight",
+                    !draft.subject && "text-muted-foreground",
+                  )}
+                >
+                  {draft.subject || "Your subject line goes here"}
+                </p>
+                <div className="mt-5 flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-3">
+                  <LayoutTemplate
+                    size={20}
+                    className="shrink-0 text-muted-foreground"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium">
+                      {selectedTemplate?.name || "No template selected"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {selectedTemplate
+                        ? "Your saved email design"
+                        : "Choose a design from your library"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-border px-5 py-3 text-[11px] text-muted-foreground">
+                A preview of your sender and subject line.
+              </div>
+            </section>
+            <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+              <Clock3 size={14} />
+              {isScheduled && draft.scheduledFor
+                ? `Planned for ${format(draft.scheduledFor, "MMM d, h:mm a")}`
+                : "Saved as draft. Nothing sends yet."}
+            </div>
+          </aside>
+        </div>
+        <div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+          <p className="text-xs text-muted-foreground">
+            Your next great connection starts with an email.
+          </p>
+          <Button type="submit" disabled={saving || !team?.id}>
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            {saving ? "Saving…" : "Save draft"}
+          </Button>
         </div>
       </form>
     </Form>
   );
-};
+}

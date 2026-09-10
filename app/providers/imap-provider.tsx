@@ -4,7 +4,7 @@ import { createContext, useContext, useState } from "react";
 import { useTeam } from "./team-provider";
 import { IMAPConfig } from "@/lib/validations/imap-provider";
 import { useApi } from "@/hooks/use-api";
-import { useQuery } from "@tanstack/react-query";
+import { useResourcePage } from "@/hooks/use-resource-page";
 
 type IMAPContextType = {
   configs: IMAPConfig[];
@@ -25,54 +25,9 @@ export function useIMAP() {
 }
 
 export function IMAPProvider({ children }: { children: React.ReactNode }) {
-  const [configs, setConfigs] = useState<IMAPConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { team } = useTeam();
-  const { apiFetch } = useApi();
-
-  const refresh = () => {
-    setIsLoading(true);
-    fetchConfig();
-  };
-
-  const fetchConfig = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiFetch("imap?limit=100&team_id=" + team?.id);
-      if (!response.ok) {
-        throw new Error("Failed to fetch IMAP configuration");
-      }
-      const { data } = await response.json();
-      setConfigs(data);
-      setError(null);
-      setIsLoading(false);
-      return data;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Unknown error occurred")
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useQuery({
-    queryKey: ["imap-configs", team?.id],
-    queryFn: fetchConfig,
-    enabled: !!team?.id,
-  });
-
-  return (
-    <IMAPContext.Provider
-      value={{
-        configs,
-        isLoading,
-        error,
-        refresh,
-      }}
-    >
-      {children}
-    </IMAPContext.Provider>
-  );
+  const query = useResourcePage<IMAPConfig>("imap", 1, 100);
+  return <IMAPContext.Provider value={{
+    configs: query.data?.data ?? [], isLoading: query.isLoading, error: query.error,
+    refresh: () => { void query.refetch(); },
+  }}>{children}</IMAPContext.Provider>;
 }

@@ -1,85 +1,41 @@
 "use client";
-
 import { useState } from "react";
+import { Tag, Plus, MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tag } from "lucide-react";
-import { format } from "date-fns";
-import { DataTable } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import { PageHeading, QueryState, Empty, Modal, Field } from "@/components/marketing/shared";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useMarketing, useMarketingQuery } from "@/lib/marketing/api";
+import { workspaceClassName } from "@/lib/workspace-styles";
+import { toast } from "sonner";
 
-interface Tag {
-  id: string;
-  name: string;
-  createdAt: Date;
-  _count: {
-    contacts: number;
-  };
-}
-
+export interface ContactTag { id: string; name: string; value?: string; contactCount: number; }
 export default function TagsPage() {
-  const [isCreateTagOpen, setIsCreateTagOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
-  const [sortBy, setSortBy] = useState("Date created");
-
-  // Mock data - replace with actual API call
-  const tags: Tag[] = [
-    {
-      id: "1",
-      name: "random",
-      createdAt: new Date(),
-      _count: {
-        contacts: 0,
-      },
-    },
-  ];
-
-  return (
-    <div className="container mx-auto">
-
-      <DataTable
-        data={tags}
-        columns={[
-          {
-            header: "Tag",
-            accessorKey: "name",
-          },
-          {
-            header: "Contacts",
-            accessorKey: "_count",
-            cell: ({ row }: any) => row?.original?._count?.contacts || 0,
-          },
-          {
-            header: "Created Date",
-            accessorKey: "createdAt",
-            cell: ({ row }: any) =>
-              format(row.original.createdAt, "MMM d, yyyy"),
-          },
-        ]}
-      />
-
-      {/* Automate Tagging Card */}
-      <div className="mt-8 bg-card rounded-lg border border-muted p-6">
-        <div className="flex items-start gap-6">
-          <div className="h-16 w-16 rounded-lg bg-pink-50 flex items-center justify-center">
-            <svg
-              className="h-8 w-8 text-pink-400"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-xl font-medium mb-2">Automate Tagging</h3>
-            <p className="text-muted-foreground mb-4">
-              You can automate tagging your contacts with our API
-            </p>
-            <Button variant="outline">Automate Your Tagging</Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const query = useMarketingQuery<ContactTag[]>("marketing/tags");
+  const { request, refresh } = useMarketing();
+  const [editing, setEditing] = useState<Partial<ContactTag> | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function save(event: React.FormEvent) {
+    event.preventDefault(); if (!editing) return; setBusy(true);
+    try { await request(`marketing/tags${editing.id ? `/${editing.id}` : ""}`, editing.id ? "PUT" : "POST", { name: editing.name, value: editing.value || "" }); await refresh(); setEditing(null); toast.success("Tag saved"); }
+    catch (error) { toast.error((error as Error).message); }
+    finally { setBusy(false); }
+  }
+  async function remove(tag: ContactTag) {
+    if (!confirm(`Delete “${tag.name}”? It will be removed from contacts without deleting them.`)) return;
+    try { await request(`marketing/tags/${tag.id}`, "DELETE"); await refresh(); toast.success("Tag deleted"); }
+    catch (error) { toast.error((error as Error).message); }
+  }
+  return <>
+    <PageHeading title="Tags" description="Organize your existing contacts with reusable audience labels." action={<Button onClick={() => setEditing({ name: "" })}><Plus size={16}/>Create tag</Button>}/>
+    <section className={workspaceClassName("product-panel")}>
+      <div className={workspaceClassName("panel-toolbar")}><h2>Your tags</h2><span className="text-xs text-muted-foreground">{query.data?.length ?? 0} tags</span></div>
+      {query.isPending || query.error ? <QueryState loading={query.isPending} error={query.error} retry={() => void query.refetch()}/> : !query.data?.length ? <Empty title="Give your audience some structure" description="Create a tag, then assign it to contacts from a contact list." action={<Button onClick={() => setEditing({ name: "" })}>Create tag</Button>}/> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {query.data.map(tag => <CollectionCard key={tag.id} icon={<Tag size={22}/>} title={tag.name} badge={`${tag.contactCount} contacts`} description={tag.value || "An audience label for your contacts."} action="Edit tag" onAction={() => setEditing(tag)} menu={<DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${tag.name}`}><MoreHorizontal size={18}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setEditing(tag)}><Pencil className="mr-2 size-4"/>Edit tag</DropdownMenuItem><DropdownMenuItem className="text-destructive" onClick={() => remove(tag)}><Trash className="mr-2 size-4"/>Delete tag</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}/>)}</div>}
+    </section>
+    <Modal open={!!editing} onOpenChange={open => { if (!open && !busy) setEditing(null); }} title={editing?.id ? "Edit tag" : "Create tag"} description="Use a short, recognizable name for this audience label.">
+      <form onSubmit={save} className="space-y-5"><Field label="Name"><Input required maxLength={80} value={editing?.name || ""} onChange={e => setEditing({ ...editing, name: e.target.value })}/></Field><Field label="Description"><Input maxLength={120} value={editing?.value || ""} onChange={e => setEditing({ ...editing, value: e.target.value })}/></Field><div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={busy}>Cancel</Button><Button disabled={busy}>{busy ? "Saving…" : "Save tag"}</Button></div></form>
+    </Modal>
+  </>;
 }

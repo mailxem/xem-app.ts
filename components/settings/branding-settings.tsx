@@ -1,174 +1,27 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+"use client";
+import { useEffect, useState } from "react";
+import { useMarketing, useMarketingQuery } from "@/lib/marketing/api";
+import { useTeam } from "@/app/providers/team-provider";
+import { QueryState } from "@/components/marketing/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Upload, Image as ImageIcon } from "lucide-react";
-import Link from "next/link";
-import { useTeam } from "@/app/providers/team-provider";
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { toast } from "sonner";
-import { useApi } from "@/hooks/use-api";
-
-const brandingSchema = z.object({
-  dashboardName: z
-    .string()
-    .min(2, "Dashboard name must be at least 2 characters"),
-});
-
-type BrandingFormData = z.infer<typeof brandingSchema>;
-
+interface Branding { dashboardName:string; logoUrl:string }
 export function BrandingSettings() {
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { team } = useTeam();
-  const { apiFetch } = useApi();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<BrandingFormData>({
-    resolver: zodResolver(brandingSchema),
-    defaultValues: {
-      dashboardName: team?.name || "kori 🦆", // Default name
-    },
-  });
-
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 1 * 1024 * 1024) {
-        // 5MB limit
-        toast.error("Logo file size must be less than 1MB");
-        return;
-      }
-
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const onSubmit = async (data: BrandingFormData) => {
-    try {
-      setIsSubmitting(true);
-
-      // Create FormData to handle file upload
-      const formData = new FormData();
-      formData.append("dashboardName", data.dashboardName);
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
-
-      const response = await apiFetch("settings/branding", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to update branding settings");
-
-      toast.success("Branding settings updated successfully");
-    } catch (error) {
-      toast.error("Failed to update branding settings");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Branding Settings</CardTitle>
-          <CardDescription>
-            Customize your dashboard's appearance and domain settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Logo Upload */}
-          <div className="space-y-2">
-            <Label>Logo</Label>
-            <div className="flex items-center gap-4">
-              <div className="w-32 h-32 border rounded-lg flex items-center justify-center overflow-hidden">
-                {logoPreview || team?.logo ? (
-                  <img
-                    src={logoPreview || team?.logo}
-                    alt="Logo preview"
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <ImageIcon className="w-12 h-12 text-muted-foreground" />
-                )}
-              </div>
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    document.getElementById("logo-upload")?.click()
-                  }
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Logo
-                </Button>
-                <input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoChange}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Recommended size: 512x512px. Max file size: 5MB
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Dashboard Name */}
-          <div className="space-y-2">
-            <Label htmlFor="dashboardName">Dashboard Name</Label>
-            <Input
-              id="dashboardName"
-              {...register("dashboardName")}
-              placeholder="Enter dashboard name"
-            />
-            {errors.dashboardName && (
-              <p className="text-sm text-red-500">
-                {errors.dashboardName.message}
-              </p>
-            )}
-          </div>
-
-          {/* Custom Domain */}
-          <div className="space-y-2">
-            <Label htmlFor="customDomain">Custom Domain</Label>
-            <p className="text-sm text-muted-foreground">
-              To use a custom domain, you need to have a domain verified and
-              active. Go to <Link href="/settings/domains">Domains</Link> to add
-              a custom domain.
-            </p>
-          </div>
-
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Changes"}
-          </Button>
-        </CardContent>
-      </Card>
-    </form>
-  );
+ const query = useMarketingQuery<Branding>("marketing/branding");
+ const { request } = useMarketing();
+ const { refreshTeam } = useTeam();
+ const [draft,setDraft] = useState<Branding>({dashboardName:"",logoUrl:""});
+ const [dirty,setDirty] = useState(false);
+ const [saving,setSaving] = useState(false);
+ useEffect(()=>{if(query.data && !dirty)setDraft(query.data);},[query.data,dirty]);
+ const save = async (event:React.FormEvent) => {
+  event.preventDefault(); setSaving(true);
+  try { await request("marketing/branding","PUT",draft); await query.refetch(); setDirty(false); await refreshTeam(); toast.success("Workspace branding saved"); }
+  catch(error){toast.error((error as Error).message);}finally{setSaving(false);}
+ };
+ if(query.isPending || query.error)return <QueryState loading={query.isPending} error={query.error} retry={()=>void query.refetch()}/>;
+ return <section className={workspaceClassName("product-panel")}><h2 className="text-lg font-semibold">Workspace branding</h2><p className="mt-1 text-sm text-muted-foreground">Your workspace identity within Xem.</p><form onSubmit={save} className="mt-6 max-w-2xl space-y-5"><div className="space-y-2"><Label htmlFor="workspace-name">Workspace name</Label><Input id="workspace-name" required minLength={2} maxLength={80} value={draft.dashboardName} onChange={e=>{setDirty(true);setDraft({...draft,dashboardName:e.target.value});}}/></div><div className="space-y-2"><Label htmlFor="workspace-logo">Logo URL</Label><Input id="workspace-logo" type="url" maxLength={2048} placeholder="https://example.com/logo.png" value={draft.logoUrl || ""} onChange={e=>{setDirty(true);setDraft({...draft,logoUrl:e.target.value});}}/><p className="text-xs text-muted-foreground">Use a publicly accessible HTTPS image URL.</p></div><Button disabled={saving || !dirty} type="submit">{saving ? "Saving…":"Save branding"}</Button></form></section>;
 }

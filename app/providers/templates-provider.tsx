@@ -1,105 +1,33 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { EmailTemplate } from "@/lib";
-import { useTeam } from "./team-provider";
-import { useApi } from "@/hooks/use-api";
+import { useResourcePage } from "@/hooks/use-resource-page";
 
-type TemplatesContextType = {
+type Pagination = { page: number; limit: number; total: number };
+interface ContextValue {
   templates: EmailTemplate[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-  };
-  setPagination: (pagination: {
-    page: number;
-    limit: number;
-    total: number;
-  }) => void;
-};
-
-const TemplatesContext = createContext<TemplatesContextType>({
-  templates: [],
-  isLoading: true,
-  error: null,
-  refetch: async () => {},
-  pagination: {
-    page: 1,
-    limit: 10,
-    total: 0,
-  },
-  setPagination: () => {},
-});
-
-export function useTemplates() {
-  return useContext(TemplatesContext);
+  pagination: Pagination;
+  setPagination: (pagination: Pagination) => void;
 }
-
+const Context = createContext<ContextValue | null>(null);
+export function useTemplates() {
+  const value = useContext(Context);
+  if (!value) throw new Error("useTemplates requires TemplatesProvider");
+  return value;
+}
 export function TemplatesProvider({ children }: { children: React.ReactNode }) {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { team } = useTeam();
-  const { apiFetch } = useApi();
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 50,
-    total: 0,
-  });
-
-  const fetchTemplates = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiFetch(
-        "templates?limit=" +
-          pagination.limit +
-          "&page=" +
-          pagination.page +
-          "&team_id=" +
-          team?.id,
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch templates");
-      }
-      const data = await response.json();
-      setTemplates(data.data);
-      setPagination({
-        page: data.pagination.page,
-        limit: data.pagination.limit,
-        total: data.pagination.total,
-      });
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Unknown error occurred"),
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (team?.id) {
-      fetchTemplates();
-    }
-  }, [team?.id]);
-
-  return (
-    <TemplatesContext.Provider
-      value={{
-        templates,
-        pagination,
-        setPagination,
-        isLoading,
-        error,
-        refetch: fetchTemplates,
-      }}
-    >
-      {children}
-    </TemplatesContext.Provider>
-  );
+  const [paging, setPaging] = useState({ page: 1, limit: 50 });
+  const query = useResourcePage<EmailTemplate>("templates", paging.page, paging.limit);
+  return <Context.Provider value={{
+    templates: query.data?.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    pagination: { ...paging, total: query.data?.total ?? 0 },
+    setPagination: (next) => setPaging({ page: Math.max(1, next.page), limit: next.limit }),
+    refetch: async () => { await query.refetch(); },
+  }}>{children}</Context.Provider>;
 }

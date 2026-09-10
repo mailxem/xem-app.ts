@@ -1,4 +1,5 @@
 "use client";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 import { useEffect, useState } from "react";
 import {
@@ -81,14 +82,14 @@ export function AudienceInsights({ teamId }: { teamId: string }) {
           <div>
             <h4 className="text-sm font-medium my-4">Demographics Distribution</h4>
             <div className="h-[200px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{}} className="h-full w-full">
                 <BarChart data={demographicData}>
                   <XAxis dataKey="category" />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#007C89" />
+                  <ChartTooltip content={<ChartTooltipContent/>}/>
+                  <Bar dataKey="value" fill="var(--chart-1)" />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </div>
 
@@ -96,7 +97,7 @@ export function AudienceInsights({ teamId }: { teamId: string }) {
           <div>
             <h4 className="text-sm font-medium mb-4">Audience Segments</h4>
             <div className="h-[400px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{}} className="h-full w-full">
                 <AreaChart
                   data={Object.entries(insights?.behaviors || {})
                     .map(([key, value]) => ({
@@ -118,17 +119,17 @@ export function AudienceInsights({ teamId }: { teamId: string }) {
                       fontSize: 12,
                     }}
                   />
-                  <Tooltip
+                  <ChartTooltip
                     formatter={(value, name) => {
                       if (name === 'contacts') return [`${value} contacts`, 'Contacts'];
                       if (name === 'engagementRate') return [`${value}%`, 'Engagement Rate'];
                       return [value, name];
                     }}
                   />
-                  <Area dataKey="contacts" fill="#007C89" />
+                  <Area dataKey="contacts" fill="var(--chart-1)" />
                   <Area dataKey="engagementRate" fill="#00A5B5" />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </div>
         </div>

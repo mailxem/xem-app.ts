@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Pencil, Trash, TestTube } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, TestTube, Mail, Server, ShieldCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,9 @@ import { IMAPConfig, IMAPConfigSchema } from "@/lib/validations/imap-provider";
 import { ApiError } from "@/lib";
 import { IMAPProviders } from "./imap-providers";
 import { useApi } from "@/hooks/use-api";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { QueryState, Empty, Metric } from "@/components/marketing/shared";
+import { workspaceClassName } from "@/lib/workspace-styles";
 
 export function IMAPSettings({
   isDialogOpen,
@@ -32,17 +35,11 @@ export function IMAPSettings({
   setIsDialogOpen: (open: boolean) => void;
 }) {
   const [editConfig, setEditConfig] = useState<IMAPConfig | null>(null);
-  const { configs: imapConfigs, isLoading, refresh } = useIMAP();
+  const { configs: imapConfigs, isLoading, refresh, error } = useIMAP();
   const { apiFetch } = useApi();
   const form = useForm<IMAPConfig>({
     resolver: zodResolver(IMAPConfigSchema),
-    defaultValues: {
-      id: null,
-      host: "",
-      port: 993,
-      username: "",
-      password: "",
-    },
+    defaultValues: { id: null, host: "", port: 993, username: "", password: "" },
   });
 
   const onSubmit = async (data: IMAPConfig) => {
@@ -66,8 +63,9 @@ export function IMAPSettings({
 
       refresh();
       toast.success("IMAP configuration saved successfully");
+      setEditConfig(null);
       setIsDialogOpen(false);
-      form.reset();
+      form.reset({ id: null, host: "", port: 993, username: "", password: "" });
     } catch (error: any) {
       toast.error("Failed to save IMAP configuration");
     }
@@ -75,7 +73,8 @@ export function IMAPSettings({
 
   const removeSMTPConfig = async (id: string) => {
     try {
-      await apiFetch("imap/" + id, { method: "DELETE" });
+      const response = await apiFetch("imap/" + id, { method: "DELETE" });
+      if (!response.ok) throw new Error("Unable to delete connection");
       refresh();
       toast.success("IMAP configuration removed successfully");
     } catch (error) {
@@ -113,100 +112,39 @@ export function IMAPSettings({
     }
   }, [editConfig, form]);
 
-  const columns: ColumnDef<IMAPConfig>[] = [
-    {
-      accessorKey: "host",
-      header: "Host",
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-1.5">
-          <Badge variant="outline" className="text-sm w-max">
-            {row.original.port
-              ? `${row.original.host}:${row.original.port}`
-              : row.original.host}
-          </Badge>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "username",
-      header: "Username",
-      cell: ({ row }) => {
-        const username = row.getValue("username") as string;
-        return (
-          <Badge variant="secondary">
-            {username.slice(0, 5)}...{username.slice(-5)}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "isActive",
-      header: "Status",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge
-            variant={isActive ? "success" : "secondary"}
-            className="capitalize"
-          >
-            {isActive ? "Active" : "Inactive"}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const config = row.original;
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => testConfiguration(config)}>
-                <TestTube className="mr-2 h-4 w-4" />
-                Test Connection
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setEditConfig(config)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => removeSMTPConfig(config.id as string)}
-              >
-                <Trash className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
+  const edit = (config: IMAPConfig) => { form.reset(config); setEditConfig(config); setIsDialogOpen(true); };
+  const closeDialog = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) { setEditConfig(null); form.reset({ id: null, host: "", port: 993, username: "", password: "" }); }
+  };
   return (
     <div className="space-y-6">
-      <DataTable
-        isLoading={isLoading}
-        columns={columns}
-        data={imapConfigs}
-        filterColumn="host"
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Metric label="IMAP mailboxes" value={isLoading ? "—" : imapConfigs.length} icon={<Mail size={18}/>}/>
+        <Metric label="Configured servers" value={isLoading ? "—" : new Set(imapConfigs.map(c => c.host)).size} icon={<Server size={18}/>}/>
+      </div>
+      <section className={workspaceClassName("product-panel")}>
+        <div className={workspaceClassName("panel-toolbar")}><h2>IMAP mailboxes</h2><span className="text-xs text-muted-foreground">{imapConfigs.length} connections</span></div>
+        {isLoading || error ? <QueryState loading={isLoading} error={error} retry={refresh}/> : imapConfigs.length === 0 ? <Empty title="Connect your first mailbox" description="Use your existing email provider to read and reply from your inbox." action={<Button onClick={() => setIsDialogOpen(true)}>Add IMAP connection</Button>}/> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {imapConfigs.map(config => <CollectionCard key={config.id} icon={<Mail size={22}/>} badge={"IMAP"} title={config.username} description={`Server: ${config.host}:${config.port}`} action="Edit connection" onAction={() => edit(config)} menu={
+            <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${config.host}`}><MoreHorizontal size={18}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => edit(config)}><Pencil className="mr-2 size-4"/>Edit connection</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { void testConfiguration(config).catch(() => {}); }}><TestTube className="mr-2 size-4"/>Test connection</DropdownMenuItem>
+              <DropdownMenuSeparator/>
+              <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Delete this IMAP connection?")) void removeSMTPConfig(config.id as string); }}><Trash className="mr-2 size-4"/>Delete connection</DropdownMenuItem>
+            </DropdownMenuContent></DropdownMenu>
+          }>
+            <div className="mt-5 rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Mailbox server</p><p className="mt-1 break-all text-sm font-medium">{config.host}:{config.port}</p></div>
+          </CollectionCard>)}
+        </div>}
+      </section>
 
       <IMAPProviders
         onTestConnection={testConfiguration}
         onSaveProvider={onSubmit}
         isDialogOpen={isDialogOpen}
         form={form}
-        setIsDialogOpen={setIsDialogOpen}
+        setIsDialogOpen={closeDialog}
       />
     </div>
   );

@@ -10,10 +10,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function NewTemplatePage() {
+function NewTemplateContents() {
   const router = useRouter();
+  const starterKey = useSearchParams().get("starter") || undefined;
   return (
     <div className="p-6 space-y-8">
       <div className="flex items-center gap-4 justify-between">
@@ -29,7 +31,7 @@ export default function NewTemplatePage() {
         </div>
         <div className="flex items-center gap-3">
           <Sheet>
-            <SheetTrigger>
+            <SheetTrigger asChild>
               <Button variant="outline">
                 <QuestionMarkCircledIcon className="h-4 w-4" />
                 Default Variables
@@ -58,7 +60,7 @@ export default function NewTemplatePage() {
                   "facebook",
                   "instagram",
                 ].map((variable) => (
-                  <div className="flex items-center gap-2">
+                  <div key={variable} className="flex items-center gap-2">
                     <span className="text-sm rounded-md bg-accent text-accent-foreground px-2 py-1 ">
                       {`{{ ${variable} }}`}
                     </span>
@@ -69,7 +71,23 @@ export default function NewTemplatePage() {
           </Sheet>
         </div>
       </div>
-      <TemplateEditor templateId="new" />
+      <TemplateEditor
+        key={starterKey || "blank"}
+        templateId="new"
+        starterKey={starterKey}
+      />
     </div>
+  );
+}
+
+export default function NewTemplatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6 text-muted-foreground">Loading template…</div>
+      }
+    >
+      <NewTemplateContents />
+    </Suspense>
   );
 }

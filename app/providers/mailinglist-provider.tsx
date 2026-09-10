@@ -1,112 +1,33 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { MailingList } from "@/lib";
-import { useTeam } from "./team-provider";
-import { useApi } from "@/hooks/use-api";
-import { useQuery } from "@tanstack/react-query";
+import { useResourcePage } from "@/hooks/use-resource-page";
 
-type MailingListContextType = {
+type Pagination = { page: number; limit: number; total: number };
+interface ContextValue {
   lists: MailingList[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-  };
-  setPagination: (pagination: {
-    page: number;
-    limit: number;
-    total: number;
-  }) => void;
-};
-
-const MailingListContext = createContext<MailingListContextType>({
-  lists: [],
-  isLoading: true,
-  error: null,
-  refetch: async () => {},
-  pagination: {
-    page: 1,
-    limit: 10,
-    total: 0,
-  },
-  setPagination: () => {},
-});
-
-export function useMailingLists() {
-  return useContext(MailingListContext);
+  pagination: Pagination;
+  setPagination: (pagination: Pagination) => void;
 }
-
-export function MailingListProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [lists, setLists] = useState<MailingList[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { team } = useTeam();
-  const { apiFetch } = useApi();
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-  });
-
-  const fetchLists = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiFetch(
-        "mailing-lists?sort=subscribers_count&order=desc&page=" +
-          pagination.page +
-          "&limit=" +
-          pagination.limit
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch mailing lists");
-      }
-      const data = await response.json();
-      setLists(data.data);
-      setPagination({
-        page: data.page,
-        limit: data.limit,
-        total: data.total,
-      });
-      setError(null);
-      return data.data;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Unknown error occurred")
-      );
-      throw new Error("Failed to fetch mailing lists: " + err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useQuery({
-    queryKey: ["mailing-lists", team?.id, pagination.page, pagination.limit],
-    queryFn: fetchLists,
-    enabled: !!team?.id && pagination.page > 0 && pagination.limit > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true,
-  });
-
-  return (
-    <MailingListContext.Provider
-      value={{
-        lists,
-        isLoading,
-        error,
-        pagination,
-        refetch: fetchLists,
-        setPagination,
-      }}
-    >
-      {children}
-    </MailingListContext.Provider>
-  );
+const Context = createContext<ContextValue | null>(null);
+export function useMailingLists() {
+  const value = useContext(Context);
+  if (!value) throw new Error("useMailingLists requires MailingListProvider");
+  return value;
+}
+export function MailingListProvider({ children }: { children: React.ReactNode }) {
+  const [paging, setPaging] = useState({ page: 1, limit: 20 });
+  const query = useResourcePage<MailingList>("mailing-lists", paging.page, paging.limit, { sort: "subscribers_count", order: "desc" });
+  return <Context.Provider value={{
+    lists: query.data?.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    pagination: { ...paging, total: query.data?.total ?? 0 },
+    setPagination: (next) => setPaging({ page: Math.max(1, next.page), limit: next.limit }),
+    refetch: async () => { await query.refetch(); },
+  }}>{children}</Context.Provider>;
 }

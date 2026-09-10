@@ -1,82 +1,20 @@
-# 🌟 Stage 1: Install dependencies and build the application 🌟
-# ============================================================
-
-FROM oven/bun:alpine AS builder
-
+FROM oven/bun:1.3.5-alpine AS builder
+WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
 ARG NEXT_PUBLIC_PAYWALL_URL
-ENV NEXT_PUBLIC_PAYWALL_URL=${NEXT_PUBLIC_PAYWALL_URL}
-
-# 📂 Set working directory 📂
-# ==========================
-
-WORKDIR /app
-
-# 📚 Copy package files 📚
-# ======================
-
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_PAYWALL_URL=$NEXT_PUBLIC_PAYWALL_URL NEXT_TELEMETRY_DISABLED=1
 COPY package.json bun.lockb ./
-
-
-# 📦 Install dependencies 📦
-# ========================
-
-RUN echo "🎭 ✨ What did npm say to the package? I node you from somewhere! 🤣" && \
-    bun install --frozen-lockfile
-
-
-# 💫 Copy source code 💫
-# ====================
-
+RUN bun install --frozen-lockfile
 COPY . .
+RUN bun run build
 
-
-# 🏗️ Build application 🏗️
-# ======================
-
-RUN echo "🚀 ✨ Why did the Next.js build take so long? It was taking a page break! 😆" && \
-    bun run build
-
-# 🌠 Stage 2: Production image 🌠
-# ==============================
-
-FROM builder AS runner
-
-# 📂 Set production directory 📂
-# ============================
-
+# Ship only the standalone application, with no source tree, credentials or build tools.
+FROM oven/bun:1.3.5-alpine AS runner
 WORKDIR /app
-
-
-# 📋 Copy build artifacts 📋
-# ========================
-
-RUN echo "🎪 ✨ Why did the Docker container feel claustrophobic? Because it was packed in production! 🎭"
-
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Copy standalone output which contains minimal production files
-COPY --from=builder /app/.next/standalone ./
-
-# Copy static assets and public files which aren't included in standalone by default
-COPY --from=builder /app/public ./public
-
-COPY --from=builder /app/.next/static ./.next/static
-
-# Copy bcryptjs and dotenv from builder stage 🦆
-# ====================================================
-
-COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
-
-# 🔌 Configure port 🔌
-# ==================
-
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
+COPY --from=builder --chown=bun:bun /app/.next/standalone ./
+COPY --from=builder --chown=bun:bun /app/.next/static ./.next/static
+COPY --from=builder --chown=bun:bun /app/public ./public
+USER bun
 EXPOSE 3000
-
-# 🚀 Launch application 🚀
-# ======================
-
 CMD ["bun", "server.js"]

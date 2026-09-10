@@ -89,7 +89,7 @@ export default function RegisterPage() {
         <div className="mb-8 grid gap-4">
           <div className="grid">
             <h1 className="text-4xl text-center dark:text-foreground text-white">
-              hey 👋🏻, welcome
+              Create your Xem account
             </h1>
             <div className="text-center">
               <div
@@ -230,7 +230,7 @@ export default function RegisterPage() {
                       </FormItem>
                     )}
                   />
-                  <button type="submit"></button>
+                  <button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Creating account…" : "Create account"}</button>
                 </form>
               </Form>
               <div className="flex items-center justify-center gap-6 mt-2">
@@ -240,7 +240,7 @@ export default function RegisterPage() {
                   </Link>
                 </span>
                 <div className="text-right text-sm dark:text-foreground text-white w-full">
-                  press ⏎ to confirm
+
                 </div>
               </div>
             </div>

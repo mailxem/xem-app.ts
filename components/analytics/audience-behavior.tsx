@@ -1,4 +1,5 @@
 "use client";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 import { useEffect, useState } from "react";
 import {
@@ -91,19 +92,19 @@ export function AudienceBehavior({ teamId }: { teamId: string }) {
           <div>
             <h4 className="text-sm font-medium mb-4">Engagement Rates</h4>
             <div className="h-[200px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={{}} className="h-full w-full">
                 <LineChart data={behaviorData}>
                   <XAxis dataKey="type" />
                   <YAxis />
-                  <Tooltip />
+                  <ChartTooltip content={<ChartTooltipContent/>}/>
                   <Line
                     type="monotone"
                     dataKey="engagementRate"
-                    stroke="#007C89"
+                    stroke="var(--chart-1)"
                     strokeWidth={2}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </div>
 

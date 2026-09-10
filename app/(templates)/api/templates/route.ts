@@ -134,6 +134,7 @@ export async function POST(
     const templateData = {
       ...json,
       htmlFileId,
+      htmlBody: json.html,
       variables,
       designJson,
     };

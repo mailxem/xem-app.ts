@@ -1,1 +1,1 @@
-import '@testing-library/jest-dom'; 
+// API and service tests run in Node; DOM matchers are not needed here.

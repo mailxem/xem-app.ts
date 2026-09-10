@@ -1,6 +1,8 @@
 "use client";
+import { EmailWriter } from "@/components/ai/email-writer";
 
-import { useState, useRef } from "react";
+import { workspaceClassName } from "@/lib/workspace-styles";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
 import { Button } from "@/components/ui/button";
@@ -31,24 +33,45 @@ import { Settings, Mail, Send } from "lucide-react";
 import { deepCompare } from "@/lib/utils";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { resourceEntity } from "@/lib/resource-response";
+import {
+  getTemplateStarter,
+  loadStarterDesign,
+} from "@/lib/template-starters/registry";
+import Link from "next/link";
+import { prepareEditorAssets, restoreEditorAssets } from "@/lib/template-starters/editor-assets";
+import { QueryState } from "@/components/marketing/shared";
 
 const testEmailSchema = z.object({
   to: z.string().email(),
 });
 
-export function TemplateEditor({ templateId }: TemplateEditorProps) {
+export function TemplateEditor({
+  templateId,
+  starterKey,
+}: TemplateEditorProps) {
   const router = useRouter();
+  const starter =
+    templateId === "new" ? getTemplateStarter(starterKey) : undefined;
   const emailEditorRef = useRef<EditorRef | null>(null);
   const { team } = useTeam();
-  const { apiFetch } = useApi();
+  const { apiFetch, session } = useApi();
+  const queryClient = useQueryClient();
+  const hydrated = useRef("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [editorReady, setEditorReady] = useState(false);
+  const [designLoading, setDesignLoading] = useState(false);
+  const [designError, setDesignError] = useState("");
+  const [designAttempt, setDesignAttempt] = useState(0);
+  const editorAssetSources = useRef(new Map<string, string>());
 
   const [template, setTemplate] = useState<EmailTemplate>({
     id: "",
-    name: "",
-    subject: "",
+    name: starter?.name ?? "",
+    subject: starter?.subject ?? "",
     variables: [],
-    teamId: team?.id || "some-team-id",
+    teamId: team?.id || "",
     html: "",
     design: {},
     createdAt: new Date(),
@@ -57,64 +80,108 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
     designJson: "",
   });
 
-  const [activeTab, setActiveTab] = useState("settings");
-  const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
+  const [activeTab, setActiveTab] = useState(
+    starterKey ? "design" : "settings",
+  );
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
-
-  const getEmailCategories = async () => {
-    try {
-      const response = await apiFetch("categories");
-      if (!response.ok) throw new Error("Failed to fetch email categories");
-      const data = await response.json();
-      setEmailCategories(data.data);
-      if (template.categoryId === "Transactional") {
-        template.categoryId = data.data[0].id;
-      }
-      return data;
-    } catch (error) {
-      toast.error("Failed to fetch email categories");
-      return null;
-    }
-  };
-
-  const fetchTemplate = async () => {
-    try {
-      const response = await apiFetch("templates/" + templateId, {
-        method: "GET",
-      });
-      if (!response.ok) throw new Error("Failed to fetch template");
-      const data = await response.json();
-      setTemplate({
-        ...data,
-        design: JSON.parse(Buffer.from(data.designJson, "base64").toString("utf-8")),
-      });
-      return data;
-    } catch (error) {
-      toast.error("Failed to fetch template: " + error);
-      return null;
-    }
-  };
-
-  useQuery({
-    queryKey: ["emailCategories"],
-    queryFn: getEmailCategories,
+  const categoriesQuery = useQuery({
+    queryKey: ["emailCategories", team?.id],
+    enabled: !!team?.id && !!session?.accessToken,
+    queryFn: async ({ signal }) => {
+      const response = await apiFetch("categories", { signal });
+      if (!response.ok) throw new Error("Unable to load email categories");
+      const payload = await response.json();
+      return (payload.data || []) as EmailCategory[];
+    },
   });
-
-  useQuery({
-    queryKey: ["template", templateId],
-    queryFn: fetchTemplate,
-    enabled: templateId !== "new",
+  const starterQuery = useQuery({
+    queryKey: ["template-starter", starterKey, starter?.version],
+    enabled: templateId === "new" && !!starterKey,
+    queryFn: ({ signal }) => loadStarterDesign(starterKey!, signal),
+    staleTime: Infinity,
+    retry: 1,
   });
-
-  const onReady: EmailEditorProps["onReady"] = (unlayer) => {
-    if (templateId !== "new" && template.design) {
-      try {
-        unlayer?.loadDesign(template.design as any);
-      } catch (error) {
-        console.error("Failed to load template design:", error);
-      }
+  useEffect(() => {
+    if (
+      templateId === "new" &&
+      starterQuery.data &&
+      hydrated.current !== `starter:${starterKey}`
+    ) {
+      setTemplate((current) => ({
+        ...current,
+        design: structuredClone(starterQuery.data),
+      }));
+      hydrated.current = `starter:${starterKey}`;
     }
+  }, [starterQuery.data, starterKey, templateId]);
+  const templateQuery = useQuery({
+    queryKey: ["template", team?.id, templateId],
+    enabled: !!team?.id && !!session?.accessToken && templateId !== "new",
+    queryFn: async ({ signal }) => {
+      const response = await apiFetch(`templates/${templateId}`, { signal });
+      if (!response.ok) throw new Error("Unable to load this template");
+      const data = resourceEntity<EmailTemplate>(await response.json());
+      const design = data.designJson
+        ? JSON.parse(Buffer.from(data.designJson, "base64").toString("utf-8"))
+        : {};
+      return { ...data, design };
+    },
+  });
+  const emailCategories = categoriesQuery.data || [];
+  useEffect(() => {
+    const key = `${team?.id}:${templateId}`;
+    // Hydrate once per record, including cache hits; background refetches must not erase edits.
+    if (templateQuery.data && hydrated.current !== key) {
+      setTemplate(templateQuery.data);
+      hydrated.current = key;
+    }
+  }, [templateQuery.data, team?.id, templateId]);
+  useEffect(() => {
+    if (templateId === "new" && categoriesQuery.data?.length) {
+      setTemplate((current) =>
+        current.categoryId === "Transactional"
+          ? {
+              ...current,
+              categoryId: (
+                categoriesQuery.data.find(
+                  (category) =>
+                    category.name.toLowerCase() ===
+                    (starter?.marketing ? "marketing" : "transactional"),
+                ) ?? categoriesQuery.data[0]
+              ).id,
+            }
+          : current,
+      );
+    }
+  }, [categoriesQuery.data, templateId, starter]);
+
+  useEffect(() => {
+    if (!editorReady || !template.design || !Object.keys(template.design).length) return;
+    const controller = new AbortController();
+    const editor = emailEditorRef.current?.editor;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const loaded = () => {
+      if (!controller.signal.aborted) { setDesignLoading(false); setDesignError(""); }
+      if (timeout) clearTimeout(timeout);
+    };
+    editor?.addEventListener("design:loaded", loaded);
+    setDesignLoading(true); setDesignError("");
+    prepareEditorAssets(template.design, controller.signal).then(({ design, sources }) => {
+      if (controller.signal.aborted) return;
+      editorAssetSources.current = sources;
+      timeout = setTimeout(() => {
+        if (!controller.signal.aborted) { setDesignLoading(false); setDesignError("The editor did not finish loading this design. Please retry."); }
+      }, 20000);
+      editor?.loadDesign(design as any);
+    }).catch((error) => {
+      if (!controller.signal.aborted) { setDesignLoading(false); setDesignError(error.message || "This design could not be opened."); }
+    });
+    return () => { controller.abort(); if (timeout) clearTimeout(timeout); editor?.removeEventListener("design:loaded"); };
+  }, [template.design, editorReady, designAttempt]);
+
+  const onReady: EmailEditorProps["onReady"] = () => {
+    setEditorReady(true);
   };
 
   const templateCategories = emailCategories.map((category) => ({
@@ -123,64 +190,95 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
   }));
 
   const selectedCategory = templateCategories.find(
-    (category) => category.value === template.categoryId
+    (category) => category.value === template.categoryId,
   );
 
-  const handleSave = async () => {
-    try {
-      const unlayer = emailEditorRef.current?.editor;
-      unlayer?.exportHtml(async (data) => {
-        const { html, design } = data;
-
-        const updatedTemplate = {
-          ...template,
-          html: html,
-          designJson: design,
-          changed: !deepCompare(template.designJson, design),
-          categoryId: selectedCategory?.value,
-        };
-
-        const response = await fetch(
-          templateId === "new"
-            ? "/api/templates"
-            : `/api/templates/${templateId}`,
-          {
-            method: templateId === "new" ? "POST" : "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updatedTemplate),
-          }
+  const exportTemplate = () =>
+    new Promise<{ html: string; design: any }>((resolve, reject) => {
+      const editor = emailEditorRef.current?.editor;
+      if (!editor || !editorReady || designLoading || designError)
+        return reject(
+          new Error("The editor is still loading. Please try again."),
         );
-
-        if (!response.ok) throw new Error("Failed to save template");
-
-        toast.success("Template saved successfully");
-        router.push("/templates");
+      const timeout = setTimeout(
+        () =>
+          reject(new Error("The editor did not respond. Please try again.")),
+        20000,
+      );
+      try {
+        editor.exportHtml((data) => {
+          clearTimeout(timeout);
+          resolve(restoreEditorAssets(data, editorAssetSources.current));
+        });
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
+      }
+    });
+  const handleSave = async () => {
+    if (isSaving) return;
+    if (
+      !template.name.trim() ||
+      !template.subject.trim() ||
+      !selectedCategory
+    ) {
+      toast.error(
+        "Enter a template name, subject, and category before saving.",
+      );
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { html, design } = await exportTemplate();
+      const response = await fetch(
+        templateId === "new"
+          ? "/api/templates"
+          : `/api/templates/${templateId}`,
+        {
+          method: templateId === "new" ? "POST" : "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...template,
+            teamId: team?.id,
+            html,
+            designJson: design,
+            changed: !deepCompare(template.design, design),
+            categoryId: selectedCategory.value,
+          }),
+        },
+      );
+      if (!response.ok)
+        throw new Error(
+          "Unable to save this template. Your edits are still here.",
+        );
+      await queryClient.invalidateQueries({ queryKey: ["templates"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["template", team?.id, templateId],
       });
+      toast.success("Template saved successfully");
+      router.push("/templates");
     } catch (error) {
-      toast.error("Failed to save template");
+      toast.error((error as Error).message);
+    } finally {
+      setIsSaving(false);
     }
   };
-
   const sendTestEmail = async (email: string) => {
     setIsSendingTestEmail(true);
-    emailEditorRef.current?.editor?.exportHtml(async ({ html }) => {
-      const response = await apiFetch(`emails`, {
+    try {
+      const { html } = await exportTemplate();
+      const response = await apiFetch("emails", {
         method: "POST",
-        body: JSON.stringify({
-          to: email,
-          html,
-          test: true,
-        }),
+        body: JSON.stringify({ to: email, html, test: true }),
       });
-
-      setIsSendingTestEmail(false);
-
-      if (!response.ok) {
-        throw new Error("Failed to send test email");
-      }
-
+      if (!response.ok) throw new Error("Failed to send test email");
       toast.success("Test email sent successfully");
-    });
+      setShowTestEmailDialog(false);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsSendingTestEmail(false);
+    }
   };
 
   const {
@@ -192,15 +290,58 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
   });
 
   const onSubmit = (data: { to: string }) => {
-    sendTestEmail(data.to);
-    setShowTestEmailDialog(false);
+    void sendTestEmail(data.to);
   };
 
+  if (
+    templateId === "new" &&
+    starterKey &&
+    (starterQuery.isPending || starterQuery.error)
+  ) {
+    return (
+      <div className="space-y-4">
+        <QueryState
+          loading={starterQuery.isPending}
+          error={starterQuery.error}
+          retry={() => starterQuery.refetch()}
+        />
+        <Button variant="outline" asChild>
+          <Link href="/templates">Back to template library</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (
+    categoriesQuery.isPending ||
+    categoriesQuery.error ||
+    (templateId !== "new" && (templateQuery.isPending || templateQuery.error))
+  )
+    return (
+      <QueryState
+        loading={
+          categoriesQuery.isPending ||
+          (templateId !== "new" && templateQuery.isPending)
+        }
+        error={categoriesQuery.error || templateQuery.error}
+        retry={() => {
+          void categoriesQuery.refetch();
+          if (templateId !== "new") void templateQuery.refetch();
+        }}
+      />
+    );
+
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex justify-between items-center p-4 border-b">
+    <div className={workspaceClassName("template-editor-workspace")}>
+      {starter && (
+        <div className="mx-4 mt-4 rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+          <strong>{starter.name}</strong> · Your editable copy. Update the
+          brand, links, and sample details before saving.
+        </div>
+      )}
+      <div className="flex justify-between items-center p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <TabsList>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -211,9 +352,10 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
                 Design
               </TabsTrigger>
             </TabsList>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="secondary"
+                disabled={!editorReady || designLoading || !!designError || isSendingTestEmail}
                 onClick={() => setShowTestEmailDialog(true)}
                 className="flex items-center gap-2"
               >
@@ -221,6 +363,16 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
                 {isSendingTestEmail ? "Sending..." : "Send Test"}
               </Button>
 
+              <EmailWriter
+                format="design"
+                subject={template.subject}
+                applyLabel="Use this design in editor"
+                onApply={(draft) => {
+                  if (!draft.design) throw new Error("No editable design was returned.");
+                  setTemplate((current) => ({ ...current, subject: draft.subject, design: structuredClone(draft.design!) }));
+                  setActiveTab("design");
+                }}
+              />
               <Dialog>
                 <DialogTrigger asChild>
                   <Button>Save Template</Button>
@@ -229,11 +381,17 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
                   <DialogHeader>
                     <DialogTitle>Save Template</DialogTitle>
                     <DialogDescription>
-                      Are you sure you want to save this template? This will
-                      overwrite any existing template with the same name.
+                      {templateId === "new"
+                        ? "Save your design as a new template for campaigns, newsletters, and automations."
+                        : "Save your changes to this template."}
                     </DialogDescription>
                   </DialogHeader>
-                  <Button onClick={handleSave}>Save Template</Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving || !editorReady || designLoading || !!designError}
+                  >
+                    {isSaving ? "Saving…" : "Save Template"}
+                  </Button>
                 </DialogContent>
               </Dialog>
             </div>
@@ -325,8 +483,14 @@ export function TemplateEditor({ templateId }: TemplateEditorProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="design" className="h-full">
+            <TabsContent
+              value="design"
+              forceMount
+              className="h-full data-[state=inactive]:hidden"
+            >
               <div className="h-full">
+                {designLoading && <p role="status" className="py-3 text-sm text-muted-foreground">Loading your design and images…</p>}
+                {designError && <div role="alert" className="flex items-center justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-700"><span>{designError}</span><Button variant="outline" onClick={() => setDesignAttempt(n => n + 1)}>Retry design</Button></div>}
                 <EmailEditor
                   ref={emailEditorRef}
                   onReady={onReady}

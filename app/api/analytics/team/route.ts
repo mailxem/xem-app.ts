@@ -60,7 +60,8 @@ export async function GET(request: Request): Promise<NextResponse<TeamOverviewRe
     }
 
     const { searchParams } = new URL(request.url);
-    const teamId = searchParams.get("teamId");
+    const teamId = session.user.teamId;
+    if (searchParams.get("teamId") && searchParams.get("teamId") !== teamId) return NextResponse.json({ error: "Forbidden" }, {status: 403});
     const type = searchParams.get("type") || "overview"; // overview or trends
 
     if (!teamId) {

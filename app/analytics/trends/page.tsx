@@ -1,136 +1,23 @@
 "use client";
-
-import { PageHeader } from "@/components/page-header";
-import { Card } from "@/components/ui/card";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useTeam } from "@/app/providers/team-provider";
-import { useState, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
-// Fix TypeScript issues with Recharts by providing explicit component types
-import { ComponentProps, ComponentType } from "react";
-
-type TrendData = {
-  date: string;
-  openRate: number;
-  clickRate: number;
-  bounceRate: number;
-  total: number;
-};
-
-export default function TrendsPage() {
-  const { team } = useTeam();
-  const [loading, setLoading] = useState(true);
-  const [trendData, setTrendData] = useState<TrendData[]>([]);
-  const [timeframe, setTimeframe] = useState("30");
-
-  useEffect(() => {
-    const fetchTrendData = async () => {
-      if (!team?.id) return;
-
-      try {
-        const response = await fetch(
-          `/api/analytics/trends?teamId=${team.id}&days=${timeframe}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch trend data");
-        const { data } = await response.json();
-        console.log(data);
-        setTrendData(data);
-      } catch (error) {
-        console.error("Error fetching trend data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTrendData();
-  }, [team?.id, timeframe]);
-
-  return (
-    <div className="flex-1 space-y-4">
-      <div className="grid gap-4 p-4 pt-4">
-        <div className="flex justify-end ">
-          <Select
-            value={timeframe}
-            onValueChange={(value) => setTimeframe(value)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select timeframe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid gap-4">
-          <Card className="p-6">
-            {loading ? (
-              <div className="flex items-center justify-center h-[400px]">
-                Loading trend data...
-              </div>
-            ) : trendData?.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[400px] gap-2 text-muted-foreground">
-                <h3 className="font-medium">No trend data available</h3>
-                <p>Start sending campaigns to see performance trends.</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart
-                  accessibilityLayer
-                  data={trendData}
-                  margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="openRate"
-                    stackId="1"
-                    stroke="#8884d8"
-                    fill="#8884d8"
-                    name="Open Rate"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="clickRate"
-                    stackId="1"
-                    stroke="#82ca9d"
-                    fill="#82ca9d"
-                    name="Click Rate"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="bounceRate"
-                    stackId="1"
-                    stroke="#ffc658"
-                    fill="#ffc658"
-                    name="Bounce Rate"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QueryState, Empty } from "@/components/marketing/shared";
+import { workspaceClassName } from "@/lib/workspace-styles";
+type Trend={date:string;openRate:number;clickRate:number;bounceRate:number};
+const config={openRate:{label:"Open rate"},clickRate:{label:"Click rate"},bounceRate:{label:"Bounce rate"}};
+export default function TrendsPage(){
+ const {team}=useTeam();const [days,setDays]=useState("30");
+ const query=useQuery<Trend[]>({queryKey:["analytics-trends",team?.id,days],enabled:!!team?.id,queryFn:async({signal})=>{
+  const startDate=new Date(Date.now()-Number(days)*86400000).toISOString();
+  const response=await fetch(`/api/analytics/trends?teamId=${team!.id}&startDate=${startDate}`,{signal});
+  if(!response.ok)throw new Error("Unable to load performance trends");
+  return (await response.json()).data || [];
+ }});
+ const data=(query.data || []).map(point=>({...point,openRate:point.openRate*100,clickRate:point.clickRate*100,bounceRate:point.bounceRate*100}));
+ return <section className={workspaceClassName("product-panel")}><div className={workspaceClassName("panel-toolbar")}><div><h2>Performance trends</h2><p className="mt-1 text-sm text-muted-foreground">Compare open, click, and bounce rates over time.</p></div><Select value={days} onValueChange={setDays}><SelectTrigger className="w-44"><SelectValue/></SelectTrigger><SelectContent>{[7,30,90].map(value=><SelectItem key={value} value={String(value)}>Last {value} days</SelectItem>)}</SelectContent></Select></div>
+ {query.isPending || query.error ? <QueryState loading={query.isPending} error={query.error} retry={()=>void query.refetch()}/> : !data.length ? <Empty title="No activity in this period" description="Performance will appear as your emails are delivered and opened."/> : <ChartContainer config={config} className="h-[360px] w-full"><BarChart accessibilityLayer data={data}><CartesianGrid vertical={false}/><XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={10} minTickGap={30} tickFormatter={date=>new Date(date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}/><YAxis width={48} tickLine={false} axisLine={false} tickFormatter={value=>`${value}%`}/><ChartTooltip content={<ChartTooltipContent formatter={(value,name)=><span>{config[name as keyof typeof config]?.label}: {Number(value).toFixed(1)}%</span>}/>}/><Bar dataKey="openRate" fill="var(--chart-1)" radius={[4,4,0,0]}/><Bar dataKey="clickRate" fill="var(--chart-2)" radius={[4,4,0,0]}/><Bar dataKey="bounceRate" fill="var(--chart-3)" radius={[4,4,0,0]}/><ChartLegend content={<ChartLegendContent/>}/></BarChart></ChartContainer>}</section>;
 }

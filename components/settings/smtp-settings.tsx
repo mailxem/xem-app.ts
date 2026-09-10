@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Pencil, Trash, TestTube } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, TestTube, Mail, Server, ShieldCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,9 @@ import { ApiError, SMTPProviderType } from "@/lib";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { QueryState, Empty, Metric } from "@/components/marketing/shared";
+import { workspaceClassName } from "@/lib/workspace-styles";
 
 const DEFAULT_PROVIDERS: Record<SMTPProviderType, SMTPConfig> = {
   [SMTPProviderType.CUSTOM]: {
@@ -83,17 +86,12 @@ export function SMTPSettings({
 }) {
   const [editConfig, setEditConfig] = useState<SMTPConfig | null>(null);
   const { team } = useTeam();
-  const { configs: smtpConfigs, isLoading, refresh } = useSMTP();
+  const { configs: smtpConfigs, isLoading, refresh, error } = useSMTP();
   const { apiFetch } = useApi();
 
   const form = useForm<SMTPConfig>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      id: null,
-      provider: SMTPProviderType.CUSTOM,
-      isActive: true,
-      maxSendRate: 14,
-    },
+    defaultValues: { ...DEFAULT_PROVIDERS[SMTPProviderType.CUSTOM], id: null, isActive: true, fromEmail: "" },
   });
 
   const onSubmit = async (data: SMTPConfig) => {
@@ -122,8 +120,9 @@ export function SMTPSettings({
 
       refresh();
       toast.success("SMTP configuration saved successfully");
+      setEditConfig(null);
       setIsDialogOpen(false);
-      form.reset();
+      form.reset({ ...DEFAULT_PROVIDERS[SMTPProviderType.CUSTOM], id: null, isActive: true, fromEmail: "" });
     } catch (error: any) {
       toast.error("Failed to save SMTP configuration");
     }
@@ -131,7 +130,8 @@ export function SMTPSettings({
 
   const removeSMTPConfig = async (id: string) => {
     try {
-      await apiFetch("smtp-configs/" + id, { method: "DELETE" });
+      const response = await apiFetch("smtp-configs/" + id, { method: "DELETE" });
+      if (!response.ok) throw new Error("Unable to delete connection");
       refresh();
       toast.success("SMTP configuration removed successfully");
     } catch (error) {
@@ -181,151 +181,32 @@ export function SMTPSettings({
     }
   }, [editConfig, form]);
 
-  const columns: ColumnDef<SMTPConfig>[] = [
-    {
-      accessorKey: "provider",
-      header: "Provider",
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-1.5">
-          <Badge
-            variant="secondary"
-            className="w-max bg-violet-500/10 text-violet-500 font-medium capitalize"
-          >
-            {row.getValue("provider")}
-          </Badge>
-          <Badge variant="outline" className="text-sm w-max">
-            {row.original.port
-              ? `${row.original.host}:${row.original.port}`
-              : row.original.host}
-          </Badge>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "username",
-      header: "Username",
-      cell: ({ row }) => {
-        const username = row.getValue("username") as string;
-        return (
-          <Badge variant="secondary">
-            {username.slice(0, 5)}...{username.slice(-5)}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "maxSendRate",
-      header: "Send Rate",
-      cell: ({ row }) => {
-        const maxSendRate = row.getValue("maxSendRate") as string;
-        return <Badge variant="secondary">{maxSendRate}/sec</Badge>;
-      },
-    },
-    {
-      accessorKey: "documentation",
-      header: "Documentation",
-      cell: ({ row }) => {
-        const documentation = row.getValue("documentation") as string;
-        return (
-          <Link
-            href={
-              documentation ||
-              DEFAULT_PROVIDERS[row.original.provider as SMTPProviderType]
-                .documentation
-            }
-            className="text-sm  bg-muted-foreground/10 px-2 py-1 text-blue-500 hover:text-blue-600"
-            target="_blank"
-          >
-            Read Docs
-          </Link>
-        );
-      },
-    },
-    {
-      accessorKey: "supportsTls",
-      header: "TLS",
-      cell: ({ row }) => {
-        const supportsTLS = row.getValue("supportsTls") as boolean;
-        return (
-          <Badge variant={supportsTLS ? "success" : "secondary"}>
-            {supportsTLS ? "Yes" : "No"}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "requiresAuth",
-      header: "Requires Auth",
-      cell: ({ row }) => {
-        const requiresAuth = row.getValue("requiresAuth") as boolean;
-        return (
-          <Badge variant={requiresAuth ? "success" : "secondary"}>
-            {requiresAuth ? "Yes" : "No"}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "isActive",
-      header: "Status",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge
-            variant={isActive ? "success" : "secondary"}
-            className="capitalize"
-          >
-            {isActive ? "Active" : "Inactive"}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const config = row.original;
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => testConfiguration(config)}>
-                <TestTube className="mr-2 h-4 w-4" />
-                Test Connection
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setEditConfig(config)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => removeSMTPConfig(config.id as string)}
-              >
-                <Trash className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
+  const edit = (config: SMTPConfig) => { form.reset(config); setEditConfig(config); setIsDialogOpen(true); };
+  const closeDialog = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) { setEditConfig(null); form.reset({ ...DEFAULT_PROVIDERS[SMTPProviderType.CUSTOM], id: null, isActive: true, fromEmail: "" }); }
+  };
   return (
     <div className="space-y-6">
-      <DataTable
-        isLoading={isLoading}
-        columns={columns}
-        data={smtpConfigs}
-        filterColumn="provider"
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Metric label="SMTP senders" value={isLoading ? "—" : smtpConfigs.length} icon={<Mail size={18}/>}/>
+        <Metric label="Configured servers" value={isLoading ? "—" : new Set(smtpConfigs.map(c => c.host)).size} icon={<Server size={18}/>}/>
+      </div>
+      <section className={workspaceClassName("product-panel")}>
+        <div className={workspaceClassName("panel-toolbar")}><h2>SMTP senders</h2><span className="text-xs text-muted-foreground">{smtpConfigs.length} connections</span></div>
+        {isLoading || error ? <QueryState loading={isLoading} error={error} retry={refresh}/> : smtpConfigs.length === 0 ? <Empty title="Connect your first sender" description="Use your existing email provider to send emails with Xem." action={<Button onClick={() => setIsDialogOpen(true)}>Add SMTP connection</Button>}/> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {smtpConfigs.map(config => <CollectionCard key={config.id} icon={<Mail size={22}/>} badge={config.provider} title={config.fromEmail || config.host} description={`Server: ${config.host}:${config.port}`} action="Edit connection" onAction={() => edit(config)} menu={
+            <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${config.host}`}><MoreHorizontal size={18}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => edit(config)}><Pencil className="mr-2 size-4"/>Edit connection</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { void testConfiguration(config).catch(() => {}); }}><TestTube className="mr-2 size-4"/>Test connection</DropdownMenuItem>
+              <DropdownMenuSeparator/>
+              <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Delete this SMTP connection?")) void removeSMTPConfig(config.id as string); }}><Trash className="mr-2 size-4"/>Delete connection</DropdownMenuItem>
+            </DropdownMenuContent></DropdownMenu>
+          }>
+            <div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Send rate</p><p className="mt-1 text-sm font-medium">{config.maxSendRate}/sec</p></div><div className="rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Status</p><p className="mt-1 text-sm font-medium">{config.isActive ? "Active" : "Inactive"}</p></div></div>
+          </CollectionCard>)}
+        </div>}
+      </section>
 
       <SMTPProviders
         onTestConnection={testConfiguration}
@@ -334,7 +215,7 @@ export function SMTPSettings({
         form={form}
         onProviderChange={onProviderChange}
         providers={DEFAULT_PROVIDERS}
-        setIsDialogOpen={setIsDialogOpen}
+        setIsDialogOpen={closeDialog}
       />
     </div>
   );

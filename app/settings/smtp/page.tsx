@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { SMTPProvider as SmtpContextProvider } from "@/app/providers/smtp-provider";
 import { SMTPSettings } from "@/components/settings/smtp-settings";
 import { useSearchParams } from "next/navigation";
@@ -13,7 +14,7 @@ export default function SMTPPage() {
   };
   return (
     <div className="flex-1 space-y-4">
-      <div className="p-4 mx-auto">
+      <div className={workspaceClassName("workspace-page-body")}>
         <SmtpContextProvider>
           <SMTPSettings
             isDialogOpen={isDialogOpen}

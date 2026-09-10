@@ -64,24 +64,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const apiService = new APIService("webhooks", session);
-    
-    const webhook = await apiService.get<Webhook>(`/webhooks/${webhookId}`, {
-      teamId: session.user.teamId,
-    });
-
-    if (!webhook) {
-      logger.warn({
-        fileName: FILE_NAME,
-        emoji: "❓",
-        action: "fetch",
-        label: "webhook",
-        value: { webhookId },
-        message: "Webhook not found",
-      });
-      return NextResponse.json({ error: "Webhook not found" }, { status: 404 });
-    }
-
+    const apiService = new APIService("marketing", session);
     const { searchParams } = new URL(req.url);
     const limit = Math.min(parseInt(searchParams.get("limit") ?? "50"), 100);
     const offset = Math.max(parseInt(searchParams.get("offset") ?? "0"), 0);
@@ -90,8 +73,8 @@ export async function GET(
       : undefined;
 
     const response = await apiService.get<GetDeliveriesResponse>(
-      `/webhooks/${webhookId}/deliveries`,
-      { status, limit, offset }
+      `webhooks/${webhookId}/deliveries`,
+      { ...(status ? { status } : {}), limit, offset }
     );
 
     logger.info({

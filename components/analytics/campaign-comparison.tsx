@@ -1,4 +1,5 @@
 "use client";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 import { useEffect, useState } from "react";
 import {
@@ -140,43 +141,43 @@ export function CampaignComparison({ campaignIds }: { campaignIds: string[] }) {
 
             <TabsContent value="engagement">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <BarChart data={engagementData}>
                     <XAxis dataKey="id" />
                     <YAxis />
-                    <Tooltip />
-                    <Legend />
+                    <ChartTooltip content={<ChartTooltipContent/>}/>
+                    <ChartLegend content={<ChartLegendContent/>}/>
                     <Bar
                       name="Open Rate"
                       dataKey="openRate"
-                      fill="#007C89"
+                      fill="var(--chart-1)"
                       radius={[4, 4, 0, 0]}
                     />
                     <Bar
                       name="Click Rate"
                       dataKey="clickRate"
-                      fill="#FF8C61"
+                      fill="var(--chart-2)"
                       radius={[4, 4, 0, 0]}
                     />
                     <Bar
                       name="Engagement Score"
                       dataKey="engagementScore"
-                      fill="#98D8AA"
+                      fill="var(--chart-3)"
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </TabsContent>
 
             <TabsContent value="timeline">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <LineChart data={Object.values(timelineData)}>
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <Tooltip />
-                    <Legend />
+                    <ChartTooltip content={<ChartTooltipContent/>}/>
+                    <ChartLegend content={<ChartLegendContent/>}/>
                     {campaigns.map(([id], index) => (
                       <Line
                         key={id}
@@ -185,16 +186,16 @@ export function CampaignComparison({ campaignIds }: { campaignIds: string[] }) {
                         name={`Campaign ${index + 1}`}
                         stroke={
                           index === 0
-                            ? "#007C89"
+                            ? "var(--chart-1)"
                             : index === 1
-                            ? "#FF8C61"
-                            : "#98D8AA"
+                            ? "var(--chart-2)"
+                            : "var(--chart-3)"
                         }
                         strokeWidth={2}
                       />
                     ))}
                   </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </TabsContent>
           </Tabs>

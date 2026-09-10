@@ -59,7 +59,7 @@ export function WebhookDeliveries({ webhookId }: { webhookId: string }) {
     offset: 0,
     hasMore: false,
   });
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedDelivery, setSelectedDelivery] =
     useState<WebhookDelivery | null>(null);
 
@@ -69,7 +69,7 @@ export function WebhookDeliveries({ webhookId }: { webhookId: string }) {
       const params = new URLSearchParams({
         limit: pagination.limit.toString(),
         offset: offset.toString(),
-        ...(statusFilter && { status: statusFilter }),
+        ...(statusFilter !== "all" && { status: statusFilter }),
       });
 
       const response = await fetch(
@@ -113,7 +113,7 @@ export function WebhookDeliveries({ webhookId }: { webhookId: string }) {
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="200">Success (200)</SelectItem>
               <SelectItem value="400">Client Error (400)</SelectItem>
               <SelectItem value="500">Server Error (500)</SelectItem>

@@ -1,148 +1,49 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/ui/data-table";
-import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "../ui/button";
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Edit, Mail, MoreHorizontal, Trash } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useCampaigns } from "@/app/providers/campaigns-provider";
-import { Campaign } from "@/lib";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { useRouter } from "next/navigation";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useApi } from "@/hooks/use-api";
+import { QueryState, Status, Empty } from "@/components/marketing/shared";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { CollectionPagination } from "@/components/ui/collection-pagination";
 
 export function CampaignsList() {
-  const {
-    campaigns,
-    refetch,
-    loading: isLoading,
-    total,
-    page,
-    limit,
-    setPage,
-    setLimit,
-  } = useCampaigns();
-  const router = useRouter();
-  
+  const { campaigns, refetch, loading, error, total, page, limit, setPage } = useCampaigns();
   const { apiFetch } = useApi();
-
+  const [busy, setBusy] = useState("");
   const deleteCampaign = async (id: string) => {
-    const response = await apiFetch("campaigns/" + id, {
-      method: "DELETE",
-    });
-
-    if (response.ok) {
-      refetch();
-      toast.success("Campaign deleted successfully");
-    }
-
-    toast.error("Error deleting campaign");
+    if (!confirm("Delete this campaign? This cannot be undone.")) return;
+    setBusy(id);
+    try {
+      const response = await apiFetch(`campaigns/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete campaign");
+      if (campaigns.length === 1 && page > 1) setPage(page - 1);
+      else await refetch();
+      toast.success("Campaign deleted");
+    } catch { toast.error("Failed to delete campaign"); }
+    finally { setBusy(""); }
   };
-
-  const columns: ColumnDef<Campaign>[] = [
-    {
-      accessorKey: "name",
-      header: "Name",
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return (
-          <Badge variant={status === "SCHEDULED" ? "default" : "secondary"}>
-            {status}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "schedule",
-      header: "Frequency",
-      cell: ({ row }) => {
-        const schedule = row.getValue("schedule") as string;
-        return schedule;
-      },
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Created At",
-      cell: ({ row }) => {
-        const createdAt = row.getValue("createdAt") as Date;
-        return format(new Date(createdAt), "PPP");
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {row.getValue("status") === "SCHEDULED" && (
-                <DropdownMenuItem
-                  onClick={() => {}} // sendCampaign(row.original.id)}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Now
-                </DropdownMenuItem>
-              )}
-              {row.getValue("status") === "SCHEDULED" ||
-                (row.getValue("status") === "DRAFT" && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      router.push(`/campaigns/${row.original.id}`);
-                    }}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Campaign
-                  </DropdownMenuItem>
-                ))}
-              <DropdownMenuSeparator />
-              {row.getValue("status") !== "SENDING" && (
-                <DropdownMenuItem
-                  onClick={() => deleteCampaign(row.original.id)}
-                  className="text-red-500"
-                >
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete Campaign
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
-  return (
-    <DataTable
-      pagination={true}
-      onPaginationChange={(pagination: {
-        pageIndex: number;
-        pageSize: number;
-      }) => {
-        setPage(pagination.pageIndex);
-        setLimit(pagination.pageSize);
-      }}
-      totalRows={total}
-      isLoading={isLoading}
-      pageIndex={page}
-      pageSize={limit}
-      columns={columns as any}
-      data={campaigns}
-    />
-  );
+  if (loading || error) return <QueryState loading={loading} error={error} retry={refetch}/>;
+  if (!campaigns.length) return <Empty title="Create your first campaign" description="Connect an existing template, choose your audience, and schedule your email." action={<Button asChild><Link href="/campaigns/new">Create campaign</Link></Button>}/>;
+  return <>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {campaigns.map(campaign => <CollectionCard key={campaign.id} title={campaign.name} href={`/campaigns/${campaign.id}`} description={campaign.description} icon={<Mail size={22}/>} badge={<Status value={campaign.status}/>} action="View campaign" menu={
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" disabled={busy === campaign.id} className="size-8" aria-label={`Actions for ${campaign.name}`}><MoreHorizontal size={18}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+          <DropdownMenuItem asChild><Link href={`/campaigns/${campaign.id}`}><Edit className="mr-2 size-4"/>View campaign</Link></DropdownMenuItem>
+          {campaign.status !== "SENDING" && <><DropdownMenuSeparator/><DropdownMenuItem className="text-destructive" onClick={() => deleteCampaign(campaign.id)}><Trash className="mr-2 size-4"/>Delete campaign</DropdownMenuItem></>}
+        </DropdownMenuContent></DropdownMenu>
+      }>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Schedule</p><p className="mt-2 text-xs font-medium">{campaign.scheduledFor ? format(new Date(campaign.scheduledFor), "MMM d, p") : campaign.schedule || "Not scheduled"}</p></div>
+          <div className="rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Created</p><p className="mt-2 text-xs font-medium">{format(new Date(campaign.createdAt), "MMM d, yyyy")}</p></div>
+        </div>
+      </CollectionCard>)}
+    </div>
+    <CollectionPagination page={page} limit={limit} total={total} onPageChange={setPage}/>
+  </>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 import { useEffect, useState } from "react";
 import {
@@ -59,7 +60,7 @@ interface TeamOverview {
   }>;
 }
 
-const COLORS = ["#007C89", "#FF8C61", "#98D8AA", "#FFB7B7", "#A7BBC7"];
+const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 export function TeamAnalytics({ teamId }: { teamId: string }) {
   const [overview, setOverview] = useState<TeamOverview | null>(null);
@@ -70,10 +71,8 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const [overviewResponse, trendsResponse] = await Promise.all([
-          fetch(`/api/analytics/team?teamId=${teamId}&type=overview`),
-          fetch(`/api/analytics/team?teamId=${teamId}&type=trends`),
-        ]);
+        setError(null);
+        const overviewResponse = await fetch(`/api/analytics/team?teamId=${teamId}&type=overview`);
 
         if (!overviewResponse.ok) throw new Error("Failed to fetch team analytics");
 
@@ -113,12 +112,12 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
 
   if (!overview) return null;
 
-  const deviceData = Object.entries(overview.deviceStats).map(([device, count]) => ({
+  const deviceData = Object.entries(overview.deviceStats || {}).map(([device, count]) => ({
     name: device,
     value: count,
   }));
 
-  const geoData = Object.entries(overview.geoStats)
+  const geoData = Object.entries(overview.geoStats || {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([country, count]) => ({
@@ -174,7 +173,7 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
 
       {/* Detailed Analytics */}
       <Tabs defaultValue="trends">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="trends" className="flex items-center gap-2">
             <TrendingUpIcon className="h-4 w-4" />
             Performance Trends
@@ -199,28 +198,28 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <LineChart data={overview.monthlyStats}>
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip />
-                    <Legend />
+                    <ChartTooltip content={<ChartTooltipContent/>}/>
+                    <ChartLegend content={<ChartLegendContent/>}/>
                     <Line
                       type="monotone"
                       dataKey="openRate"
                       name="Open Rate"
-                      stroke="#007C89"
+                      stroke="var(--chart-1)"
                       strokeWidth={2}
                     />
                     <Line
                       type="monotone"
                       dataKey="clickRate"
                       name="Click Rate"
-                      stroke="#FF8C61"
+                      stroke="var(--chart-2)"
                       strokeWidth={2}
                     />
                   </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
@@ -236,7 +235,7 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <PieChart>
                     <Pie
                       data={deviceData}
@@ -256,9 +255,9 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <ChartTooltip content={<ChartTooltipContent/>}/>
                   </PieChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
@@ -274,14 +273,14 @@ export function TeamAnalytics({ teamId }: { teamId: string }) {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={{}} className="h-full w-full">
                   <BarChart data={geoData}>
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#007C89" radius={[4, 4, 0, 0]} />
+                    <ChartTooltip content={<ChartTooltipContent/>}/>
+                    <Bar dataKey="value" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>

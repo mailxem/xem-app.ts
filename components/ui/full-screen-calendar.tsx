@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   add,
   eachDayOfInterval,
@@ -29,7 +30,8 @@ import { Separator } from "@/components/ui/separator";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface Event {
-  id: number;
+  id: number | string;
+  href?: string;
   name: string;
   time: string;
   datetime: string;
@@ -109,12 +111,6 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
         </div>
 
         <div className="flex flex-col items-center gap-4 md:flex-row md:gap-6">
-          <Button variant="outline" size="icon" className="hidden lg:flex">
-            <SearchIcon size={16} strokeWidth={2} aria-hidden="true" />
-          </Button>
-
-          <Separator orientation="vertical" className="hidden h-6 lg:block" />
-
           <div className="inline-flex w-full -space-x-px rounded-lg shadow-sm shadow-black/5 md:w-auto rtl:space-x-reverse">
             <Button
               onClick={previousMonth}
@@ -149,10 +145,10 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
             className="block w-full md:hidden"
           />
 
-          <Button className="w-full gap-2 md:w-auto">
+          <Button asChild className="w-full gap-2 md:w-auto"><Link href="/campaigns/new">
             <PlusCircleIcon size={16} strokeWidth={2} aria-hidden="true" />
-            <span>New Event</span>
-          </Button>
+            <span>Create campaign</span>
+          </Link></Button>
         </div>
       </div>
 
@@ -282,7 +278,7 @@ export function FullScreenCalendar({ data }: FullScreenCalendarProps) {
                               className="flex flex-col items-start gap-1 rounded-lg border bg-muted/50 p-2 text-xs leading-tight"
                             >
                               <p className="font-medium leading-none">
-                                {event.name}
+                                {event.href ? <Link href={event.href} className="hover:underline">{event.name}</Link> : event.name}
                               </p>
                               <p className="leading-none text-muted-foreground">
                                 {event.time}

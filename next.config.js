@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   redirects: async () => {
     return [
       {
@@ -35,16 +32,8 @@ const nextConfig = {
     ],
   },
   output: "standalone",
-  experimental: {
-    turbo: {
-      rules: {
-        "*.json": {
-          loaders: ["@vercel/webpack-asset-relocator-loader"],
-          as: "*.js",
-        },
-      },
-    },
-  },
+  turbopack: {},
+  experimental: { turbopackFileSystemCacheForDev: false },
   transpilePackages: ["bcryptjs", "@maily-to/core", "@maily-to/render"],
 };
 

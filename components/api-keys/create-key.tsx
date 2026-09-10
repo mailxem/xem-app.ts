@@ -28,18 +28,20 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useState } from "react";
 import { Calendar } from "../ui/calendar";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const CreateKeyFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   expiresAt: z
     .date()
     .optional()
-    .refine((date) => date && date > new Date(), {
+    .refine((date) => !date || date > new Date(), {
       message: "Expiration date must be in the future",
     }),
 });
 
 export function CreateKey() {
+  const queryClient = useQueryClient();
   const [isCreateKeyOpen, setIsCreateKeyOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,7 +49,7 @@ export function CreateKey() {
     resolver: zodResolver(CreateKeyFormSchema),
     defaultValues: {
       name: "",
-      expiresAt: new Date(new Date().setDate(new Date().getDate() + 9000)),
+      expiresAt: new Date(new Date().setDate(new Date().getDate() + 90)),
     },
   });
 
@@ -66,11 +68,13 @@ export function CreateKey() {
 
       if (!response.ok) throw new Error("Failed to create API key");
 
+      await queryClient.invalidateQueries({ queryKey: ["api-keys"] });
       toast.success("API key created successfully");
+      setIsCreateKeyOpen(false);
+      form.reset();
     } catch (error) {
       toast.error("Failed to create API key");
     } finally {
-      setIsCreateKeyOpen(false);
       setIsLoading(false);
     }
   };
@@ -90,7 +94,7 @@ export function CreateKey() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(createApiKey)}
-            className="space-y-4"
+            className="mt-6 space-y-5"
           >
             <FormField
               control={form.control}
@@ -130,15 +134,7 @@ export function CreateKey() {
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
-                          selected={
-                            field.value
-                              ? new Date(
-                                  new Date(field.value).setDate(
-                                    new Date(field.value).getDate() + 90,
-                                  ),
-                                )
-                              : undefined
-                          }
+                          selected={field.value}
                           onSelect={field.onChange}
                         />
                       </PopoverContent>
@@ -156,7 +152,7 @@ export function CreateKey() {
               >
                 Cancel
               </Button>
-              <Button variant="default" type={isLoading ? "button" : "submit"}>
+              <Button variant="default" disabled={isLoading} type="submit">
                 {isLoading ? "Creating..." : "Create Key"}
               </Button>
             </SheetFooter>

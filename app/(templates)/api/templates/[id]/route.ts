@@ -225,6 +225,7 @@ export async function PUT(
       subject: json.subject,
       variables: json.variables,
       htmlFileId: json.htmlFileId,
+      htmlBody: json.html,
       designJson: encodeToBase64(JSON.stringify(json.designJson)),
     });
 

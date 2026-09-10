@@ -1,5 +1,6 @@
 "use client";
 
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { Overview } from "@/components/overview";
 import { Stats } from "@/components/stats";
 import { Button } from "@/components/ui/button";
@@ -138,31 +139,31 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 space-y-8 pt-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 px-4">
+    <div className={workspaceClassName("workspace-page")}>
+      <div className={workspaceClassName("workspace-page-body space-y-6")}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Stats />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-7 px-4">
-          <div className="col-span-7">
+        <div className="grid gap-4 lg:grid-cols-7">
+          <div className={workspaceClassName("col-span-7 product-panel")}>
             <h2 className="text-2xl font-medium mb-2">Overview</h2>
             <p className="text-muted-foreground mb-4">
               Campaign performance over time
             </p>
-            <div className="pl-2 bg-primary/5 p-4 rounded-lg">
+            <div className="mt-5">
               <Overview />
             </div>
           </div>
         </div>
 
         {campaignMetrics?.length > 0 && (
-          <div className="grid gap-4 px-4 mt-6">
+          <div className={workspaceClassName("product-panel grid gap-4")}>
             <span className="text-2xl font-medium">
-              📊 Campaign Performance
+              Campaign performance
             </span>
             <span className="text-muted-foreground">
-              📈 Detailed metrics for all your email campaigns
+              Detailed metrics for your email campaigns
             </span>
             {
               <DataTable

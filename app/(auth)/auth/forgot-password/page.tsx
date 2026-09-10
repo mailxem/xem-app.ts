@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
         <div className="mb-8 grid gap-4">
           <div className="grid">
             <h1 className="text-4xl text-center dark:text-foreground text-white">
-              Forgot Password 🫡
+              Reset your password
             </h1>
             <Form {...form}>
               <form
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
                     </FormItem>
                   )}
                 />
-                <button type="submit"></button>
+                <button type="submit">Send reset link</button>
               </form>
             </Form>
             <div className="flex items-center justify-center w-[400px] mx-auto gap-4 mt-2">
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
                login
               </Link>
               <div className="text-right text-sm dark:text-foreground text-white w-full">
-                press ⏎ to confirm{" "}
+                {" "}
               </div>
             </div>
           </div>

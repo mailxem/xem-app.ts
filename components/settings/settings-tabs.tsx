@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { CollectionCard } from "@/components/ui/collection-card";
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -16,49 +19,21 @@ const BillingWrapper = dynamic(
 );
 
 export function SettingsTabs() {
+  const [tab, setTab] = useState("profile");
   return (
-    <Tabs defaultValue="profile" className="space-y-4">
-      <TabsList className="border-b border-muted rounded-none w-full justify-start gap-6 bg-transparent h-auto p-0">
-        <TabsTrigger
-          value="profile"
-          className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
-        >
-          <User className="h-4 w-4" />
-          Profile
-        </TabsTrigger>
-        <TabsTrigger
-          value="branding"
-          className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
-        >
-          <Palette className="h-4 w-4" />
-          Branding
-        </TabsTrigger>
-        <TabsTrigger
-          value="domains"
-          className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
-        >
-          <Globe className="h-4 w-4" />
-          Domains
-        </TabsTrigger>
-        <TabsTrigger
-          value="notifications"
-          className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
-        >
-          <Bell className="h-4 w-4" />
-          Notifications
-        </TabsTrigger>
-        <TabsTrigger
-          value="billing"
-          className="flex items-center gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
-        >
-          <CreditCard className="h-4 w-4" />
-          Billing
-        </TabsTrigger>
-      </TabsList>
-
+    <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {[
+          { id: "profile", title: "Profile", description: "Your account details and personal information.", icon: User },
+          { id: "branding", title: "Branding", description: "Workspace name, logo, and brand identity.", icon: Palette },
+          { id: "domains", title: "Domains", description: "Connect and manage your custom domains.", icon: Globe },
+          { id: "notifications", title: "Notifications", description: "Account updates and campaign notifications.", icon: Bell },
+          { id: "billing", title: "Billing", description: "Your subscription, invoices, and usage.", icon: CreditCard },
+        ].map(item => <CollectionCard key={item.id} title={item.title} description={item.description} icon={<item.icon size={22}/>} badge={tab === item.id ? "Selected" : undefined} action={`Manage ${item.title.toLowerCase()}`} onAction={() => setTab(item.id)}/>)}
+      </div>
       <TabsContent value="profile" className="space-y-4">
-        <div className="border border-muted rounded-lg p-6">
-          <h3 className="font-medium mb-4">Profile Settings</h3>
+        <div className={workspaceClassName("product-panel")}>
+          <h3 className="mb-5 text-lg font-semibold tracking-tight">Profile Settings</h3>
           <div className="max-w-2xl">
             <ProfileSettings />
           </div>
@@ -66,51 +41,21 @@ export function SettingsTabs() {
       </TabsContent>
 
       <TabsContent value="branding" className="space-y-4">
-        <div className="max-w-4xl">
+        <div className="w-full">
           <BrandingSettings />
         </div>
       </TabsContent>
 
       <TabsContent value="domains" className="space-y-4">
-        <div className="max-w-4xl">
-          <TeamProvider>
-            <CustomDomains />
-          </TeamProvider>
+        <div className="w-full">
+          <CustomDomains />
         </div>
       </TabsContent>
 
       <TabsContent value="notifications" className="space-y-4">
-        <div className="border border-muted rounded-lg p-6">
-          <h3 className="font-medium mb-4">Notification Preferences</h3>
-          <div className="space-y-4 max-w-2xl">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Email Notifications</Label>
-                <div className="text-sm text-muted-foreground">
-                  Receive email notifications about your account activity
-                </div>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Campaign Reports</Label>
-                <div className="text-sm text-muted-foreground">
-                  Get detailed reports after each campaign
-                </div>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Security Alerts</Label>
-                <div className="text-sm text-muted-foreground">
-                  Important notifications about your account security
-                </div>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </div>
+        <div className={workspaceClassName("product-panel")}>
+          <h3 className="mb-5 text-lg font-semibold tracking-tight">Notification Preferences</h3>
+          <p className="max-w-2xl text-sm text-muted-foreground">Notification preferences are not available yet. Campaign delivery and engagement remain available in Analytics; delivery failures are recorded in Outbox.</p>
         </div>
       </TabsContent>
 

@@ -50,7 +50,8 @@ export async function GET(request: Request): Promise<NextResponse<TrendAnalytics
     }
 
     const { searchParams } = new URL(request.url);
-    const teamId = searchParams.get("teamId");
+    const teamId = session.user.teamId;
+    if (searchParams.get("teamId") && searchParams.get("teamId") !== teamId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const startDate = searchParams.get("startDate");
 
     if (!teamId) {
@@ -71,6 +72,7 @@ export async function GET(request: Request): Promise<NextResponse<TrendAnalytics
     const apiService = new APIService("analytics/trends", session);    
     const data = await apiService.get<TrendPoint[]>(null, {
       teamId,
+      ...(startDate ? { startDate } : {}),
     });
 
     logger.info({

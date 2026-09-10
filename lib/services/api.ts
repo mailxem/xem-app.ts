@@ -13,21 +13,24 @@ export class APIService {
       const { API_BASE_URL } = require("@/hooks/use-api");
       baseUrl = API_BASE_URL as string;
     }
-    this.baseUrl = `${baseUrl}/${endpoint}`;
+    this.baseUrl = `${baseUrl?.replace(/\/$/, "")}/${endpoint}`;
     this.accessToken = session?.accessToken;
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "API request failed");
+      const body = await response.text();
+      let message = "API request failed";
+      try { const error = JSON.parse(body); message = error.message || error.error || message; } catch {}
+      throw new Error(message);
     }
+    if (response.status === 204) return true as T;
     return response.json();
   }
 
   async get<T>(extraUrl: string, params: Record<string, any> = {}): Promise<T> {
     try {
-      const requestUrl = `${this.baseUrl}${extraUrl ? `/${extraUrl}` : ""}${
+      const requestUrl = `${this.baseUrl}${extraUrl ? `/${extraUrl.replace(/^\/+/, "")}` : ""}${
         Object.keys(params).length
           ? `?${new URLSearchParams(params).toString()}`
           : ""
@@ -47,7 +50,7 @@ export class APIService {
   async post<T>(extraUrl: string, data: Record<string, any>): Promise<T> {
     try {
       const response = await fetch(
-        `${this.baseUrl}${extraUrl ? `/${extraUrl}` : ""}`,
+        `${this.baseUrl}${extraUrl ? `/${extraUrl.replace(/^\/+/, "")}` : ""}`,
         {
           method: "POST",
           headers: {

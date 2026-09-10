@@ -5,12 +5,18 @@ import { auth } from "@/auth";
 export const config = {
   runtime: "experimental-edge",
   matcher: [
-    "/((?!accept-invitation|_next/static|_next/image|favicon.ico|auth/login|auth/register|auth/forgot-password|auth/reset-password|api/auth|public|assets|auth).*)",
+    "/((?!accept-invitation|_next/static|_next/image|favicon.ico|android-chrome-192x192.png|android-chrome-512x512.png|apple-touch-icon.png|favicon-16x16.png|favicon-32x32.png|site.webmanifest|auth/login|auth/register|auth/forgot-password|auth/reset-password|api/auth|public|assets|auth).*)",
   ],
 };
 
 export async function middleware(request: NextRequest) {
   // Check session (will work for both regular auth and API key auth)
+  if (
+    request.nextUrl.pathname.startsWith("/f/") ||
+    (process.env.NODE_ENV === "development" &&
+      request.nextUrl.pathname === "/preview")
+  )
+    return NextResponse.next();
   const session = await auth();
   if (!session?.user) {
     const publicRoutes = [

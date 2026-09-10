@@ -160,7 +160,7 @@ export default function ResetPasswordPage({
                     </FormItem>
                   )}
                 />
-              </form>
+              <button type="submit">Reset password</button></form>
             </Form>
             <div className="flex items-center justify-center w-[300px] mx-auto gap-4 mt-2">
               <Link
@@ -170,7 +170,7 @@ export default function ResetPasswordPage({
                 login
               </Link>
               <div className="text-right text-primary-foreground w-full">
-                press ⏎ to confirm{" "}
+                {" "}
               </div>
             </div>
           </div>

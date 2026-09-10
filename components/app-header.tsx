@@ -1,42 +1,10 @@
 "use client";
-
-import { logger } from "@/app/lib/logger";
-import {
-  Bell,
-  HelpCircle,
-  Moon,
-  Plus,
-  Search,
-  Settings,
-  Sun,
-  ChevronLeft,
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { useSession, signOut } from "next-auth/react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { ContactsListHeader } from "./contacts/contacts-list-header";
-import { TagsPageHeader } from "./tags/tags-page-header";
+import { Plus } from "lucide-react";
+import { Button } from "./ui/button";
+import { PageHeader } from "./page-header";
 import { CreateKey } from "./api-keys/create-key";
-import { BillingHeader } from "@/app/settings/billing/billing-header";
-
-interface AppHeaderProps {
-  className?: string;
-}
-
-// Page title configurations
 const pageTitles: Record<string, { title: string; description?: string }> = {
   "/": { title: "Dashboard", description: "Overview of your email campaigns" },
   "/campaigns": {
@@ -150,175 +118,11 @@ function getPageTitle(pathname: string): {
   return { title: "Dashboard" };
 }
 
-export function AppHeader({ className }: AppHeaderProps) {
-  const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
-  const pathname = usePathname();
 
-  const { title, description } = getPageTitle(pathname);
-
-  const isDashboardPage = pathname === "/";
-
-  const isCampaignsPage =
-    pathname.startsWith("/campaigns") && pathname !== "/campaigns/new";
-  const isTemplatesPage =
-    pathname.startsWith("/templates") && pathname !== "/templates/new";
-  const isAutomationsPage = pathname.startsWith("/automations");
-  const isAudiencePage = pathname.startsWith("/audience");
-  const isFormsPage = pathname.startsWith("/forms");
-  const isTagsPage = pathname.startsWith("/audience/tags");
-
-  const isApiKeysPage = pathname.startsWith("/settings/api-keys");
-  const isBillingPage = pathname.startsWith("/settings/billing");
-
-  const isSmtpPage = pathname.startsWith("/settings/smtp");
-  const isImapPage = pathname.startsWith("/settings/imap");
-
-  return (
-    <header
-      className={cn(
-        "sticky top-0 z-30 w-full border-b border-muted bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-        className,
-      )}
-    >
-      {/* Top Bar */}
-      <div className="flex h-12 items-center px-4 lg:px-6 border-b border-muted">
-        <div className="flex items-center gap-3">
-          <img
-            src="/android-chrome-512x512.png"
-            alt="Xem"
-            className="h-7 w-7"
-          />
-          <span className="font-semibold text-sm hidden sm:inline">Xem</span>
-        </div>
-
-        <div className="flex flex-1 items-center justify-end gap-2">
-          <div className="relative w-full max-w-md hidden md:block">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="pl-9 h-8 bg-muted/40 border-0"
-            />
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hidden sm:flex"
-          >
-            <HelpCircle className="h-4 w-4" />
-          </Button>
-
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Bell className="h-4 w-4" />
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${session?.user?.name}`}
-                    alt="User"
-                  />
-                  <AvatarFallback className="text-xs">
-                    {session?.user?.name?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{session?.user?.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {session?.user?.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              >
-                {theme === "light" ? (
-                  <Moon className="mr-2 h-4 w-4" />
-                ) : (
-                  <Sun className="mr-2 h-4 w-4" />
-                )}
-                {theme === "light" ? "Dark" : "Light"} mode
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => signOut()}>
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Page Title Bar */}
-      <div className="flex items-center justify-between px-4 lg:px-6 py-3">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
-        </div>
-
-        {isAudiencePage && !isTagsPage && <ContactsListHeader />}
-        {isTagsPage && <TagsPageHeader />}
-        {(isCampaignsPage ||
-          isDashboardPage ||
-          isTemplatesPage ||
-          isAutomationsPage ||
-          isFormsPage ||
-          isSmtpPage ||
-          isImapPage) && (
-          <Link
-            href={
-              isCampaignsPage || isDashboardPage
-                ? "/campaigns/new"
-                : isTemplatesPage
-                  ? "/templates/new"
-                  : isAutomationsPage
-                    ? "/automations/new/create"
-                    : isSmtpPage
-                      ? "/settings/smtp?dialog=true"
-                      : isImapPage
-                        ? "/settings/imap?dialog=true"
-                        : "/forms/new"
-            }
-          >
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />{" "}
-              {isDashboardPage
-                ? "Create Campaign"
-                : isCampaignsPage
-                  ? "Create Campaign"
-                  : isTemplatesPage
-                    ? "Create Template"
-                    : isAutomationsPage
-                      ? "Create Automation"
-                      : isSmtpPage
-                        ? "Add SMTP Server"
-                        : isImapPage
-                          ? "Add IMAP Server"
-                          : "Create Form"}
-            </Button>
-          </Link>
-        )}
-        {isApiKeysPage && <CreateKey />}
-        {isBillingPage && <BillingHeader />}
-      </div>
-    </header>
-  );
+export function AppHeader() {
+ const pathname=usePathname();
+ const {title,description}=getPageTitle(pathname);
+ const actions:Record<string,[string,string]>={"/":["Create Campaign","/campaigns/new"],"/campaigns":["Create Campaign","/campaigns/new"],"/settings/smtp":["Add SMTP Server","/settings/smtp?dialog=true"],"/settings/imap":["Add IMAP Server","/settings/imap?dialog=true"]};
+ const action=actions[pathname];
+ return <PageHeader heading={title} description={description}>{action && <Button asChild><Link href={action[1]}><Plus/>{action[0]}</Link></Button>}{pathname === "/settings/api-keys" && <CreateKey/>}</PageHeader>;
 }
-
-export type { AppHeaderProps };

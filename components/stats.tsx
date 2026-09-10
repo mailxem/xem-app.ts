@@ -1,3 +1,4 @@
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Mail, MousePointerClick, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -141,52 +142,5 @@ export function Stats() {
     },
   ];
 
-  return (
-    <>
-      {stats.map((stat) => (
-        <Card
-          key={stat.name}
-          className="shadow-none rounded-lg relative overflow-hidden"
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium leading-none text-muted-foreground">
-                  {stat.name}
-                </span>
-                <span className="text-2xl font-semibold tracking-tight">
-                  {stat.value}
-                </span>
-                <div className="flex items-center space-x-1">
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      stat.trend === "up" ? "text-emerald-500" : "text-rose-500"
-                    )}
-                  >
-                    {stat.change.startsWith("-") ? "" : "+"}
-                    {stat.change}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    vs previous period
-                  </span>
-                </div>
-              </div>
-              <div className=" p-2.5 bg-primary/5 dark:bg-primary/10">
-                <stat.icon className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <div
-              className={cn(
-                "absolute bottom-0 left-0 h-1 w-full",
-                stat.trend === "up"
-                  ? "bg-gradient-to-r from-emerald-500/20 to-emerald-500/30"
-                  : "bg-gradient-to-r from-rose-500/20 to-rose-500/30"
-              )}
-            />
-          </CardContent>
-        </Card>
-      ))}
-    </>
-  );
+  return <>{stats.map(stat => <div className={workspaceClassName("metric-card")} key={stat.name}><div className={workspaceClassName("metric-label")}><span className={workspaceClassName("metric-icon")} style={{background:"#f1edff",color:"#8269db"}}><stat.icon/></span>{stat.name}</div><div className={workspaceClassName("metric-value")}><strong>{stat.value}</strong><span style={stat.trend === "down" ? {background:"#faecee",color:"#ba6473"} : undefined}>{stat.change.startsWith("-") ? "" : "+"}{stat.change}</span></div><p className={workspaceClassName("metric-period")}>Compared with the previous period</p></div>)}</>;
 }

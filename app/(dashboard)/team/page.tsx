@@ -1,20 +1,21 @@
+import { workspaceClassName } from "@/lib/workspace-styles";
 import { Metadata } from "next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeamInfo } from "./components/team-info";
 import { InviteTeamMember } from "./components/invite-member";
 import { TeamInvites } from "./components/team-invites";
 import { Users, Mail, BarChart2 } from "lucide-react";
-import { TeamAnalytics } from "@/components/analytics/team-analytics";
+import { CurrentTeamAnalytics } from "@/components/analytics/current-team-analytics";
 
 export const metadata: Metadata = {
-  title: "Team Management | Email Engine",
+  title: "Team | Xem",
   description: "Manage your team members and settings",
 };
 
 export default function TeamPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 space-y-4 p-4 pt-4">
+    <div className={workspaceClassName("workspace-page")}>
+      <div className={workspaceClassName("workspace-page-body space-y-6")}>
         <Tabs defaultValue="members" className="space-y-4">
           <TabsList className="border-b border-muted rounded-none w-full justify-start gap-6 bg-transparent h-auto p-0">
             <TabsTrigger
@@ -62,7 +63,7 @@ export default function TeamPage() {
 
           <TabsContent value="analytics" className="space-y-4">
             <div className="border border-muted rounded-lg p-6">
-              <TeamAnalytics teamId="current" />
+              <CurrentTeamAnalytics/>
             </div>
           </TabsContent>
         </Tabs>
