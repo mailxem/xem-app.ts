@@ -34,3 +34,4 @@ nginx/auto-ssl
 nginx/logs
 postgres_data
 .env
+*.tsbuildinfo

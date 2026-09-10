@@ -42,6 +42,18 @@ export type Report = {
     net: number | null;
     series: { date: string; active: number }[];
   };
+  charts?: {
+    volume: {
+      date: string;
+      campaigns: number;
+      newsletters: number;
+      campaignClicks: number;
+      newsletterClicks: number;
+    }[];
+    devices: { device: string; count: number }[];
+    clickHours: { day: number; hour: number; count: number }[];
+    clickEvents: number;
+  };
   warnings: string[];
 };
 export type BreakdownRow = {

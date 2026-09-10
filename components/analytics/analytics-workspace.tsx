@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { AnalyticsCharts } from "./analytics-charts";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -15,15 +16,6 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Line,
-  LineChart,
-} from "recharts";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,13 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from "@/components/ui/chart";
 import {
   Table,
   TableBody,
@@ -77,12 +62,6 @@ const views = [
   },
   { value: "delivery", label: "Delivery health", href: "/analytics/delivery" },
 ];
-const chartConfig = {
-  reached: { label: "Recipients reached", color: "hsl(258 80% 60%)" },
-  clicked: { label: "Recipients who clicked", color: "hsl(170 65% 36%)" },
-  count: { label: "Subscribers", color: "hsl(258 80% 60%)" },
-  active: { label: "Active subscriptions", color: "hsl(258 80% 60%)" },
-};
 const number = (value: number) => value.toLocaleString();
 function shiftDate(date: string, days: number) {
   if (!date) return "";
@@ -109,11 +88,13 @@ function MetricCard({
   change?: string;
 }) {
   return (
-    <Card className="shadow-none">
+    <Card className="rounded-2xl shadow-none">
       <CardContent className="p-5">
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
           <span>{label}</span>
-          <Icon className="h-4 w-4" />
+          <span className="rounded-lg bg-violet-50 p-2 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300">
+            <Icon className="h-4 w-4" />
+          </span>
         </div>
         <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">
           {value}
@@ -494,206 +475,12 @@ function Workspace({ view }: { view: AnalyticsView }) {
               </div>
             )}
             {view !== "delivery" && (
-              <div
-                className={`grid gap-5 ${view === "audience" ? "xl:grid-cols-[1.3fr_1fr]" : ""}`}
-              >
-                <Card className="shadow-none">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Audience activity
-                    </CardTitle>
-                    <CardDescription>
-                      Daily unique recipients. Clicks can belong to messages
-                      sent before this period.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer
-                      config={chartConfig}
-                      className="h-72 w-full"
-                    >
-                      <LineChart accessibilityLayer data={report.activity}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tickLine={false}
-                          axisLine={false}
-                          minTickGap={30}
-                          tickFormatter={(v) => v.slice(5, 10)}
-                        />
-                        <YAxis
-                          allowDecimals={false}
-                          width={45}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Line
-                          isAnimationActive={false}
-                          dataKey="reached"
-                          type="linear"
-                          stroke="var(--color-reached)"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          isAnimationActive={false}
-                          dataKey="clicked"
-                          type="linear"
-                          stroke="var(--color-clicked)"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <ChartLegend content={<ChartLegendContent />} />
-                      </LineChart>
-                    </ChartContainer>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Daily unique counts do not add up to period unique totals.
-                    </p>
-                  </CardContent>
-                </Card>
-                {view === "audience" && (
-                  <Card className="shadow-none">
-                    <CardHeader>
-                      <CardTitle className="text-base">
-                        Who to focus on
-                      </CardTitle>
-                      <CardDescription>
-                        Active subscribers, grouped by tracked activity in the
-                        90 days ending at the report cutoff.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ChartContainer
-                        config={chartConfig}
-                        className="h-52 w-full"
-                      >
-                        <BarChart
-                          accessibilityLayer
-                          layout="vertical"
-                          data={report.cohorts}
-                        >
-                          <XAxis type="number" hide />
-                          <YAxis
-                            type="category"
-                            dataKey="label"
-                            width={175}
-                            tickLine={false}
-                            axisLine={false}
-                            tick={{ fontSize: 11 }}
-                          />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar
-                            isAnimationActive={false}
-                            dataKey="count"
-                            fill="var(--color-count)"
-                            radius={[0, 4, 4, 0]}
-                          />
-                        </BarChart>
-                      </ChartContainer>
-                      <div className="mt-3 divide-y">
-                        {report.cohorts.map((c) => (
-                          <Link
-                            key={c.key}
-                            href={`/analytics/audience/contacts?${scoped}&cohort=${c.key}`}
-                            className="flex items-center justify-between gap-2 py-2 text-xs hover:text-violet-700"
-                          >
-                            <span>{c.label}</span>
-                            <span className="flex items-center gap-2 tabular-nums">
-                              {number(c.count)}
-                              <ArrowUpRight className="h-3.5 w-3.5" />
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-            {view === "audience" && (
-              <Card className="shadow-none">
-                <CardHeader>
-                  <CardTitle className="text-base">Subscriber growth</CardTitle>
-                  <CardDescription>
-                    Distinct addresses with an active list subscription.
-                    Separate from deliverability eligibility.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {report.growth.available ? (
-                    <>
-                      <div className="mb-4 flex gap-8">
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            At period start
-                          </p>
-                          <strong className="text-xl">
-                            {number(report.growth.start ?? 0)}
-                          </strong>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            At cutoff
-                          </p>
-                          <strong className="text-xl">
-                            {number(report.growth.end ?? 0)}
-                          </strong>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Net change
-                          </p>
-                          <strong className="text-xl">
-                            {(report.growth.net ?? 0) > 0 ? "+" : ""}
-                            {number(report.growth.net ?? 0)}
-                          </strong>
-                        </div>
-                      </div>
-                      <ChartContainer
-                        config={chartConfig}
-                        className="h-48 w-full"
-                      >
-                        <LineChart
-                          accessibilityLayer
-                          data={report.growth.series}
-                        >
-                          <CartesianGrid vertical={false} />
-                          <XAxis
-                            dataKey="date"
-                            minTickGap={30}
-                            tickFormatter={(v) => v.slice(5, 10)}
-                          />
-                          <YAxis allowDecimals={false} />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Line
-                            isAnimationActive={false}
-                            dataKey="active"
-                            stroke="var(--color-active)"
-                            strokeWidth={2}
-                            dot={false}
-                          />
-                        </LineChart>
-                      </ChartContainer>
-                    </>
-                  ) : (
-                    <div className="rounded-lg bg-muted/40 p-5 text-sm text-muted-foreground">
-                      <p className="font-medium text-foreground">
-                        Building reliable subscriber history
-                      </p>
-                      <p className="mt-2">
-                        {tagId !== "all"
-                          ? "Historical tag membership is not recorded. Clear the tag filter to view subscriber growth."
-                          : report.growth.since
-                            ? `Complete history starts ${new Date(report.growth.since).toLocaleString()}. Choose a period entirely after that time to see net growth.`
-                            : "Subscriber history is not available yet."}{" "}
-                        Imports and existing records are not counted as newly
-                        acquired subscribers.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <AnalyticsCharts
+                key={params.toString()}
+                report={report}
+                scope={scoped.toString()}
+                tagFiltered={tagId !== "all"}
+              />
             )}
             <Breakdown
               key={`${view}-${params}`}
