@@ -42,6 +42,7 @@ export function CRMPage() {
   const [view, setView] = useState("List");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  useEffect(() => { const value = new URLSearchParams(window.location.search).get("search"); if (value) setSearch(value); }, []);
   const searchPending = search.trim() !== querySearch;
   useEffect(() => {
     const timer = setTimeout(() => {

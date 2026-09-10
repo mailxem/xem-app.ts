@@ -1,146 +1,59 @@
-import { workspaceClassName } from "@/lib/workspace-styles";
+"use client";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
+import { Report, formatRate } from "@/lib/analytics/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Mail, MousePointerClick, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
-import { MetricsData } from "@/lib/stats";
-import { useTeam } from "@/app/providers/team-provider";
-
 export function Stats() {
-  const [metricsData, setMetricsData] = useState<MetricsData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { team } = useTeam();
-
-  useEffect(() => {
-    if (!team?.id) return;
-
-    const fetchMetrics = async () => {
-      try {
-        const response = await fetch(
-          `/api/analytics/team/overview?teamId=${team?.id}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch analytics");
-        }
-        
-        const { data } = await response.json();
-
-        // Transform team overview data for stats
-        const currentPeriodData = {
-          total: data.totalEmails,
-          openRate: data.averageOpenRate / 100,
-          clickRate: data.averageClickRate / 100,
-          bounceRate: data.bounceRate ? (data.bounceRate / 100) : 0,
-        };
-
-        // Get previous period from monthly stats
-        const previousPeriodData =
-          data?.monthlyStats?.[data?.monthlyStats?.length - 2] || null;
-        const transformedPreviousData = previousPeriodData
-          ? {
-              total: previousPeriodData.totalEmails,
-              openRate: previousPeriodData.openRate / 100,
-              clickRate: previousPeriodData.clickRate / 100,
-              bounceRate: previousPeriodData.bounceRate ? (previousPeriodData.bounceRate / 100) : 0,
-            }
-          : null;
-
-        setMetricsData(
-          [currentPeriodData, transformedPreviousData].filter(Boolean)
-        );
-      } catch (error) {
-        console.error("Failed to fetch metrics:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMetrics();
-  }, [team?.id]);
-
-  // Calculate current metrics (most recent data point)
-  const currentMetrics = metricsData[0] || null;
-
-  // Calculate trends by comparing with previous period
-  const calculateTrend = (current: number, previous: number) => {
-    if (!previous) return 0;
-    return ((current - previous) / previous) * 100;
-  };
-
-  // Get metrics from previous period for comparison
-  const previousMetrics = metricsData[1] || null;
-
-  const stats = [
-    {
-      name: "Total Sent",
-      value: currentMetrics?.total || 0,
-      icon: Mail,
-      change: previousMetrics
-        ? calculateTrend(
-            currentMetrics?.total || 0,
-            previousMetrics.total
-          ).toFixed(1) + "%"
-        : "0%",
-      trend:
-        previousMetrics && currentMetrics
-          ? currentMetrics.total >= previousMetrics.total
-            ? "up"
-            : "down"
-          : "up",
-    },
-    {
-      name: "Open Rate",
-      value: currentMetrics
-        ? `${(currentMetrics.openRate * 100).toFixed(1)}%`
-        : "0%",
-      icon: Users,
-      change: previousMetrics
-        ? calculateTrend(
-            currentMetrics?.openRate || 0,
-            previousMetrics.openRate
-          ).toFixed(1) + "%"
-        : "0%",
-      trend:
-        previousMetrics && currentMetrics
-          ? currentMetrics.openRate >= previousMetrics.openRate
-            ? "up"
-            : "down"
-          : "up",
-    },
-    {
-      name: "Click Rate",
-      value: currentMetrics
-        ? `${(currentMetrics.clickRate * 100).toFixed(1)}%`
-        : "0%",
-      icon: MousePointerClick,
-      change: previousMetrics
-        ? calculateTrend(
-            currentMetrics?.clickRate || 0,
-            previousMetrics.clickRate
-          ).toFixed(1) + "%"
-        : "0%",
-      trend:
-        previousMetrics && currentMetrics
-          ? currentMetrics.clickRate >= previousMetrics.clickRate
-            ? "up"
-            : "down"
-          : "up",
-    },
-    {
-      name: "Bounce Rate",
-      value: currentMetrics
-        ? `${(currentMetrics.bounceRate * 100).toFixed(1)}%`
-        : "0%",
-      icon: AlertTriangle,
-      change: previousMetrics
-        ? calculateTrend(
-            currentMetrics?.bounceRate || 0,
-            previousMetrics.bounceRate
-          ).toFixed(1) + "%"
-        : "0%",
-      trend: "down",
-    },
+  const query = useAnalytics<Report>("report", new URLSearchParams());
+  const s = query.data?.summary;
+  const metrics = [
+    [
+      "Messages accepted",
+      s?.accepted.toLocaleString(),
+      "SMTP accepted, last 30 days",
+    ],
+    [
+      "Recipients reached",
+      s?.recipientsReached.toLocaleString(),
+      "Unique recipients",
+    ],
+    [
+      "Message click rate",
+      s ? formatRate(s.clickRate) : undefined,
+      "Clicked / accepted messages",
+    ],
+    [
+      "Known bounce rate",
+      s ? formatRate(s.bounceRate) : undefined,
+      "Captured bounces / accepted",
+    ],
   ];
-
-  return <>{stats.map(stat => <div className={workspaceClassName("metric-card")} key={stat.name}><div className={workspaceClassName("metric-label")}><span className={workspaceClassName("metric-icon")} style={{background:"#f1edff",color:"#8269db"}}><stat.icon/></span>{stat.name}</div><div className={workspaceClassName("metric-value")}><strong>{stat.value}</strong><span style={stat.trend === "down" ? {background:"#faecee",color:"#ba6473"} : undefined}>{stat.change.startsWith("-") ? "" : "+"}{stat.change}</span></div><p className={workspaceClassName("metric-period")}>Compared with the previous period</p></div>)}</>;
+  return (
+    <>
+      {metrics.map(([title, value, detail]) => (
+        <Card key={title} className="shadow-none">
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="mt-3 text-3xl font-semibold tabular-nums">
+              {value ?? "—"}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {query.error
+                ? "Analytics unavailable"
+                : query.isPending
+                  ? "Loading analytics…"
+                  : detail}
+            </p>
+            {query.error && (
+              <button
+                onClick={() => void query.refetch()}
+                className="mt-2 text-xs underline"
+              >
+                Try again
+              </button>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </>
+  );
 }

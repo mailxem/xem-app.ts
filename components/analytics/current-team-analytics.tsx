@@ -1,7 +1,18 @@
 "use client";
-import { useTeam } from "@/app/providers/team-provider";
-import { TeamAnalytics } from "./team-analytics";
+import Link from "next/link";
+import { Stats } from "@/components/stats";
 export function CurrentTeamAnalytics() {
- const { team } = useTeam();
- return team?.id ? <TeamAnalytics teamId={team.id}/> : <p role="status" className="p-6 text-muted-foreground">Loading workspace…</p>;
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stats />
+      </div>
+      <Link
+        href="/analytics"
+        className="text-sm text-violet-700 hover:underline"
+      >
+        Open workspace analytics ↗
+      </Link>
+    </div>
+  );
 }

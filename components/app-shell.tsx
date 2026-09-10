@@ -54,7 +54,6 @@ const settingsNavigation = [
   { name: "IMAP mailboxes", href: "/settings/imap", icon: Settings },
   { name: "API keys", href: "/settings/api-keys", icon: Settings },
   { name: "Webhooks", href: "/settings/webhooks", icon: Settings },
-  { name: "Audience dashboard", href: "/audience/dashboard", icon: Settings },
   { name: "Tags", href: "/audience/tags", icon: Settings },
   { name: "Team", href: "/team", icon: Settings },
   { name: "Billing", href: "/settings/billing", icon: Settings },
@@ -103,7 +102,7 @@ export function AppShell({
     return () => window.removeEventListener("keydown", keydown);
   }, []);
   const current = navigation.find((n) =>
-    n.href === "/" ? active === "/" : active.startsWith(n.href),
+    n.href === "/" ? active === "/" : n.href === "/analytics" ? active.startsWith("/analytics") || active === "/audience/dashboard" : active.startsWith(n.href),
   );
   const currentSetting = settingsNavigation.find(
     (n) =>
@@ -333,7 +332,7 @@ export function AppShell({
           className={workspaceClassName("product-content")}
           data-page={active}
         >
-          {sharedHeading && !previewPage && <AppHeader />}
+          {sharedHeading && !active.startsWith("/analytics") && !previewPage && <AppHeader />}
           {children}
           {!["/inbox", "/developer/logs/emails", "/automations"].includes(
             active,

@@ -83,6 +83,9 @@ export async function GET(request: Request): Promise<NextResponse<TeamOverviewRe
     const apiService = new APIService(endpoint, session);
     const data = await apiService.get<TeamOverview>(null, {
       teamId,
+      from: searchParams.get("from") || searchParams.get("startDate") || "",
+      to: searchParams.get("to") || searchParams.get("endDate") || "",
+      timezone: searchParams.get("timezone") || "UTC",
     });
 
     logger.info({
