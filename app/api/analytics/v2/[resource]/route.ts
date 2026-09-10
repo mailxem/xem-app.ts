@@ -1,7 +1,13 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const resources = new Set(["report", "breakdown", "people", "options"]);
+const resources = new Set([
+  "report",
+  "email-overview",
+  "breakdown",
+  "people",
+  "options",
+]);
 export async function GET(
   request: Request,
   context: { params: Promise<{ resource: string }> },

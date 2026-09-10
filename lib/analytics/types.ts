@@ -88,3 +88,29 @@ export function rateDifference(current: Rate, previous: Rate) {
     ? "No comparable rate"
     : `${current.value >= previous.value ? "+" : ""}${((current.value - previous.value) * 100).toFixed(1)} pp`;
 }
+
+export type EmailTotals = {
+  total: number;
+  sent: number;
+  queued: number;
+  failed: number;
+  drafts: number;
+  unknown: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  campaigns: number;
+  other: number;
+};
+export type EmailReport = {
+  metricVersion: "email-v1";
+  from: string;
+  to: string;
+  asOf: string;
+  timezone: string;
+  summary: EmailTotals;
+  openRate: Rate;
+  clickRate: Rate;
+  bounceRate: Rate;
+  series: (EmailTotals & { date: string })[];
+};

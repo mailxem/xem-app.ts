@@ -77,7 +77,6 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(false);
   const active = previewPage || pathname;
   const sharedHeading = [
-    "/",
     "/campaigns",
     "/analytics",
     "/analytics/campaigns",

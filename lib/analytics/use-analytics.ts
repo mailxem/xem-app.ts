@@ -24,7 +24,8 @@ export function useAnalytics<T>(
         throw new Error(body.error || "Unable to load analytics");
       if (
         !body ||
-        (resource === "report" && body.metricVersion !== "audience-v2")
+        (resource === "report" && body.metricVersion !== "audience-v2") ||
+        (resource === "email-overview" && body.metricVersion !== "email-v1")
       )
         throw new Error("Analytics returned an unsupported response");
       return body as T;

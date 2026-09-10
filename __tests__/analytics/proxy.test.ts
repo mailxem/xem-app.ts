@@ -76,3 +76,28 @@ test("unknown resources cannot turn the proxy into an arbitrary authenticated fe
   ).toBe(404);
   expect(global.fetch).not.toHaveBeenCalled();
 });
+
+test("email overview forwards only the authenticated workspace with uncached results", async () => {
+  session.mockResolvedValue({
+    user: { teamId: "workspace-a" },
+    accessToken: "test-token",
+  });
+  (global.fetch as jest.Mock).mockResolvedValue(
+    new Response(
+      JSON.stringify({ metricVersion: "email-v1", summary: { sent: 42 } }),
+      { status: 200 },
+    ),
+  );
+  const response = await GET(
+    new Request(
+      "http://localhost/api/analytics/v2/email-overview?from=2026-09-01&to=2026-09-10&timezone=UTC",
+    ),
+    { params: Promise.resolve({ resource: "email-overview" }) },
+  );
+  expect(response.status).toBe(200);
+  expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+  expect(new URL(url).pathname).toBe("/api/v1/analytics/email-overview");
+  expect(new URL(url).searchParams.get("teamId")).toBe("workspace-a");
+  expect(options.headers.Authorization).toBe("Bearer test-token");
+});

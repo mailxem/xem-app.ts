@@ -126,16 +126,24 @@ function RateValue({ rate }: { rate: Rate }) {
 }
 export function AnalyticsWorkspace({
   view = "audience",
+  embedded = false,
 }: {
   view?: AnalyticsView;
+  embedded?: boolean;
 }) {
   return (
     <Suspense fallback={<p role="status">Loading analytics…</p>}>
-      <Workspace view={view} />
+      <Workspace view={view} embedded={embedded} />
     </Suspense>
   );
 }
-function Workspace({ view }: { view: AnalyticsView }) {
+function Workspace({
+  view,
+  embedded,
+}: {
+  view: AnalyticsView;
+  embedded: boolean;
+}) {
   const search = useSearchParams();
   const [localTimezone, setLocalTimezone] = useState("UTC");
   useEffect(
@@ -181,47 +189,51 @@ function Workspace({ view }: { view: AnalyticsView }) {
   if (report) scoped.set("asOf", report.asOf);
   return (
     <div className="space-y-6 pb-6">
-      <PageHeading
-        title={
-          view === "audience"
-            ? "Audience analytics"
-            : view === "overview"
-              ? "Analytics"
-              : title
-        }
-        description={
-          view === "audience"
-            ? "Understand who you reach, who responds, and where to focus next."
-            : "Clear measures of your email marketing, from audience to delivery."
-        }
-        action={
-          <Button
-            variant="outline"
-            onClick={() => void query.refetch()}
-            disabled={query.isFetching || !valid}
+      {!embedded && (
+        <>
+          <PageHeading
+            title={
+              view === "audience"
+                ? "Audience analytics"
+                : view === "overview"
+                  ? "Analytics"
+                  : title
+            }
+            description={
+              view === "audience"
+                ? "Understand who you reach, who responds, and where to focus next."
+                : "Clear measures of your email marketing, from audience to delivery."
+            }
+            action={
+              <Button
+                variant="outline"
+                onClick={() => void query.refetch()}
+                disabled={query.isFetching || !valid}
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+            }
+          />
+          <nav
+            aria-label="Analytics reports"
+            className="flex gap-1 overflow-x-auto border-b"
           >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
-        }
-      />
-      <nav
-        aria-label="Analytics reports"
-        className="flex gap-1 overflow-x-auto border-b"
-      >
-        {views.map((v) => (
-          <Link
-            key={v.value}
-            href={`${v.href}?${params}`}
-            aria-current={view === v.value ? "page" : undefined}
-            className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium ${view === v.value ? "border-violet-600 text-violet-700" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          >
-            {v.label}
-          </Link>
-        ))}
-      </nav>
+            {views.map((v) => (
+              <Link
+                key={v.value}
+                href={`${v.href}?${params}`}
+                aria-current={view === v.value ? "page" : undefined}
+                className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium ${view === v.value ? "border-violet-600 text-violet-700" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                {v.label}
+              </Link>
+            ))}
+          </nav>
+        </>
+      )}
       <div className="grid grid-cols-2 items-end gap-3 rounded-xl border bg-card p-4 sm:flex sm:flex-wrap">
         <label className="min-w-0 space-y-1.5 text-xs font-medium">
           <span>Period</span>
@@ -316,6 +328,18 @@ function Workspace({ view }: { view: AnalyticsView }) {
           />
           Compare previous period
         </label>
+        {embedded && (
+          <Button
+            variant="outline"
+            disabled={query.isFetching || !valid}
+            onClick={() => void query.refetch()}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        )}
       </div>
       {options.error && (
         <p role="alert" className="text-sm text-destructive">
