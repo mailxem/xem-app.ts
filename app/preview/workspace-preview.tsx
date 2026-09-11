@@ -1,4 +1,5 @@
 "use client";
+import { AssistantPreview } from "@/components/assistant/assistant-preview";
 import { SendingPreview } from "./sending-preview";
 import { workspaceClassName } from "@/lib/workspace-styles";
 import { useState } from "react";
@@ -213,12 +214,10 @@ const transport: Transport = async <T,>(
       Math.max(1, Math.ceil(filtered.length / limit)),
     );
     return {
-      data: filtered
-        .slice((page - 1) * limit, page * limit)
-        .map((c) => ({
-          ...c,
-          listName: options.lists.find((l) => l.id === c.listId)?.name || "",
-        })),
+      data: filtered.slice((page - 1) * limit, page * limit).map((c) => ({
+        ...c,
+        listName: options.lists.find((l) => l.id === c.listId)?.name || "",
+      })),
       total: filtered.length,
       page,
       limit,
@@ -270,13 +269,14 @@ const transport: Transport = async <T,>(
   return result as T;
 };
 export function WorkspacePreview() {
-  const [page, setPage] = useState("/forms");
+  const [page, setPage] = useState("/");
   return (
     <PreviewTransport.Provider value={transport}>
-      <div className={workspaceClassName("preview-banner")}>
+      <div className={workspaceClassName("preview-banner !h-[26px]")}>
         LOCAL VISUAL PREVIEW · Sample data · Sending disabled
       </div>
       <div
+        className="[&_.product-frame]:!h-[calc(100dvh-26px)]"
         onClickCapture={(event) => {
           const anchor = (event.target as HTMLElement).closest("a");
           const href = anchor?.getAttribute("href");
@@ -288,7 +288,9 @@ export function WorkspacePreview() {
         }}
       >
         <AppShell previewPage={page} onPreviewNavigate={setPage}>
-          {page === "/onboarding" ? (
+          {page === "/" ? (
+            <AssistantPreview />
+          ) : page === "/onboarding" ? (
             <SendingPreview />
           ) : page === "/settings/sending" ? (
             <SendingPreview dashboard />

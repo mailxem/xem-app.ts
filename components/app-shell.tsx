@@ -38,7 +38,8 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Modal } from "@/components/marketing/shared";
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutGrid },
+  { name: "Ask Xem", href: "/", icon: Sparkles },
+  { name: "Overview", href: "/dashboard", icon: LayoutGrid },
   { name: "Getting started", href: "/onboarding", icon: Sparkles },
   { name: "Inbox", href: "/inbox", icon: Mail },
   { name: "Outbox", href: "/developer/logs/emails", icon: Send },
@@ -331,12 +332,12 @@ export function AppShell({
           </div>
         </header>
         <main
-          className={workspaceClassName("product-content")}
+          className={workspaceClassName(`product-content ${active === "/" ? "!p-0 !overflow-hidden" : ""}`)}
           data-page={active}
         >
           {sharedHeading && !active.startsWith("/analytics") && !previewPage && <AppHeader />}
           {children}
-          {!["/inbox", "/developer/logs/emails", "/automations"].includes(
+          {!["/", "/inbox", "/developer/logs/emails", "/automations"].includes(
             active,
           ) && (
             <footer className={workspaceClassName("product-footer")}>
