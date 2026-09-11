@@ -35,12 +35,14 @@ export function useMarketing() {
     refresh: () => queryClient.invalidateQueries({ queryKey: ["marketing"] }),
   };
 }
-export function useMarketingQuery<T>(path: string, enabled = true) {
+export function useMarketingQuery<T>(path: string, enabled = true, refetchInterval?: number) {
   const { request, ready, scope } = useMarketing();
   return useQuery<T, Error>({
     queryKey: ["marketing", scope, path],
     queryFn: () => request<T>(path),
     enabled: ready && enabled,
     retry: 1,
+    refetchInterval,
+    refetchIntervalInBackground: false,
   });
 }

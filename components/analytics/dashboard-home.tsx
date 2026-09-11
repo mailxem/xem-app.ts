@@ -1,4 +1,5 @@
 "use client";
+import { OnboardingBanner } from "@/components/sending/onboarding";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -87,6 +88,7 @@ export function DashboardHome() {
   const [days, setDays] = useState("30");
   return (
     <div className="space-y-6 pb-6">
+      <OnboardingBanner/>
       <PageHeading
         title="Dashboard"
         description="Your email activity and campaign performance, in one place."

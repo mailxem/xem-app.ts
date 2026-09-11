@@ -92,7 +92,7 @@ const nextAuthConfig: NextAuthConfig = {
     signIn: "/auth/login",
     signOut: "/auth/login",
     error: "/auth/login",
-    newUser: "/auth/onboarding",
+    newUser: "/onboarding",
   },
   providers: [
     GoogleProvider({
