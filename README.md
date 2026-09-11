@@ -212,3 +212,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 For support, email support@kori.dev or join our Discord community.
+
+### Ask Xem assistant
+
+The dashboard home now provides team-aware chat with server-side AI SDK streaming and Xem's hosted MCP. The existing overview remains at `/dashboard`. See [assistant setup, permissions, storage and rollout](docs/assistant.md) and [design notes](docs/assistant-design.md). Production requires the backend credential endpoint, a current MCP deployment, and persistent private Redis. No provider credential reaches the browser.

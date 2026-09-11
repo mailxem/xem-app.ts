@@ -1,10 +1,4 @@
-import { Suspense } from "react";
-import { DashboardHome } from "@/components/analytics/dashboard-home";
-
+import { AssistantHome } from "@/components/assistant/assistant-home";
 export default function Home() {
-  return (
-    <Suspense fallback={<p role="status">Loading dashboard…</p>}>
-      <DashboardHome />
-    </Suspense>
-  );
+  return <AssistantHome />;
 }
