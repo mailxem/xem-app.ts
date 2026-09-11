@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutGrid,
+  Sparkles,
   Mail,
   Send,
   Workflow,
@@ -38,6 +39,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Modal } from "@/components/marketing/shared";
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutGrid },
+  { name: "Getting started", href: "/onboarding", icon: Sparkles },
   { name: "Inbox", href: "/inbox", icon: Mail },
   { name: "Outbox", href: "/developer/logs/emails", icon: Send },
   { name: "Campaigns", href: "/campaigns", icon: Mail },
@@ -50,6 +52,7 @@ const navigation = [
   { name: "Forms", href: "/forms", icon: FilePenLine },
 ];
 const settingsNavigation = [
+  { name: "Managed sending", href: "/settings/sending", icon: Send },
   { name: "SMTP senders", href: "/settings/smtp", icon: Settings },
   { name: "IMAP mailboxes", href: "/settings/imap", icon: Settings },
   { name: "API keys", href: "/settings/api-keys", icon: Settings },

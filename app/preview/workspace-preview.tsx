@@ -1,4 +1,5 @@
 "use client";
+import { SendingPreview } from "./sending-preview";
 import { workspaceClassName } from "@/lib/workspace-styles";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -199,17 +200,35 @@ const transport: Transport = async <T,>(
     const search = (params.get("search") || "").toLowerCase();
     const stage = params.get("stage");
     const limit = Number(params.get("limit")) || 10;
-    const filtered = contacts.filter(c => (!stage || (c.lifecycleStage || "LEAD") === stage)
-      && [c.firstName, c.lastName, c.email, c.company].join(" ").toLowerCase().includes(search));
-    const page = Math.min(Number(params.get("page")) || 1, Math.max(1, Math.ceil(filtered.length / limit)));
+    const filtered = contacts.filter(
+      (c) =>
+        (!stage || (c.lifecycleStage || "LEAD") === stage) &&
+        [c.firstName, c.lastName, c.email, c.company]
+          .join(" ")
+          .toLowerCase()
+          .includes(search),
+    );
+    const page = Math.min(
+      Number(params.get("page")) || 1,
+      Math.max(1, Math.ceil(filtered.length / limit)),
+    );
     return {
-      data: filtered.slice((page - 1) * limit, page * limit).map(c => ({...c, listName: options.lists.find(l => l.id === c.listId)?.name || ""})),
-      total: filtered.length, page, limit,
+      data: filtered
+        .slice((page - 1) * limit, page * limit)
+        .map((c) => ({
+          ...c,
+          listName: options.lists.find((l) => l.id === c.listId)?.name || "",
+        })),
+      total: filtered.length,
+      page,
+      limit,
       summary: {
         total: contacts.length,
-        qualified: contacts.filter(c => c.lifecycleStage === "QUALIFIED").length,
-        customers: contacts.filter(c => c.lifecycleStage === "CUSTOMER").length,
-        subscribed: contacts.filter(c => c.status === "ACTIVE").length,
+        qualified: contacts.filter((c) => c.lifecycleStage === "QUALIFIED")
+          .length,
+        customers: contacts.filter((c) => c.lifecycleStage === "CUSTOMER")
+          .length,
+        subscribed: contacts.filter((c) => c.status === "ACTIVE").length,
       },
     } as T;
   }
@@ -221,7 +240,7 @@ const transport: Transport = async <T,>(
         : path === "marketing/newsletters"
           ? newsletters
           : path.startsWith("contacts?")
-            ? {data:contacts}
+            ? { data: contacts }
             : path === "automations"
               ? []
               : path === "imap/folders"
@@ -233,10 +252,21 @@ const transport: Transport = async <T,>(
                       { Name: "Archive", Total: 18 },
                     ],
                   }
-                : path.startsWith("emails?") ? {data:mail.map((m,i) => ({...m,id:`preview-${i}`,createdAt:m.date,status:"SENT",body:btoa(unescape(encodeURIComponent(m.body)))})), total:mail.length,page:1}
-                : path.startsWith("imap/emails")
-                  ? { emails: mail, total_emails: 6, offset: 0, limit: 20 }
-                  : [];
+                : path.startsWith("emails?")
+                  ? {
+                      data: mail.map((m, i) => ({
+                        ...m,
+                        id: `preview-${i}`,
+                        createdAt: m.date,
+                        status: "SENT",
+                        body: btoa(unescape(encodeURIComponent(m.body))),
+                      })),
+                      total: mail.length,
+                      page: 1,
+                    }
+                  : path.startsWith("imap/emails")
+                    ? { emails: mail, total_emails: 6, offset: 0, limit: 20 }
+                    : [];
   return result as T;
 };
 export function WorkspacePreview() {
@@ -246,19 +276,53 @@ export function WorkspacePreview() {
       <div className={workspaceClassName("preview-banner")}>
         LOCAL VISUAL PREVIEW · Sample data · Sending disabled
       </div>
-      <AppShell previewPage={page} onPreviewNavigate={setPage}>
-        {page === "/developer/logs/emails" ? <OutboxPage/> : page === "/newsletters" ? (
-          <NewslettersPage />
-        ) : page === "/templates" ? (
-          <TemplatesPage />
-        ) : page === "/crm" ? (
-          <CRMPage />
-        ) : page === "/automations" ? (
-          <AutomationsPage />
-        ) : page === "/inbox" ? (
-          <InboxPage />
-        ) : page === "/forms" ? <FormsPage/> : <div className="m-6 rounded-2xl border bg-white p-8"><h2 className="text-xl font-semibold">Open your workspace</h2><p className="mt-2 text-muted-foreground">This page uses your account data and is available in the authenticated workspace.</p><a className="mt-5 inline-flex text-primary underline" href={page}>Open {page}</a></div>}
-      </AppShell>
+      <div
+        onClickCapture={(event) => {
+          const anchor = (event.target as HTMLElement).closest("a");
+          const href = anchor?.getAttribute("href");
+          if (href === "/onboarding" || href === "/settings/sending") {
+            event.preventDefault();
+            event.stopPropagation();
+            setPage(href);
+          }
+        }}
+      >
+        <AppShell previewPage={page} onPreviewNavigate={setPage}>
+          {page === "/onboarding" ? (
+            <SendingPreview />
+          ) : page === "/settings/sending" ? (
+            <SendingPreview dashboard />
+          ) : page === "/developer/logs/emails" ? (
+            <OutboxPage />
+          ) : page === "/newsletters" ? (
+            <NewslettersPage />
+          ) : page === "/templates" ? (
+            <TemplatesPage />
+          ) : page === "/crm" ? (
+            <CRMPage />
+          ) : page === "/automations" ? (
+            <AutomationsPage />
+          ) : page === "/inbox" ? (
+            <InboxPage />
+          ) : page === "/forms" ? (
+            <FormsPage />
+          ) : (
+            <div className="m-6 rounded-2xl border bg-white p-8">
+              <h2 className="text-xl font-semibold">Open your workspace</h2>
+              <p className="mt-2 text-muted-foreground">
+                This page uses your account data and is available in the
+                authenticated workspace.
+              </p>
+              <a
+                className="mt-5 inline-flex text-primary underline"
+                href={page}
+              >
+                Open {page}
+              </a>
+            </div>
+          )}
+        </AppShell>
+      </div>
     </PreviewTransport.Provider>
   );
 }

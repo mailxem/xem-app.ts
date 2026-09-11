@@ -73,7 +73,7 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         redirect: true,
-        callbackUrl: "/",
+        callbackUrl: "/onboarding",
       });
     } catch (error) {
       console.error("Registration error:", error);
