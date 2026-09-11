@@ -36,6 +36,14 @@ import {
   FilterTabs,
 } from "./shared";
 import { toast } from "sonner";
+import { FormSurface } from "./form-surface";
+import {
+  formPresets,
+  resolveFormTheme,
+  publicFormAction,
+  formHTMLSnippet,
+  type FormTheme,
+} from "@/lib/marketing/form-theme";
 const initialFields: FormField[] = [
   {
     Label: "Email address",
@@ -112,7 +120,10 @@ export function FormsPage() {
         title="Forms & Lead Capture"
         description="Create beautiful signup forms and capture leads"
         action={
-          <Button className={workspaceClassName("product-primary")} onClick={() => edit()}>
+          <Button
+            className={workspaceClassName("product-primary")}
+            onClick={() => edit()}
+          >
             <Plus />
             Create New Form
           </Button>
@@ -197,7 +208,9 @@ export function FormsPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
-                            className={workspaceClassName("icon-button !border-transparent !shadow-none")}
+                            className={workspaceClassName(
+                              "icon-button !border-transparent !shadow-none",
+                            )}
                             aria-label={`More actions for ${f.Name}`}
                           >
                             <MoreVertical />
@@ -247,7 +260,10 @@ export function FormsPage() {
             title="A warm welcome starts here"
             description="Build your first signup form. Every new lead goes straight into your audience and CRM."
             action={
-              <Button className={workspaceClassName("product-primary")} onClick={() => edit()}>
+              <Button
+                className={workspaceClassName("product-primary")}
+                onClick={() => edit()}
+              >
                 <Plus />
                 Create your first form
               </Button>
@@ -274,6 +290,7 @@ export function FormsPage() {
             description={view.description}
             fields={view.fields}
             button={view.SubmitButtonText}
+            theme={view.theme}
           />
         )}
       </Modal>
@@ -291,6 +308,85 @@ export function FormsPage() {
                 value={`${typeof window !== "undefined" ? window.location.origin : ""}/f/${embed.Slug}`}
               />
             </Field>
+            <Field label="Form action URL">
+              <input
+                readOnly
+                value={
+                  typeof window !== "undefined"
+                    ? new URL(
+                        publicFormAction(embed.Slug),
+                        window.location.origin,
+                      ).href
+                    : publicFormAction(embed.Slug)
+                }
+              />
+            </Field>
+            <p className="text-sm text-muted-foreground">
+              Use this URL as your own form’s action with method="post". Keep
+              the field names and consent checkbox from the example. No API key
+              or JavaScript is needed. Successful submissions show your success
+              message.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(
+                    new URL(
+                      publicFormAction(embed.Slug),
+                      window.location.origin,
+                    ).href,
+                  );
+                  toast.success("Action URL copied");
+                } catch {
+                  toast.error("Could not copy. Select and copy the URL above.");
+                }
+              }}
+            >
+              <Copy /> Copy action URL
+            </Button>
+            <Field label="Custom HTML form">
+              <textarea
+                rows={10}
+                readOnly
+                value={formHTMLSnippet(
+                  typeof window !== "undefined"
+                    ? new URL(
+                        publicFormAction(embed.Slug),
+                        window.location.origin,
+                      ).href
+                    : publicFormAction(embed.Slug),
+                  embed.fields,
+                  embed.SubmitButtonText,
+                )}
+              />
+            </Field>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(
+                    formHTMLSnippet(
+                      new URL(
+                        publicFormAction(embed.Slug),
+                        window.location.origin,
+                      ).href,
+                      embed.fields,
+                      embed.SubmitButtonText,
+                    ),
+                  );
+                  toast.success("HTML copied");
+                } catch {
+                  toast.error(
+                    "Could not copy. Select and copy the example above.",
+                  );
+                }
+              }}
+            >
+              <Copy /> Copy HTML
+            </Button>
             <Field label="Embed code">
               <textarea
                 rows={4}
@@ -324,14 +420,16 @@ function FormPreview({
   description,
   fields,
   button,
+  theme,
 }: {
   name: string;
   description: string;
   fields: FormField[];
   button: string;
+  theme?: Partial<FormTheme>;
 }) {
   return (
-    <div className={workspaceClassName("lead-form-preview")}>
+    <FormSurface theme={theme} preview name={name}>
       <h2>{name || "Let’s stay in touch"}</h2>
       <p>{description || "A little inspiration, delivered to your inbox."}</p>
       <div className={workspaceClassName("product-form")}>
@@ -352,11 +450,11 @@ function FormPreview({
           <input type="checkbox" disabled />I agree to receive emails and
           understand I can unsubscribe at any time.
         </label>
-        <Button className={workspaceClassName("product-primary")} disabled>
+        <Button type="button" data-form-submit disabled>
           {button || "Subscribe"}
         </Button>
       </div>
-    </div>
+    </FormSurface>
   );
 }
 function FormEditor({
@@ -371,6 +469,9 @@ function FormEditor({
   options?: Options;
 }) {
   const { request, refresh } = useMarketing();
+  const [theme, setTheme] = useState<FormTheme>(() =>
+    resolveFormTheme(form?.theme),
+  );
   const [name, setName] = useState(form?.Name || "");
   const [description, setDescription] = useState(form?.description || "");
   const [listId, setListId] = useState(form?.AddToListID || "");
@@ -399,6 +500,7 @@ function FormEditor({
           status,
           successMessage: success,
           buttonText: button,
+          theme,
           fields: fields.map((f) => ({
             label: f.Label,
             type: f.FieldType,
@@ -464,7 +566,10 @@ function FormEditor({
             <div>
               <span className="text-xs text-muted-foreground">Form fields</span>
               {fields.map((f, i) => (
-                <div className={workspaceClassName("form-field-row")} key={f.mapToContactField}>
+                <div
+                  className={workspaceClassName("form-field-row")}
+                  key={f.mapToContactField}
+                >
                   <input
                     aria-label={`Field label ${i + 1}`}
                     className={workspaceClassName("product-input")}
@@ -557,6 +662,88 @@ function FormEditor({
                 </select>
               </Field>
             </div>
+            <fieldset className="space-y-4 rounded-lg border p-4">
+              <legend className="px-1 text-sm font-medium">Appearance</legend>
+              <Field label="Theme">
+                <select
+                  value={theme.preset}
+                  onChange={(e) =>
+                    setTheme({
+                      ...formPresets[e.target.value as FormTheme["preset"]],
+                      logoUrl: theme.logoUrl,
+                    })
+                  }
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="warm">Warm</option>
+                </select>
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["backgroundColor", "Page background"],
+                    ["cardColor", "Form background"],
+                    ["textColor", "Text color"],
+                    ["buttonColor", "Button color"],
+                    ["buttonTextColor", "Button text color"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <Field key={key} label={label}>
+                    <input
+                      type="color"
+                      value={theme[key]}
+                      onChange={(e) =>
+                        setTheme({ ...theme, [key]: e.target.value })
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
+              <Field label="Logo URL (HTTPS)">
+                <input
+                  type="url"
+                  pattern="https://.*"
+                  maxLength={2048}
+                  placeholder="https://example.com/logo.png"
+                  value={theme.logoUrl}
+                  onChange={(e) =>
+                    setTheme({ ...theme, logoUrl: e.target.value })
+                  }
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Font">
+                  <select
+                    value={theme.font}
+                    onChange={(e) =>
+                      setTheme({
+                        ...theme,
+                        font: e.target.value as FormTheme["font"],
+                      })
+                    }
+                  >
+                    <option value="sans">Sans serif</option>
+                    <option value="serif">Serif</option>
+                    <option value="mono">Monospace</option>
+                  </select>
+                </Field>
+                <Field label="Corners">
+                  <select
+                    value={theme.corners}
+                    onChange={(e) =>
+                      setTheme({
+                        ...theme,
+                        corners: e.target.value as FormTheme["corners"],
+                      })
+                    }
+                  >
+                    <option value="rounded">Rounded</option>
+                    <option value="square">Square</option>
+                  </select>
+                </Field>
+              </div>
+            </fieldset>
             <Field label="Success message">
               <input
                 required
@@ -567,12 +754,15 @@ function FormEditor({
             </Field>
           </div>
           <div className={workspaceClassName("editor-preview")}>
-            <div className={workspaceClassName("editor-preview-label")}>Live preview</div>
+            <div className={workspaceClassName("editor-preview-label")}>
+              Live preview
+            </div>
             <FormPreview
               name={name}
               description={description}
               fields={fields}
               button={button}
+              theme={theme}
             />
           </div>
         </div>
@@ -589,7 +779,10 @@ function FormEditor({
           >
             Cancel
           </Button>
-          <Button className={workspaceClassName("product-primary")} disabled={busy}>
+          <Button
+            className={workspaceClassName("product-primary")}
+            disabled={busy}
+          >
             {busy
               ? "Saving…"
               : status === "PUBLISHED"

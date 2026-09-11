@@ -5,12 +5,11 @@ import { Check, Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field } from "./shared";
 import type { FormField } from "@/lib/marketing/types";
-const origin = (process.env.NEXT_PUBLIC_API_URL || "").replace(
-  /\/api\/v1\/?$/,
-  "",
-);
+import { publicFormAction, type FormTheme } from "@/lib/marketing/form-theme";
+import { FormSurface } from "./form-surface";
 export function PublicForm({ slug }: { slug: string }) {
   const [form, setForm] = useState<{
+    theme?: Partial<FormTheme>;
     name: string;
     description: string;
     fields: FormField[];
@@ -23,7 +22,7 @@ export function PublicForm({ slug }: { slug: string }) {
   const [requestId] = useState(() => crypto.randomUUID());
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${origin}/public/forms/${encodeURIComponent(slug)}`, {
+    fetch(publicFormAction(slug), {
       signal: controller.signal,
     })
       .then(async (r) => {
@@ -47,23 +46,22 @@ export function PublicForm({ slug }: { slug: string }) {
       ]),
     );
     try {
-      const res = await fetch(
-        `${origin}/public/forms/${encodeURIComponent(slug)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fields,
-            consent: data.get("consent") === "on",
-            website: data.get("website"),
-            requestId,
-          }),
-        },
-      );
+      const res = await fetch(publicFormAction(slug), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fields,
+          consent: data.get("consent") === "on",
+          website: data.get("website"),
+          requestId,
+        }),
+      });
       const body = await res.json();
       if (!res.ok)
         throw new Error(
-          body.error || "We couldn’t submit your form. Please try again.",
+          body.error ||
+            body.message ||
+            "We couldn’t submit your form. Please try again.",
         );
       setDone(true);
     } catch (e) {
@@ -73,82 +71,80 @@ export function PublicForm({ slug }: { slug: string }) {
     }
   }
   return (
-    <div className={workspaceClassName("public-form-page")}>
-      <div className={workspaceClassName("public-form-card")}>
-        {done ? (
-          <div className={workspaceClassName("product-empty !p-4")}>
-            <Check size={32} />
-            <h1>You’re on the list.</h1>
-            <p>{form?.successMessage || "Thanks for joining us!"}</p>
-          </div>
-        ) : form ? (
-          <>
-            <h1>{form.name}</h1>
-            <p>{form.description}</p>
-            <form className={workspaceClassName("product-form")} onSubmit={submit}>
-              {form.fields.map((f) => (
-                <Field
-                  key={f.mapToContactField}
-                  label={`${f.Label}${f.Required ? " *" : ""}`}
-                >
-                  {f.FieldType === "TEXTAREA" ? (
-                    <textarea
-                      name={f.mapToContactField}
-                      required={f.Required}
-                      maxLength={2000}
-                    />
-                  ) : (
-                    <input
-                      name={f.mapToContactField}
-                      required={f.Required}
-                      maxLength={2000}
-                      type={
-                        f.FieldType === "EMAIL"
-                          ? "email"
-                          : f.FieldType === "PHONE"
-                            ? "tel"
-                            : "text"
-                      }
-                    />
-                  )}
-                </Field>
-              ))}
-              <div
-                aria-hidden="true"
-                style={{ position: "absolute", left: "-10000px" }}
+    <FormSurface theme={form?.theme} name={form?.name}>
+      {done ? (
+        <div className={workspaceClassName("product-empty !p-4")}>
+          <Check size={32} />
+          <h1>You’re on the list.</h1>
+          <p>{form?.successMessage || "Thanks for joining us!"}</p>
+        </div>
+      ) : form ? (
+        <>
+          <h1>{form.name}</h1>
+          <p>{form.description}</p>
+          <form
+            className={workspaceClassName("product-form")}
+            onSubmit={submit}
+          >
+            {form.fields.map((f) => (
+              <Field
+                key={f.mapToContactField}
+                label={`${f.Label}${f.Required ? " *" : ""}`}
               >
-                <label>
-                  Website
-                  <input name="website" tabIndex={-1} autoComplete="off" />
-                </label>
-              </div>
-              <label className={workspaceClassName("consent-row")}>
-                <input type="checkbox" name="consent" required />I agree to
-                receive emails and understand that I can unsubscribe at any
-                time.
+                {f.FieldType === "TEXTAREA" ? (
+                  <textarea
+                    name={f.mapToContactField}
+                    required={f.Required}
+                    maxLength={2000}
+                  />
+                ) : (
+                  <input
+                    name={f.mapToContactField}
+                    required={f.Required}
+                    maxLength={2000}
+                    type={
+                      f.FieldType === "EMAIL"
+                        ? "email"
+                        : f.FieldType === "PHONE"
+                          ? "tel"
+                          : "text"
+                    }
+                  />
+                )}
+              </Field>
+            ))}
+            <div
+              aria-hidden="true"
+              style={{ position: "absolute", left: "-10000px" }}
+            >
+              <label>
+                Website
+                <input name="website" tabIndex={-1} autoComplete="off" />
               </label>
-              {error && (
-                <div className={workspaceClassName("product-error")} role="alert">
-                  {error}
-                </div>
-              )}
-              <Button className={workspaceClassName("product-primary")} disabled={busy}>
-                {busy ? "Submitting…" : form.buttonText || "Subscribe"}
-              </Button>
-            </form>
-          </>
-        ) : error ? (
-          <p role="alert">{error}</p>
-        ) : (
-          <div role="status" className={workspaceClassName("product-empty")}>
-            <Loader2 className="animate-spin" />
-            Loading form…
-          </div>
-        )}
-        <p className="!mb-0 !mt-7 !text-center !text-[10px]">
-          Powered by Xem
-        </p>
-      </div>
-    </div>
+            </div>
+            <label className={workspaceClassName("consent-row")}>
+              <input type="checkbox" name="consent" required />I agree to
+              receive emails and understand that I can unsubscribe at any time.
+            </label>
+            {error && (
+              <div className={workspaceClassName("product-error")} role="alert">
+                {error}
+              </div>
+            )}
+            <Button type="submit" disabled={busy}>
+              {busy ? "Submitting…" : form.buttonText || "Subscribe"}
+            </Button>
+          </form>
+        </>
+      ) : error ? (
+        <p role="alert">{error}</p>
+      ) : (
+        <div role="status" className={workspaceClassName("product-empty")}>
+          <Loader2 className="animate-spin" />
+          Loading form…
+        </div>
+      )}
+      <p className="!mb-0 !mt-7 !text-center !text-[10px]">Powered by Xem</p>
+    </FormSurface>
   );
 }

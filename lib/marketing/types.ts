@@ -48,6 +48,7 @@ export type FormField = {
   mapToContactField: string;
 };
 export type LeadForm = {
+  theme?: Partial<import("./form-theme").FormTheme>;
   id: string;
   Name: string;
   description: string;
