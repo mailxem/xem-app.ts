@@ -47,7 +47,7 @@ export function CopyButton({
     </Button>
   );
 }
-export function DomainForm({ onDone }: { onDone: () => void }) {
+export function DomainForm({ onDone }: { onDone: () => void | Promise<void> }) {
   const { request } = useMarketing();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -59,7 +59,7 @@ export function DomainForm({ onDone }: { onDone: () => void }) {
     try {
       await request("sending/domains", "POST", { name });
       setName("");
-      onDone();
+      await onDone();
       toast.success("Your domain is saved. Let’s connect it.");
     } catch (e) {
       setError((e as Error).message);
@@ -114,7 +114,7 @@ export function DomainDNS({
   onDone,
 }: {
   domain: SendingDomain;
-  onDone: () => void;
+  onDone: () => void | Promise<void>;
 }) {
   const { request } = useMarketing();
   const [busy, setBusy] = useState(false);
@@ -127,14 +127,20 @@ export function DomainDNS({
         `sending/domains/${domain.id}/check`,
         "POST",
       );
-      onDone();
-      toast.success(
-        next.ready
-          ? "All connected. Your domain is ready."
-          : next.ownership
-            ? "Ownership confirmed. Check the remaining records below."
-            : "Still waiting for your ownership record. Your progress is saved.",
-      );
+      await onDone();
+      if (next.ready) {
+        toast.success(
+          "All connected. Continue to your sender when you’re ready.",
+        );
+      } else {
+        toast.info(
+          next.identityStatus === "AWAITING_APPROVAL"
+            ? "Ownership confirmed. Managed sending approval is still needed."
+            : next.ownership
+              ? "Ownership confirmed. Add and verify the delivery records below."
+              : "Still waiting for your ownership record. Your progress is saved.",
+        );
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -170,29 +176,56 @@ export function DomainDNS({
         value exactly. For CNAME records, choose “DNS only” if your provider
         offers proxying.
       </p>
-      <div className="space-y-3">
-        {domain.records.map((record) => (
-          <div
-            key={record.name + record.type}
-            className="rounded-xl border bg-background p-4"
+      <section className="space-y-3" aria-label="Domain ownership">
+        <h3 className="text-sm font-semibold">1. Verify domain ownership</h3>
+        {domain.ownership && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            Ownership confirmed. Keep this TXT record in place.
+          </p>
+        )}
+        {domain.records
+          .filter((record) => record.name === `_xem.${domain.name}`)
+          .map((record) => (
+            <DNSRecordCard key={record.name + record.type} record={record} />
+          ))}
+      </section>
+      <section className="space-y-3" aria-label="Delivery DNS records">
+        <h3 className="text-sm font-semibold">
+          2. Add and verify delivery records
+        </h3>
+        {!domain.ownership ? (
+          <p className="rounded-xl bg-muted p-4 text-sm">
+            Add the ownership TXT record above, then select “Check my records”.
+            Once ownership and managed sending approval are confirmed, your DKIM
+            and bounce-domain records appear here.
+          </p>
+        ) : domain.identityStatus === "AWAITING_APPROVAL" ? (
+          <p
+            role="status"
+            className="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:bg-amber-950 dark:text-amber-100"
           >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="rounded bg-muted px-2 py-1 text-xs font-semibold">
-                {record.type}
-              </span>
-              <CopyButton value={record.value} label="Copy value" />
-            </div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Name
-            </p>
-            <code className="my-1 block break-all text-xs">{record.name}</code>
-            <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">
-              Value
-            </p>
-            <code className="mt-1 block break-all text-xs">{record.value}</code>
-          </div>
-        ))}
-      </div>
+            Ownership is confirmed. Contact your Xem operator to approve managed
+            sending for this workspace. After approval, select “Check my
+            records” to generate your delivery records. Stay on this step until
+            DKIM, the bounce domain, and DMARC are verified.
+          </p>
+        ) : !domain.provisioned ? (
+          <p className="rounded-xl bg-muted p-4 text-sm">
+            Ownership is confirmed. Select “Check my records” to prepare your
+            delivery records.
+          </p>
+        ) : (
+          <p className="text-sm leading-6 text-muted-foreground">
+            Add these records alongside your ownership record, then check again.
+            Sender setup unlocks after all DNS checks pass.
+          </p>
+        )}
+        {domain.records
+          .filter((record) => record.name !== `_xem.${domain.name}`)
+          .map((record) => (
+            <DNSRecordCard key={record.name + record.type} record={record} />
+          ))}
+      </section>
       {domain.provisioned && domain.dmarcStatus !== "VALID" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
           <strong>Check your DMARC policy</strong>
@@ -204,12 +237,6 @@ export function DomainDNS({
             it.
           </p>
         </div>
-      )}
-      {domain.identityStatus === "AWAITING_APPROVAL" && (
-        <p className="rounded-xl bg-muted p-4 text-sm">
-          Your ownership record is confirmed. An operator needs to approve
-          managed sending before we can generate the remaining records.
-        </p>
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={check} disabled={busy}>
@@ -226,7 +253,9 @@ export function DomainDNS({
         <span role="status" className="text-xs text-muted-foreground">
           {domain.ready
             ? "Everything looks good."
-            : "DNS can take a little time. You can come back later."}
+            : domain.identityStatus === "AWAITING_APPROVAL"
+              ? "Waiting for managed sending approval."
+              : "DNS can take a little time. You can come back later."}
         </span>
       </div>
       {error && (
@@ -263,6 +292,31 @@ export function DomainDNS({
     </div>
   );
 }
+function DNSRecordCard({
+  record,
+}: {
+  record: SendingDomain["records"][number];
+}) {
+  return (
+    <div className="rounded-xl border bg-background p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="rounded bg-muted px-2 py-1 text-xs font-semibold">
+          {record.type}
+        </span>
+        <CopyButton value={record.value} label="Copy value" />
+      </div>
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+        Name
+      </p>
+      <code className="my-1 block break-all text-xs">{record.name}</code>
+      <p className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+        Value
+      </p>
+      <code className="mt-1 block break-all text-xs">{record.value}</code>
+    </div>
+  );
+}
+
 export function SenderSetup({
   domain,
   approved,
@@ -270,7 +324,7 @@ export function SenderSetup({
 }: {
   domain: SendingDomain;
   approved: boolean;
-  onDone: () => void;
+  onDone: () => void | Promise<void>;
 }) {
   const { request } = useMarketing();
   const [from, setFrom] = useState(domain.fromEmail || `hello@${domain.name}`);
@@ -287,7 +341,7 @@ export function SenderSetup({
         "POST",
         { from, domainId: domain.id, key: crypto.randomUUID() },
       );
-      onDone();
+      await onDone();
       toast.success(
         kind === "sender"
           ? "Your sender is ready to use in campaigns."
