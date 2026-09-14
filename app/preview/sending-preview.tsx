@@ -65,16 +65,47 @@ function domain(name: string): SendingDomain {
     ],
   };
 }
+function provision(d: SendingDomain) {
+  d.ownership = d.provisioned = true;
+  d.identityStatus = d.dkimStatus = d.mailFromStatus = "PENDING";
+  d.records = [
+    d.records[0],
+    ...["one", "two", "three"].map((token) => ({
+      type: "CNAME",
+      name: `${token}._domainkey.${d.name}`,
+      value: `${token}.dkim.amazonses.com`,
+    })),
+    {
+      type: "MX",
+      name: `bounce.${d.name}`,
+      value: "10 feedback-smtp.us-east-1.amazonses.com",
+    },
+    {
+      type: "TXT",
+      name: `bounce.${d.name}`,
+      value: "v=spf1 include:amazonses.com ~all",
+    },
+  ];
+}
+
 export function SendingPreview({ dashboard = false }: { dashboard?: boolean }) {
   const state = useRef(initial());
   const [scenario, setScenario] = useState("fresh");
   const [version, setVersion] = useState(0);
+  const [, redraw] = useState(0);
   const client = useQueryClient();
   function preset(name: string) {
     const s = initial();
     if (name !== "fresh") {
       s.account.sendingMode = "MANAGED";
       s.domains = [domain("updates.studionorth.com")];
+      if (name === "approval") {
+        s.account.approved = false;
+        s.domains[0].ownership = true;
+        s.domains[0].identityStatus = "AWAITING_APPROVAL";
+      }
+      if (["records", "ready", "complete"].includes(name))
+        provision(s.domains[0]);
       if (name === "ready" || name === "complete") {
         const d = s.domains[0];
         d.ownership = d.provisioned = d.ready = true;
@@ -101,6 +132,12 @@ export function SendingPreview({ dashboard = false }: { dashboard?: boolean }) {
           },
         ];
       }
+    }
+    if (name.startsWith("byo")) {
+      s.account.sendingMode = "BYO";
+      s.domains = [];
+      s.journey.byoSenders = name === "byo" ? 0 : 1;
+      if (name === "byo-campaign") s.journey.campaigns = 1;
     }
     if (name === "disabled") {
       s.enabled = false;
@@ -131,22 +168,20 @@ export function SendingPreview({ dashboard = false }: { dashboard?: boolean }) {
       return d as T;
     }
     if (path.endsWith("/check")) {
+      if (scenario === "error")
+        throw new Error("DNS check failed. Please try again.");
       const d = s.domains[0];
-      d.ownership = d.provisioned = true;
-      d.identityStatus = "PENDING";
-      d.records.push(
-        {
-          type: "CNAME",
-          name: `preview._domainkey.${d.name}`,
-          value: "preview.dkim.amazonses.com",
-        },
-        {
-          type: "MX",
-          name: `bounce.${d.name}`,
-          value: "10 feedback-smtp.us-east-1.amazonses.com",
-        },
-      );
-      return d as T;
+      if (!s.account.approved) {
+        d.ownership = true;
+        d.identityStatus = "AWAITING_APPROVAL";
+      } else if (!d.provisioned) {
+        provision(d);
+      } else {
+        d.ready = true;
+        d.identityStatus = d.dkimStatus = d.mailFromStatus = "SUCCESS";
+        d.dmarcStatus = "VALID";
+      }
+      return structuredClone(d) as T;
     }
     if (path.endsWith("/sender")) {
       s.domains[0].fromEmail = String(b?.from);
@@ -161,12 +196,12 @@ export function SendingPreview({ dashboard = false }: { dashboard?: boolean }) {
         from: String(b?.from),
         recipients: "alex@example.com",
         subject: "Your Xem sending test",
-        status: "SENT",
+        status: "QUEUED",
         detail: "Preview only. No email was sent.",
         createdAt: new Date().toISOString(),
       };
       s.messages.push(m);
-      s.journey.testedDomainIds = [s.domains[0].id];
+      redraw((v) => v + 1);
       s.account.dailyUsed++;
       return m as T;
     }
@@ -210,11 +245,52 @@ export function SendingPreview({ dashboard = false }: { dashboard?: boolean }) {
           className="rounded border bg-background px-3 py-2"
         >
           <option value="fresh">Fresh workspace</option>
-          <option value="pending">Waiting for DNS</option>
+          <option value="pending">Waiting for ownership</option>
+          <option value="approval">Waiting for approval</option>
+          <option value="records">Waiting for delivery DNS</option>
+          <option value="error">DNS check error</option>
+          <option value="byo">BYO: connect provider</option>
+          <option value="byo-connected">BYO: provider connected</option>
+          <option value="byo-campaign">BYO: campaign saved</option>
           <option value="ready">Domain ready</option>
           <option value="complete">Checklist complete</option>
           <option value="disabled">Managed sending disabled</option>
         </select>
+        {scenario === "approval" && !state.current.account.approved && (
+          <button
+            className="rounded border px-3 py-2"
+            onClick={() => {
+              state.current.account.approved = true;
+              redraw((v) => v + 1);
+              void client.invalidateQueries({
+                queryKey: ["marketing", "preview", "sending"],
+              });
+            }}
+          >
+            Simulate operator approval
+          </button>
+        )}
+        {state.current.messages.some(
+          (message) => message.status === "QUEUED",
+        ) && (
+          <button
+            className="rounded border px-3 py-2"
+            onClick={() => {
+              state.current.messages.forEach((message) => {
+                message.status = "SENT";
+              });
+              state.current.journey.testedDomainIds = [
+                state.current.domains[0].id,
+              ];
+              redraw((v) => v + 1);
+              void client.invalidateQueries({
+                queryKey: ["marketing", "preview", "sending"],
+              });
+            }}
+          >
+            Simulate provider acceptance
+          </button>
+        )}
         <span className="text-muted-foreground">
           Simulated data only. No email or credentials leave this browser.
         </span>

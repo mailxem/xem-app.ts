@@ -61,12 +61,31 @@ export type SendingState = {
     testedDomainIds: string[];
   };
 };
-export function checklist(state: SendingState) {
-  const managed = state.account.sendingMode === "MANAGED";
-  const domain =
+export function onboardingDomain(state: SendingState) {
+  return (
     state.domains.find((d) => d.smtpConfigId && d.ready) ||
     state.domains.find((d) => d.ready) ||
-    state.domains[0];
+    state.domains[0]
+  );
+}
+
+// A returning user may review earlier steps, but cannot skip a prerequisite.
+// Clamp the selection again when refreshed data invalidates an earlier step.
+export function onboardingNavigation(
+  steps: { done: boolean }[],
+  selected: number | null,
+) {
+  const firstIncomplete = steps.findIndex((step) => !step.done);
+  const unlocked = firstIncomplete < 0 ? steps.length - 1 : firstIncomplete;
+  return {
+    unlocked,
+    active: Math.max(0, Math.min(selected ?? unlocked, unlocked)),
+  };
+}
+
+export function checklist(state: SendingState) {
+  const managed = state.account.sendingMode === "MANAGED";
+  const domain = onboardingDomain(state);
   const accepted = managed
     ? !!domain && state.journey.testedDomainIds.includes(domain.id)
     : state.journey.acceptedEmails > 0;

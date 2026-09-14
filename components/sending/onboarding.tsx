@@ -17,7 +17,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useMarketing, useMarketingQuery } from "@/lib/marketing/api";
 import { DomainDNS, DomainForm, SenderSetup } from "./controls";
-import { checklist, type SendingState } from "@/lib/sending/types";
+import {
+  checklist,
+  onboardingDomain,
+  onboardingNavigation,
+  type SendingState,
+} from "@/lib/sending/types";
 
 export function OnboardingBanner() {
   const { session } = useApi();
@@ -58,9 +63,8 @@ export function Onboarding() {
   const { request, refresh } = useMarketing();
   const [selected, setSelected] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const sync = () => {
-    void q.refetch();
-    void refresh();
+  const sync = async () => {
+    await refresh();
   };
   if (q.isLoading)
     return (
@@ -93,24 +97,15 @@ export function Onboarding() {
     steps = checklist(state),
     done = steps.filter((s) => s.done).length,
     complete = done === steps.length;
-  const active =
-    selected === null
-      ? Math.max(
-          0,
-          steps.findIndex((s) => !s.done),
-        )
-      : Math.min(selected, steps.length - 1);
+  const { active, unlocked } = onboardingNavigation(steps, selected);
   const managed = state.account.sendingMode === "MANAGED";
-  const domain =
-    state.domains.find((d) => d.smtpConfigId && d.ready) ||
-    state.domains.find((d) => d.ready) ||
-    state.domains[0];
+  const domain = onboardingDomain(state);
   async function choose(mode: string) {
     setBusy(true);
     try {
       await request("sending/onboarding", "PUT", { mode, dismissed: false });
       setSelected(null);
-      sync();
+      await sync();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -209,8 +204,9 @@ export function Onboarding() {
                 <li key={step.title}>
                   <button
                     onClick={() => setSelected(i)}
+                    disabled={busy || i > unlocked}
                     aria-current={active === i ? "step" : undefined}
-                    className={`flex w-full gap-3 rounded-xl p-3 text-left transition-colors ${active === i ? "bg-violet-50 dark:bg-violet-950/50" : "hover:bg-muted"}`}
+                    className={`flex w-full gap-3 rounded-xl p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${active === i ? "bg-violet-50 dark:bg-violet-950/50" : "hover:bg-muted"}`}
                   >
                     <span
                       className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-xs ${step.done ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" : active === i ? "bg-violet-600 text-white" : "border text-muted-foreground"}`}
@@ -330,15 +326,22 @@ export function Onboarding() {
                   </div>
                 ) : (
                   <DomainForm
-                    onDone={() => {
-                      sync();
+                    onDone={async () => {
+                      await sync();
                       setSelected(2);
                     }}
                   />
                 )
               ) : managed && active === 2 ? (
                 domain ? (
-                  <DomainDNS domain={domain} onDone={sync} />
+                  <DomainDNS
+                    key={domain.id}
+                    domain={domain}
+                    onDone={async () => {
+                      setSelected(2);
+                      await sync();
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Add your domain in the previous step to see its DNS records.
@@ -346,16 +349,31 @@ export function Onboarding() {
                 )
               ) : managed && active === 3 ? (
                 domain ? (
-                  <SenderSetup
-                    key={domain.id}
-                    domain={domain}
-                    approved={
-                      state.account.approved &&
-                      !state.account.paused &&
-                      !state.account.suspended
-                    }
-                    onDone={sync}
-                  />
+                  <div className="space-y-5">
+                    <SenderSetup
+                      key={domain.id}
+                      domain={domain}
+                      approved={
+                        state.account.approved &&
+                        !state.account.paused &&
+                        !state.account.suspended
+                      }
+                      onDone={sync}
+                    />
+                    <p
+                      role="status"
+                      className="rounded-xl bg-muted/60 p-4 text-sm leading-6"
+                    >
+                      {steps[3].done
+                        ? "Your sender is saved and your test was accepted by the provider. You can continue to your first campaign."
+                        : !domain.smtpConfigId
+                          ? "Save your sender and send yourself a test to complete this step."
+                          : "Send yourself a test, then wait for the provider to accept it. This checklist updates automatically."}
+                      <Link href="/settings/sending" className="ml-1 underline">
+                        View sending activity
+                      </Link>
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Connect your domain first. We’ll prepare your sender here.
@@ -410,9 +428,15 @@ export function Onboarding() {
                 {active < steps.length - 1 && (
                   <Button
                     variant="ghost"
+                    disabled={busy || !steps[active].done}
                     onClick={() => setSelected(active + 1)}
                   >
-                    Next step <ChevronRight size={15} className="ml-1" />
+                    {managed && active === 2
+                      ? domain?.ready
+                        ? "Continue to sender"
+                        : "Complete DNS setup first"
+                      : "Next step"}{" "}
+                    <ChevronRight size={15} className="ml-1" />
                   </Button>
                 )}
               </div>
