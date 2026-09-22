@@ -62,3 +62,21 @@ describe("custom HTML form example", () => {
     expect(html).not.toContain("requestId");
   });
 });
+
+
+test("native HTML forms preserve optional and absent consent", () => {
+  const fields = [{ Label: "Email", FieldType: "EMAIL", Required: true, mapToContactField: "email" }];
+  const optional = formHTMLSnippet("https://forms.example/public/forms/signup", fields, "Send", { mode: "optional", label: "Product <news>" });
+  expect(optional).toContain('name="consent" value="true">');
+  expect(optional).toContain("Product &lt;news&gt;");
+  expect(optional).not.toContain('name="consent" value="true" required');
+  expect(formHTMLSnippet("https://forms.example/public/forms/signup", fields, "Send", { mode: "none", label: "" })).not.toContain('name="consent"');
+});
+
+
+test("native HTML examples include revision and permit fractional number answers", () => {
+  const fields = [{ Label: "Amount", FieldType: "NUMBER", Required: true, mapToContactField: "amount" }];
+  const html = formHTMLSnippet("https://forms.example/public/forms/signup", fields, "Send", { mode: "none", label: "" }, 7);
+  expect(html).toContain('<input type="hidden" name="version" value="7">');
+  expect(html).toContain('type="number" step="any"');
+});

@@ -7,6 +7,7 @@ Reviewed locally on September 22, 2026. See [design-system.md](./design-system.m
 - The configured Turbopack production build and TypeScript validation passed, including in the isolated checkout prepared for pushing.
 - The initial shared-workspace run passed all 67 tests across 15 suites, including 9 sheet interaction tests.
 - Before pushing, the redesign was separated from the unfinished form features and exported into an isolated checkout. All 45 tests across its 12 suites passed, including the same 9 sheet interaction tests.
+- After completing the form features, the combined frontend passed all 85 tests across 18 suites and the configured production build, including TypeScript validation.
 - Sheet coverage includes cancellation, focus restoration, dropdown handoff, nested selects, and busy states.
 - The existing ESLint configuration fails while loading; lint could not complete. Build, type checking, and tests passed independently.
 - An additional build using the unconfigured Webpack alternative failed to resolve the existing editor dependency `y-protocols/awareness`. The project's configured Turbopack build passed; Webpack compatibility is not claimed.
@@ -21,6 +22,7 @@ The development-only [preview](http://127.0.0.1:3100/preview) uses visibly label
 - Inbox, Outbox, and the automation editor fill the content area beneath the application header without outer padding, borders, or rounded containers.
 - Browser measurements confirmed identical bounds for the Outbox content area and mail workspace, with zero outer padding; the automation editor also matched its content area's bounds and reached the bottom of the workspace.
 - Mail folders, message lists, and readers retain independent scrolling. Automation side panels scroll independently of the canvas.
+- The completed form editor opens as an inset sheet; selecting the Demo request starter updates its interactive two-step preview. The browser console remained free of errors. Anonymous requests to the public embed script return JavaScript successfully; workspace form routes remain authenticated.
 
 ## Saved visual evidence
 
@@ -29,4 +31,6 @@ The development-only [preview](http://127.0.0.1:3100/preview) uses visibly label
 
 ## Scope and limitations
 
-This validates the local interface and automated behavior. Authenticated production workflows, real sending, and deployment were not verified. The push contains the frontend redesign; unfinished form features remain local and are excluded from that change. Server files were not modified by this redesign. The browser review above used the shared workspace, which included the unfinished form features; its form feature coverage does not imply that those features are part of the redesign commit.
+The first redesign commit separated the form features from the visual changes. The follow-up forms release completes and includes those frontend and backend features, with additional coverage for resume/version recovery, immutable retries, consent-aware native HTML sharing, public asset access, and inset embeds. The form editor and multi-step starter were reviewed again in the browser.
+
+This validates the local interface and automated behavior. Authenticated production workflows, real sending, and deployment were not verified. Backend integration tests use local storage and an injected queue; the backend forms documentation records the rollout order and data semantics.

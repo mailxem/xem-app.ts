@@ -44,6 +44,7 @@ import type {
   Options,
   WorkflowNode,
   Contact,
+  LeadForm,
 } from "@/lib/marketing/types";
 import {
   PageHeading,
@@ -75,6 +76,7 @@ const triggerLabels: Record<string, string> = {
   "contact.created": "New contact added",
   "email.opened": "Email opened",
   "email.clicked": "Email link clicked",
+  "form.completed": "Form completed",
 };
 function StepNode({
   data,
@@ -309,6 +311,7 @@ export function AutomationBuilder({
   close: () => void;
 }) {
   const options = useMarketingQuery<Options>("marketing/options");
+  const forms = useMarketingQuery<LeadForm[]>("marketing/forms");
   const { request, refresh } = useMarketing();
   const [id, setID] = useState(initial.id);
   const [name, setName] = useState(initial.name);
@@ -742,6 +745,7 @@ export function AutomationBuilder({
                     ))}
                   </select>
                 </Field>
+                {trigger === "form.completed" && <Field label="Which form?" hint="Only opted-in subscribers completing this form enter the journey."><select value={String(config.formId || "")} onChange={e => update({formId:e.target.value})}><option value="">Choose a form</option>{forms.data?.map(form=><option key={form.id} value={form.id}>{form.Name}</option>)}</select></Field>}
                 <p className={workspaceClassName("inspector-help")}>
                   Only matching events in your workspace will start this
                   workflow.
@@ -823,6 +827,7 @@ export function AutomationBuilder({
                     <option value="contact_email">Email address</option>
                     <option value="contact_first_name">First name</option>
                     <option value="contact_last_name">Last name</option>
+                    {trigger === "form.completed" && forms.data?.find(form => form.id === nodes.find(node => node.data.kind === "START")?.data.formId)?.definition?.pages.flatMap(page => page.fields).map(field => <option key={field.key} value={`form_${field.key}`}>Form: {field.label}</option>)}
                   </select>
                 </Field>
                 <Field label="Condition">

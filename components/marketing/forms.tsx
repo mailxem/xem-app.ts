@@ -12,9 +12,6 @@ import {
   Files,
   MousePointerClick,
   Repeat2,
-  Code,
-  Check,
-  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +21,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useMarketing, useMarketingQuery } from "@/lib/marketing/api";
-import type { LeadForm, FormField, Options } from "@/lib/marketing/types";
+import type { LeadForm, Options } from "@/lib/marketing/types";
 import {
   PageHeading,
   Metric,
@@ -32,32 +29,16 @@ import {
   Empty,
   QueryState,
   Modal,
-  Field,
   FilterTabs,
 } from "./shared";
 import { toast } from "sonner";
-import { FormSurface } from "./form-surface";
-import {
-  formPresets,
-  resolveFormTheme,
-  publicFormAction,
-  formHTMLSnippet,
-  type FormTheme,
-} from "@/lib/marketing/form-theme";
-const initialFields: FormField[] = [
-  {
-    Label: "Email address",
-    FieldType: "EMAIL",
-    Required: true,
-    mapToContactField: "email",
-  },
-  {
-    Label: "First name",
-    FieldType: "TEXT",
-    Required: false,
-    mapToContactField: "first_name",
-  },
-];
+import { FormEditor } from "./form-editor";
+import { FormPreview } from "./form-preview";
+import { FormShare } from "./form-share";
+import { FormAnalytics } from "./form-analytics";
+import { FormJourneyPanel } from "./form-journey";
+import { getFormDefinition } from "@/lib/marketing/form-definition";
+import { formSavePayload } from "@/lib/marketing/form-starters";
 export function FormsPage() {
   const query = useMarketingQuery<LeadForm[]>("marketing/forms");
   const options = useMarketingQuery<Options>("marketing/options");
@@ -68,6 +49,9 @@ export function FormsPage() {
   const [view, setView] = useState<LeadForm | null>(null);
   const [embed, setEmbed] = useState<LeadForm | null>(null);
   const [submissions, setSubmissions] = useState<LeadForm | null>(null);
+  const [analytics, setAnalytics] = useState<LeadForm | null>(null);
+  const [journey, setJourney] = useState<LeadForm | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
   const forms = query.data || [];
   const active = forms.filter((f) => f.Status === "PUBLISHED").length;
   const total = forms.reduce((n, f) => n + f.SubmissionCount, 0);
@@ -76,49 +60,43 @@ export function FormsPage() {
     setEditing(form || null);
     setOpen(true);
   };
-  const payload = (f: LeadForm) => ({
-    name: f.Name,
-    description: f.description,
-    listId: f.AddToListID,
-    status: f.Status,
-    successMessage: f.successMessage,
-    buttonText: f.SubmitButtonText,
-    fields: f.fields.map((x) => ({
-      label: x.Label,
-      type: x.FieldType,
-      required: x.Required,
-      key: x.mapToContactField,
-    })),
-  });
   const duplicate = async (f: LeadForm) => {
+    if (pending) return;
+    setPending(f.id);
     try {
       await request("marketing/forms", "POST", {
-        ...payload(f),
-        name: `${f.Name} (copy)`,
+        ...formSavePayload(f),
+        name: `${f.Name.slice(0, 113)} (copy)`,
         status: "DRAFT",
       });
       await refresh();
       toast.success("Form duplicated as a draft");
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setPending(null);
     }
   };
   const pause = async (f: LeadForm) => {
+    if (pending) return;
+    setPending(f.id);
     try {
       await request(`marketing/forms/${f.id}`, "PUT", {
-        ...payload(f),
+        ...formSavePayload(f),
         status: f.Status === "PUBLISHED" ? "ARCHIVED" : "PUBLISHED",
       });
       await refresh();
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setPending(null);
     }
   };
   return (
     <>
       <PageHeading
         title="Forms & Lead Capture"
-        description="Create beautiful signup forms and capture leads"
+        description="Turn signups, requests, and feedback into thoughtful email journeys"
         action={
           <Button
             className={workspaceClassName("product-primary")}
@@ -193,6 +171,7 @@ export function FormsPage() {
                       <button
                         className={workspaceClassName("icon-button")}
                         aria-label={`Duplicate ${f.Name}`}
+                        disabled={!!pending}
                         onClick={() => duplicate(f)}
                       >
                         <Copy />
@@ -217,13 +196,22 @@ export function FormsPage() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setAnalytics(f)}>
+                            View analytics
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setJourney(f)}>
+                            Email journey
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setSubmissions(f)}>
                             View submissions
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setEmbed(f)}>
-                            Get embed code
+                            Share form
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => pause(f)}>
+                          <DropdownMenuItem
+                            disabled={!!pending}
+                            onClick={() => pause(f)}
+                          >
                             {f.Status === "PUBLISHED"
                               ? "Pause form"
                               : "Publish form"}
@@ -258,7 +246,7 @@ export function FormsPage() {
         {!query.isLoading && !query.error && forms.length === 0 && (
           <Empty
             title="A warm welcome starts here"
-            description="Build your first signup form. Every new lead goes straight into your audience and CRM."
+            description="Build your first form to welcome subscribers, learn about customers, or collect feedback."
             action={
               <Button
                 className={workspaceClassName("product-primary")}
@@ -272,11 +260,12 @@ export function FormsPage() {
         )}
       </section>
       <FormEditor
-        key={editing?.id || `new-${open}`}
+        key={`${editing?.id || "new"}-${open}`}
         open={open}
         onOpenChange={setOpen}
         form={editing}
         options={options.data}
+        forms={forms}
       />
       <Modal
         open={!!view}
@@ -288,514 +277,37 @@ export function FormsPage() {
           <FormPreview
             name={view.Name}
             description={view.description}
-            fields={view.fields}
+            definition={getFormDefinition(view)}
             button={view.SubmitButtonText}
             theme={view.theme}
           />
         )}
       </Modal>
-      <Modal
-        open={!!embed}
-        onOpenChange={() => setEmbed(null)}
-        title="Share your form"
-        description="Publish the form first, then share its hosted page or embed it on your site."
-      >
-        {embed && (
-          <>
-            <Field label="Hosted form">
-              <input
-                readOnly
-                value={`${typeof window !== "undefined" ? window.location.origin : ""}/f/${embed.Slug}`}
-              />
-            </Field>
-            <Field label="Form action URL">
-              <input
-                readOnly
-                value={
-                  typeof window !== "undefined"
-                    ? new URL(
-                        publicFormAction(embed.Slug),
-                        window.location.origin,
-                      ).href
-                    : publicFormAction(embed.Slug)
-                }
-              />
-            </Field>
-            <p className="text-sm text-muted-foreground">
-              Use this URL as your own form’s action with method="post". Keep
-              the field names and consent checkbox from the example. No API key
-              or JavaScript is needed. Successful submissions show your success
-              message.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(
-                    new URL(
-                      publicFormAction(embed.Slug),
-                      window.location.origin,
-                    ).href,
-                  );
-                  toast.success("Action URL copied");
-                } catch {
-                  toast.error("Could not copy. Select and copy the URL above.");
-                }
-              }}
-            >
-              <Copy /> Copy action URL
-            </Button>
-            <Field label="Custom HTML form">
-              <textarea
-                rows={10}
-                readOnly
-                value={formHTMLSnippet(
-                  typeof window !== "undefined"
-                    ? new URL(
-                        publicFormAction(embed.Slug),
-                        window.location.origin,
-                      ).href
-                    : publicFormAction(embed.Slug),
-                  embed.fields,
-                  embed.SubmitButtonText,
-                )}
-              />
-            </Field>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(
-                    formHTMLSnippet(
-                      new URL(
-                        publicFormAction(embed.Slug),
-                        window.location.origin,
-                      ).href,
-                      embed.fields,
-                      embed.SubmitButtonText,
-                    ),
-                  );
-                  toast.success("HTML copied");
-                } catch {
-                  toast.error(
-                    "Could not copy. Select and copy the example above.",
-                  );
-                }
-              }}
-            >
-              <Copy /> Copy HTML
-            </Button>
-            <Field label="Embed code">
-              <textarea
-                rows={4}
-                readOnly
-                value={`<iframe src="${typeof window !== "undefined" ? window.location.origin : ""}/f/${embed.Slug}" title="Signup form" width="100%" height="640" style="border:0" loading="lazy"></iframe>`}
-              />
-            </Field>
-            <Button
-              className={workspaceClassName("product-primary")}
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  `${window.location.origin}/f/${embed.Slug}`,
-                );
-                toast.success("Link copied");
-              }}
-            >
-              <Copy />
-              Copy form link
-            </Button>
-          </>
-        )}
-      </Modal>
+      {embed && <FormShare form={embed} close={() => setEmbed(null)} />}
+      {analytics && (
+        <FormAnalytics form={analytics} close={() => setAnalytics(null)} />
+      )}
+      {journey && (
+        <Modal
+          open
+          onOpenChange={() => setJourney(null)}
+          title={`${journey.Name} · Email journey`}
+          description="Review the emails and routing that follow this form before activating your journey."
+          wide
+        >
+          <FormJourneyPanel formId={journey.id} formName={journey.Name} />
+        </Modal>
+      )}
       {submissions && (
         <Submissions form={submissions} close={() => setSubmissions(null)} />
       )}
     </>
   );
 }
-function FormPreview({
-  name,
-  description,
-  fields,
-  button,
-  theme,
-}: {
-  name: string;
-  description: string;
-  fields: FormField[];
-  button: string;
-  theme?: Partial<FormTheme>;
-}) {
-  return (
-    <FormSurface theme={theme} preview name={name}>
-      <h2>{name || "Let’s stay in touch"}</h2>
-      <p>{description || "A little inspiration, delivered to your inbox."}</p>
-      <div className={workspaceClassName("product-form")}>
-        {fields.map((f) => (
-          <Field
-            key={f.mapToContactField}
-            label={`${f.Label}${f.Required ? " *" : ""}`}
-          >
-            <input
-              disabled
-              placeholder={
-                f.FieldType === "EMAIL" ? "you@example.com" : f.Label
-              }
-            />
-          </Field>
-        ))}
-        <label className={workspaceClassName("consent-row")}>
-          <input type="checkbox" disabled />I agree to receive emails and
-          understand I can unsubscribe at any time.
-        </label>
-        <Button type="button" data-form-submit disabled>
-          {button || "Subscribe"}
-        </Button>
-      </div>
-    </FormSurface>
-  );
-}
-function FormEditor({
-  open,
-  onOpenChange,
-  form,
-  options,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  form: LeadForm | null;
-  options?: Options;
-}) {
-  const { request, refresh } = useMarketing();
-  const [theme, setTheme] = useState<FormTheme>(() =>
-    resolveFormTheme(form?.theme),
-  );
-  const [name, setName] = useState(form?.Name || "");
-  const [description, setDescription] = useState(form?.description || "");
-  const [listId, setListId] = useState(form?.AddToListID || "");
-  const [fields, setFields] = useState<FormField[]>(
-    form?.fields || initialFields,
-  );
-  const [button, setButton] = useState(form?.SubmitButtonText || "Subscribe");
-  const [success, setSuccess] = useState(
-    form?.successMessage || "You’re on the list. Thanks for joining us!",
-  );
-  const [status, setStatus] = useState(form?.Status || "DRAFT");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    try {
-      await request(
-        `marketing/forms${form ? `/${form.id}` : ""}`,
-        form ? "PUT" : "POST",
-        {
-          name,
-          description,
-          listId,
-          status,
-          successMessage: success,
-          buttonText: button,
-          theme,
-          fields: fields.map((f) => ({
-            label: f.Label,
-            type: f.FieldType,
-            required: f.Required,
-            key: f.mapToContactField,
-          })),
-        },
-      );
-      await refresh();
-      onOpenChange(false);
-      toast.success(
-        status === "PUBLISHED" ? "Your form is live" : "Form saved",
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={form ? "Edit form" : "Create a new form"}
-      description="Design a welcoming first impression. Connect every signup to your audience."
-      wide
-    >
-      <form onSubmit={save} className={workspaceClassName("product-form")}>
-        <div className={workspaceClassName("editor-columns")}>
-          <div className={workspaceClassName("product-form")}>
-            <Field label="Form name">
-              <input
-                required
-                maxLength={120}
-                placeholder="e.g. The weekly newsletter"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </Field>
-            <Field label="Description">
-              <textarea
-                rows={2}
-                maxLength={500}
-                placeholder="Tell people what they’re signing up for"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </Field>
-            <Field label="Add subscribers to">
-              <select
-                required
-                value={listId}
-                onChange={(e) => setListId(e.target.value)}
-              >
-                <option value="">Choose an audience</option>
-                {options?.lists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div>
-              <span className="text-xs text-muted-foreground">Form fields</span>
-              {fields.map((f, i) => (
-                <div
-                  className={workspaceClassName("form-field-row")}
-                  key={f.mapToContactField}
-                >
-                  <input
-                    aria-label={`Field label ${i + 1}`}
-                    className={workspaceClassName("product-input")}
-                    value={f.Label}
-                    onChange={(e) =>
-                      setFields(
-                        fields.map((x, j) =>
-                          i === j ? { ...x, Label: e.target.value } : x,
-                        ),
-                      )
-                    }
-                  />
-                  <label className={workspaceClassName("consent-row")}>
-                    <input
-                      type="checkbox"
-                      checked={f.Required}
-                      disabled={f.mapToContactField === "email"}
-                      onChange={(e) =>
-                        setFields(
-                          fields.map((x, j) =>
-                            i === j ? { ...x, Required: e.target.checked } : x,
-                          ),
-                        )
-                      }
-                    />
-                    Required
-                  </label>
-                  <button
-                    type="button"
-                    className={workspaceClassName("icon-button")}
-                    aria-label={`Remove ${f.Label}`}
-                    disabled={f.mapToContactField === "email"}
-                    onClick={() => setFields(fields.filter((_, j) => i !== j))}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <select
-                className={workspaceClassName("product-input mt-3")}
-                aria-label="Add field"
-                value=""
-                onChange={(e) => {
-                  const key = e.target.value;
-                  setFields([
-                    ...fields,
-                    {
-                      Label: key
-                        .replaceAll("_", " ")
-                        .replace(/^./, (c) => c.toUpperCase()),
-                      FieldType:
-                        key === "message"
-                          ? "TEXTAREA"
-                          : key === "phone"
-                            ? "PHONE"
-                            : "TEXT",
-                      Required: false,
-                      mapToContactField: key,
-                    },
-                  ]);
-                }}
-              >
-                <option value="">+ Add a field</option>
-                {["first_name", "last_name", "company", "phone", "message"]
-                  .filter((k) => !fields.some((f) => f.mapToContactField === k))
-                  .map((k) => (
-                    <option key={k} value={k}>
-                      {k.replaceAll("_", " ")}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div className={workspaceClassName("form-row")}>
-              <Field label="Button text">
-                <input
-                  required
-                  maxLength={60}
-                  value={button}
-                  onChange={(e) => setButton(e.target.value)}
-                />
-              </Field>
-              <Field label="Status">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
-                  <option value="ARCHIVED">Paused</option>
-                </select>
-              </Field>
-            </div>
-            <fieldset className="space-y-4 rounded-lg border p-4">
-              <legend className="px-1 text-sm font-medium">Appearance</legend>
-              <Field label="Theme">
-                <select
-                  value={theme.preset}
-                  onChange={(e) =>
-                    setTheme({
-                      ...formPresets[e.target.value as FormTheme["preset"]],
-                      logoUrl: theme.logoUrl,
-                    })
-                  }
-                >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="warm">Warm</option>
-                </select>
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    ["backgroundColor", "Page background"],
-                    ["cardColor", "Form background"],
-                    ["textColor", "Text color"],
-                    ["buttonColor", "Button color"],
-                    ["buttonTextColor", "Button text color"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <Field key={key} label={label}>
-                    <input
-                      type="color"
-                      value={theme[key]}
-                      onChange={(e) =>
-                        setTheme({ ...theme, [key]: e.target.value })
-                      }
-                    />
-                  </Field>
-                ))}
-              </div>
-              <Field label="Logo URL (HTTPS)">
-                <input
-                  type="url"
-                  pattern="https://.*"
-                  maxLength={2048}
-                  placeholder="https://example.com/logo.png"
-                  value={theme.logoUrl}
-                  onChange={(e) =>
-                    setTheme({ ...theme, logoUrl: e.target.value })
-                  }
-                />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Font">
-                  <select
-                    value={theme.font}
-                    onChange={(e) =>
-                      setTheme({
-                        ...theme,
-                        font: e.target.value as FormTheme["font"],
-                      })
-                    }
-                  >
-                    <option value="sans">Sans serif</option>
-                    <option value="serif">Serif</option>
-                    <option value="mono">Monospace</option>
-                  </select>
-                </Field>
-                <Field label="Corners">
-                  <select
-                    value={theme.corners}
-                    onChange={(e) =>
-                      setTheme({
-                        ...theme,
-                        corners: e.target.value as FormTheme["corners"],
-                      })
-                    }
-                  >
-                    <option value="rounded">Rounded</option>
-                    <option value="square">Square</option>
-                  </select>
-                </Field>
-              </div>
-            </fieldset>
-            <Field label="Success message">
-              <input
-                required
-                maxLength={500}
-                value={success}
-                onChange={(e) => setSuccess(e.target.value)}
-              />
-            </Field>
-          </div>
-          <div className={workspaceClassName("editor-preview")}>
-            <div className={workspaceClassName("editor-preview-label")}>
-              Live preview
-            </div>
-            <FormPreview
-              name={name}
-              description={description}
-              fields={fields}
-              button={button}
-              theme={theme}
-            />
-          </div>
-        </div>
-        {error && (
-          <div role="alert" className={workspaceClassName("product-error")}>
-            {error}
-          </div>
-        )}
-        <div className={workspaceClassName("modal-actions")}>
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            className={workspaceClassName("product-primary")}
-            disabled={busy}
-          >
-            {busy
-              ? "Saving…"
-              : status === "PUBLISHED"
-                ? "Save & publish"
-                : "Save form"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
 function Submissions({ form, close }: { form: LeadForm; close: () => void }) {
-  const q = useMarketingQuery<any[]>(`marketing/forms/${form.id}/submissions`);
+  const q = useMarketingQuery<
+    { id: string; EmailAddress: string; SubmittedAt: string }[]
+  >(`marketing/forms/${form.id}/submissions`);
   return (
     <Modal
       open
@@ -803,7 +315,11 @@ function Submissions({ form, close }: { form: LeadForm; close: () => void }) {
       title={`${form.Name} submissions`}
       description="The 200 most recent submissions, including repeat signups."
     >
-      <QueryState loading={q.isLoading} error={q.error} />
+      <QueryState
+        loading={q.isLoading}
+        error={q.error}
+        retry={() => void q.refetch()}
+      />
       {q.data?.length === 0 && (
         <Empty
           title="No submissions yet"

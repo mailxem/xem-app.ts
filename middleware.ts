@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
   // Check session (will work for both regular auth and API key auth)
   if (
     request.nextUrl.pathname.startsWith("/f/") ||
+    request.nextUrl.pathname === "/forms/embed.js" ||
     (process.env.NODE_ENV === "development" &&
       request.nextUrl.pathname === "/preview")
   )

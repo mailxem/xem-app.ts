@@ -8,6 +8,12 @@ export type Transport = <T>(
   body?: unknown,
 ) => Promise<T>;
 export const PreviewTransport = createContext<Transport | null>(null);
+export class MarketingRequestError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "MarketingRequestError";
+  }
+}
 export function useMarketing() {
   const { apiFetch, status, session } = useApi();
   const preview = useContext(PreviewTransport);
@@ -18,13 +24,17 @@ export function useMarketing() {
       method,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
-    const data = response.status === 204 ? null : await response.json();
+    const data = response.status === 204 ? null : await response.json().catch((error) => {
+      if (response.ok) throw error;
+      return null;
+    });
     if (!response.ok)
-      throw new Error(
+      throw new MarketingRequestError(
         typeof data?.error === "string"
           ? data.error
           : typeof data?.message === "string" ? data.message
           : "The request could not be completed. Please try again.",
+        response.status,
       );
     return data;
   };

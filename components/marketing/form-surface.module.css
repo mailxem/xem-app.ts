@@ -14,6 +14,10 @@
   color: var(--form-text);
   font-family: var(--form-font);
 }
+.embedded {
+  min-height: 0;
+  align-items: flex-start;
+}
 .card {
   width: 100%;
   max-width: 480px;
@@ -38,7 +42,7 @@
 .card label {
   color: var(--form-text);
 }
-.card input:not([type="checkbox"]),
+.card input:not([type="checkbox"]):not([type="radio"]),
 .card textarea {
   background: var(--form-card);
   color: var(--form-text);
@@ -46,7 +50,8 @@
   border-radius: var(--form-input-radius);
   font-family: inherit;
 }
-.card input[type="checkbox"] {
+.card input[type="checkbox"],
+.card input[type="radio"] {
   accent-color: var(--form-button);
 }
 .card button[type="submit"],

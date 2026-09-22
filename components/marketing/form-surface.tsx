@@ -4,11 +4,13 @@ import styles from "./form-surface.module.css";
 export function FormSurface({
   theme: value,
   preview = false,
+  embedded = false,
   name,
   children,
 }: {
   theme?: Partial<FormTheme>;
   preview?: boolean;
+  embedded?: boolean;
   name?: string;
   children: ReactNode;
 }) {
@@ -29,7 +31,7 @@ export function FormSurface({
           : "system-ui, sans-serif",
   } as CSSProperties;
   return (
-    <div className={preview ? styles.preview : styles.page} style={style}>
+    <div data-form-surface className={preview ? styles.preview : `${styles.page}${embedded ? ` ${styles.embedded}` : ""}`} style={style}>
       <div className={styles.card}>
         {theme.logoUrl && (
           <img
