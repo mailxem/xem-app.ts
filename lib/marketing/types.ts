@@ -49,6 +49,8 @@ export type FormField = {
 };
 export type LeadForm = {
   theme?: Partial<import("./form-theme").FormTheme>;
+  definition?: import("./form-definition").FormDefinition | null;
+  version?: number;
   id: string;
   Name: string;
   description: string;
@@ -61,6 +63,20 @@ export type LeadForm = {
   SubmissionCount: number;
   ViewCount: number;
   updatedAt: string;
+};
+export type FormAnalytics = {
+  views: number;
+  starts: number;
+  completions: number;
+  completionRate: number;
+  partials: number;
+  steps: {
+    pageId: string;
+    title: string;
+    views: number;
+    completions: number;
+  }[];
+  sources: { source: string; completions: number }[];
 };
 export type Contact = {
   id: string;
