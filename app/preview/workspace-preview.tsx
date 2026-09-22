@@ -1,4 +1,5 @@
 "use client";
+import { DashboardPreview } from "./dashboard-preview";
 import { AssistantPreview } from "@/components/assistant/assistant-preview";
 import { SendingPreview } from "./sending-preview";
 import { workspaceClassName } from "@/lib/workspace-styles";
@@ -269,11 +270,11 @@ const transport: Transport = async <T,>(
   return result as T;
 };
 export function WorkspacePreview() {
-  const [page, setPage] = useState("/");
+  const [page, setPage] = useState("/dashboard");
   return (
     <PreviewTransport.Provider value={transport}>
-      <div className={workspaceClassName("preview-banner !h-[26px]")}>
-        LOCAL VISUAL PREVIEW · Sample data · Sending disabled
+      <div className={workspaceClassName("preview-banner !h-[26px] whitespace-nowrap overflow-hidden !text-[9px]")}>
+        LOCAL PREVIEW · Sample data · Sending disabled
       </div>
       <div
         className="[&_.product-frame]:!h-[calc(100dvh-26px)]"
@@ -288,7 +289,9 @@ export function WorkspacePreview() {
         }}
       >
         <AppShell previewPage={page} onPreviewNavigate={setPage}>
-          {page === "/" ? (
+          {page === "/dashboard" || page.startsWith("/analytics") ? (
+            <DashboardPreview onNavigate={setPage} />
+          ) : page === "/" ? (
             <AssistantPreview />
           ) : page === "/onboarding" ? (
             <SendingPreview />
@@ -309,7 +312,7 @@ export function WorkspacePreview() {
           ) : page === "/forms" ? (
             <FormsPage />
           ) : (
-            <div className="m-6 rounded-2xl border bg-white p-8">
+            <div className="m-6 rounded-xl border bg-card p-8">
               <h2 className="text-xl font-semibold">Open your workspace</h2>
               <p className="mt-2 text-muted-foreground">
                 This page uses your account data and is available in the

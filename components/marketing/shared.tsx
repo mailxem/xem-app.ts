@@ -10,12 +10,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetPopup,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetPanel,
+} from "@/components/ui/sheet";
 export function PageHeading({
   title,
   description,
@@ -144,17 +145,15 @@ export function Modal({
   wide?: boolean;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={workspaceClassName(`product-modal ${wide ? "!max-w-5xl" : "!max-w-xl"}`)}
-      >
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetPopup variant="inset" className={wide ? "max-w-5xl" : "max-w-xl"}>
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>{description}</SheetDescription>
+        </SheetHeader>
+        <SheetPanel>{children}</SheetPanel>
+      </SheetPopup>
+    </Sheet>
   );
 }
 export function Field({
@@ -208,6 +207,15 @@ export function FilterTabs({
           key={item}
           role="tab"
           aria-selected={item === value}
+          tabIndex={item === value ? 0 : -1}
+          onKeyDown={(event) => {
+            const position = items.indexOf(item);
+            const next = event.key === "ArrowRight" ? (position + 1) % items.length : event.key === "ArrowLeft" ? (position - 1 + items.length) % items.length : event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : -1;
+            if (next < 0) return;
+            event.preventDefault();
+            onChange(items[next]);
+            (event.currentTarget.parentElement?.querySelectorAll("button")[next] as HTMLButtonElement | undefined)?.focus();
+          }}
           onClick={() => onChange(item)}
         >
           {item}

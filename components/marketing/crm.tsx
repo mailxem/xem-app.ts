@@ -193,7 +193,7 @@ export function CRMPage() {
                           >
                             <span
                               className={workspaceClassName(
-                                "user-avatar !bg-violet-50 !text-violet-500",
+                                "user-avatar !bg-muted !text-foreground",
                               )}
                             >
                               {(c.firstName || c.email)
@@ -380,7 +380,7 @@ function ContactEditor({
           <p>{contact.company}</p>
           <p>{contact.phone}</p>
           <Link
-            className="text-violet-600"
+            className="text-muted-foreground"
             href={`/audience/lists/${contact.listId}`}
           >
             Open in contact list ↗

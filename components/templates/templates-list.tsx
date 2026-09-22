@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -44,6 +45,7 @@ interface Template {
 }
 
 export function TemplatesList() {
+  const confirm = useConfirmSheet();
 
   const router = useRouter();
   const { team } = useTeam();
@@ -100,7 +102,7 @@ export function TemplatesList() {
             <DropdownMenuItem onClick={() => duplicateTemplate(template)}><Copy className="mr-2 size-4"/>Duplicate</DropdownMenuItem>
             <DropdownMenuItem onClick={async () => { try { await navigator.clipboard.writeText(template.id); toast.success("Template ID copied"); } catch { toast.error("Unable to copy template ID"); } }}>Copy template ID</DropdownMenuItem>
             <DropdownMenuSeparator/>
-            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Delete this template? This cannot be undone.")) void deleteTemplate(template.id); }}><Trash className="mr-2 size-4"/>Delete</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={async () => { if (await confirm({ title: "Delete template?", description: "This cannot be undone.", confirmLabel: "Delete template", variant: "destructive" })) void deleteTemplate(template.id); }}><Trash className="mr-2 size-4"/>Delete</DropdownMenuItem>
           </DropdownMenuContent></DropdownMenu>
         }/>)}
       </div>

@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -33,6 +34,7 @@ export function SendingDashboard() {
   return <DashboardContent key={scope || "signed-out"} />;
 }
 function DashboardContent() {
+  const confirm = useConfirmSheet();
   const credentialTrigger = useRef<HTMLButtonElement>(null);
   const q = useMarketingQuery<SendingState>("sending", true, 15000);
   const { request, refresh } = useMarketing();
@@ -101,8 +103,8 @@ function DashboardContent() {
     );
   if (q.error || !q.data)
     return (
-      <div className="space-y-4 rounded-2xl border p-8">
-        <h1 className="text-2xl font-semibold">Managed sending</h1>
+      <div className="space-y-4 rounded-xl border p-8">
+        <h1 className="text-2xl font-medium">Managed sending</h1>
         <p role="alert">{q.error?.message || "Sign in to continue."}</p>
         <Button variant="outline" onClick={() => void q.refetch()}>
           Try again
@@ -120,10 +122,10 @@ function DashboardContent() {
     <div className="mx-auto max-w-6xl space-y-7 pb-10">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[.16em] text-violet-700 dark:text-violet-300">
-            Your domain. Your voice.
+          <p className="mb-2 text-xs text-muted-foreground">
+            Workspace settings
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-medium tracking-tight">
             Managed sending
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -146,8 +148,8 @@ function DashboardContent() {
         </div>
       </header>
       {!state.enabled ? (
-        <div className="rounded-2xl border bg-muted/40 p-6">
-          <h2 className="font-semibold">
+        <div className="rounded-xl border bg-muted/40 p-6">
+          <h2 className="font-medium">
             Managed sending isn’t enabled here yet.
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -160,15 +162,15 @@ function DashboardContent() {
         </div>
       ) : (
         <>
-          <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-card p-5">
+          <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-5">
             <div className="flex items-center gap-3">
               <span
-                className={`rounded-xl p-3 ${eligible ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}
+                className={`rounded-lg p-2 ${eligible ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}`}
               >
                 <ShieldCheck size={20} />
               </span>
               <div>
-                <h2 className="text-sm font-semibold">
+                <h2 className="text-sm font-medium">
                   {state.account.suspended
                     ? "Sending suspended"
                     : !state.account.approved
@@ -203,7 +205,7 @@ function DashboardContent() {
               {state.account.paused ? "Resume sending" : "Pause sending"}
             </Button>
           </section>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {[
               {
                 label: "Today’s recipient sends",
@@ -224,10 +226,10 @@ function DashboardContent() {
             ].map((metric) => (
               <div
                 key={metric.label}
-                className="rounded-2xl border bg-card p-5"
+                className="min-w-0 px-5 py-5 sm:first:pl-0 sm:last:pr-0"
               >
                 <p className="text-xs text-muted-foreground">{metric.label}</p>
-                <p className="mt-3 text-2xl font-semibold">
+                <p className="mt-3 text-2xl font-medium tabular-nums">
                   {metric.money ? "$" : ""}
                   {metric.used.toLocaleString()}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -237,7 +239,7 @@ function DashboardContent() {
                 </p>
                 <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-violet-500"
+                    className="h-full rounded-full bg-primary"
                     style={{
                       width: `${Math.min(100, metric.limit ? (metric.used / metric.limit) * 100 : 0)}%`,
                     }}
@@ -254,14 +256,14 @@ function DashboardContent() {
           </p>
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Sending domains</h2>
+              <h2 className="text-sm font-medium">Sending domains</h2>
               <Button size="sm" variant="outline" onClick={() => setAdd(!add)}>
                 <Plus size={15} className="mr-1" />
                 Add domain
               </Button>
             </div>
             {(add || !state.domains.length) && (
-              <div className="rounded-2xl border bg-card p-6">
+              <div className="rounded-xl border border-border bg-card p-5">
                 <DomainForm
                   onDone={() => {
                     setAdd(false);
@@ -271,12 +273,17 @@ function DashboardContent() {
               </div>
             )}
             {state.domains.map((domain) => (
-              <details key={domain.id} className="rounded-2xl border bg-card">
+              <details
+                key={domain.id}
+                className="rounded-xl border border-border bg-card"
+              >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5">
-                  <div className="flex items-center gap-3">
-                    <Mail size={20} className="text-violet-600" />
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Mail size={20} className="text-muted-foreground" />
                     <div>
-                      <span className="font-semibold">{domain.name}</span>
+                      <span className="break-all text-sm font-medium">
+                        {domain.name}
+                      </span>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {domain.fromEmail || "Set up your sender address"}
                       </p>
@@ -312,11 +319,15 @@ function DashboardContent() {
                         variant="outline"
                         size="sm"
                         disabled={!!busy}
-                        onClick={() => {
+                        onClick={async () => {
                           if (
-                            confirm(
-                              `Disconnect ${domain.name} and revoke its credentials?`,
-                            )
+                            await confirm({
+                              title: `Disconnect ${domain.name}?`,
+                              description:
+                                "The domain’s credentials will be revoked.",
+                              confirmLabel: "Disconnect domain",
+                              variant: "destructive",
+                            })
                           )
                             void action(
                               `sending/domains/${domain.id}`,
@@ -332,11 +343,11 @@ function DashboardContent() {
               </details>
             ))}
           </section>
-          <section className="rounded-2xl border bg-card p-6">
+          <section className="rounded-xl border border-border bg-card p-5">
             <div className="mb-5 flex items-center gap-3">
-              <KeyRound size={20} className="text-violet-600" />
+              <KeyRound size={20} className="text-muted-foreground" />
               <div>
-                <h2 className="text-lg font-semibold">SMTP credentials</h2>
+                <h2 className="text-sm font-medium">SMTP credentials</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Connect external apps. Each credential belongs to one domain
                   and expires after 90 days.
@@ -372,7 +383,7 @@ function DashboardContent() {
                     <Label htmlFor="credential-domain">Sending domain</Label>
                     <select
                       id="credential-domain"
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm"
                       value={domainID || ready[0]?.id || ""}
                       onChange={(e) => setDomainID(e.target.value)}
                       required
@@ -418,11 +429,15 @@ function DashboardContent() {
                             size="sm"
                             variant="ghost"
                             disabled={!!busy}
-                            onClick={() => {
+                            onClick={async () => {
                               if (
-                                confirm(
-                                  `Revoke ${cred.name}? Apps using it will stop sending.`,
-                                )
+                                await confirm({
+                                  title: `Revoke ${cred.name}?`,
+                                  description:
+                                    "Apps using it will stop sending.",
+                                  confirmLabel: "Revoke credential",
+                                  variant: "destructive",
+                                })
                               )
                                 void action(
                                   `sending/credentials/${cred.id}`,
@@ -452,9 +467,9 @@ function DashboardContent() {
           </section>
         </>
       )}
-      <section className="rounded-2xl border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-5">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent delivery activity</h2>
+          <h2 className="text-sm font-medium">Recent delivery activity</h2>
           <span className="text-xs text-muted-foreground">
             Latest 50 messages
           </span>
@@ -582,7 +597,7 @@ function DashboardContent() {
           <div className="max-h-80 space-y-4 overflow-y-auto">
             {events?.length ? (
               events.map((e) => (
-                <div key={e.id} className="border-l-2 border-violet-200 pl-4">
+                <div key={e.id} className="border-l-2 border-border pl-4">
                   <p className="text-sm font-medium">{e.kind}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {e.detail} · {new Date(e.createdAt).toLocaleString()}

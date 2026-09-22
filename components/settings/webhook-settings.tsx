@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 import { useState, useEffect } from "react";
 import { useTeam } from "@/app/providers/team-provider";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ interface WebhookWithEvents extends Webhook {
 }
 
 export function WebhookSettings() {
+  const confirm = useConfirmSheet();
   const { team } = useTeam();
   const { apiFetch } = useApi();
   const [page, setPage] = useState(1);
@@ -92,7 +94,7 @@ export function WebhookSettings() {
       <section className={workspaceClassName("product-panel")}>
         <div className={workspaceClassName("panel-toolbar")}><h2>Your webhooks</h2><span className="text-xs text-muted-foreground">{query.data?.total ?? 0} endpoints</span></div>
         {query.isLoading || query.error ? <QueryState loading={query.isLoading} error={query.error} retry={() => void fetchWebhooks()}/> : !webhooks.length ? <Empty title="Connect your first endpoint" description="Receive updates when contacts open, click, reply, bounce, or report an email." action={<Button onClick={() => setIsAddDialogOpen(true)}>Add webhook</Button>}/> : <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{webhooks.map(webhook => <CollectionCard key={webhook.id} icon={<WebhookIcon size={22}/>} title={webhook.name} badge={webhook.isActive ? "Active" : "Inactive"} description={webhook.url} href={`/settings/webhooks/${webhook.id}/deliveries`} action="View deliveries" menu={<Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label={`Delete ${webhook.name}`} onClick={() => { if (confirm("Delete this webhook?")) void deleteWebhook(webhook.id); }}><Trash size={16}/></Button>}><div className="mt-4 flex items-center justify-between"><span className="text-xs text-muted-foreground">Receive events</span><Switch aria-label={`Enable ${webhook.name}`} checked={webhook.isActive} onCheckedChange={() => void toggle(webhook)}/></div><div className="mt-5 flex flex-wrap gap-1">{webhook.events.map(event => <span key={event} className="rounded-full bg-violet-50 px-2 py-1 text-xs text-violet-600">{event}</span>)}</div></CollectionCard>)}</div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{webhooks.map(webhook => <CollectionCard key={webhook.id} icon={<WebhookIcon size={22}/>} title={webhook.name} badge={webhook.isActive ? "Active" : "Inactive"} description={webhook.url} href={`/settings/webhooks/${webhook.id}/deliveries`} action="View deliveries" menu={<Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label={`Delete ${webhook.name}`} onClick={async () => { if (await confirm({ title: "Delete webhook?", description: "This endpoint will no longer receive events.", confirmLabel: "Delete webhook", variant: "destructive" })) void deleteWebhook(webhook.id); }}><Trash size={16}/></Button>}><div className="mt-4 flex items-center justify-between"><span className="text-xs text-muted-foreground">Receive events</span><Switch aria-label={`Enable ${webhook.name}`} checked={webhook.isActive} onCheckedChange={() => void toggle(webhook)}/></div><div className="mt-5 flex flex-wrap gap-1">{webhook.events.map(event => <span key={event} className="rounded-full bg-violet-50 px-2 py-1 text-xs text-violet-600">{event}</span>)}</div></CollectionCard>)}</div>
           <CollectionPagination page={page} limit={20} total={query.data?.total ?? 0} onPageChange={setPage}/>
         </>}
       </section>

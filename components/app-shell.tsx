@@ -1,57 +1,86 @@
 "use client";
-import { workspaceClassName } from "@/lib/workspace-styles";
-// Adapted from @efferd/dashboard-3: a shared sidebar, header and scrollable content shell.
-import { AppHeader } from "@/components/app-header";
-import { ReactNode, useState, useEffect } from "react";
+
+import { ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import {
-  LayoutGrid,
-  Sparkles,
-  Mail,
-  Send,
-  Workflow,
-  Users,
-  ChartNoAxesCombined,
-  PanelsTopLeft,
-  FilePenLine,
-  Settings,
-  Search,
-  ChevronDown,
-  PanelLeftClose,
-  Menu,
-  Newspaper,
-  Command,
-  LogOut,
   ArrowUpRight,
-  ShieldCheck,
-  X,
+  ChartNoAxesCombined,
+  ChevronDown,
+  ChevronsUpDown,
+  CircleHelp,
+  FilePenLine,
+  LayoutGrid,
+  LogOut,
+  Mail,
+  Menu,
+  Monitor,
+  Moon,
+  Newspaper,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelsTopLeft,
+  Search,
+  Send,
+  Settings,
+  Sparkles,
+  Sun,
+  Users,
+  Workflow,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/app-header";
+import { Modal } from "@/components/marketing/shared";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { Modal } from "@/components/marketing/shared";
-const navigation = [
-  { name: "Ask Xem", href: "/", icon: Sparkles },
-  { name: "Overview", href: "/dashboard", icon: LayoutGrid },
-  { name: "Getting started", href: "/onboarding", icon: Sparkles },
-  { name: "Inbox", href: "/inbox", icon: Mail },
-  { name: "Outbox", href: "/developer/logs/emails", icon: Send },
-  { name: "Campaigns", href: "/campaigns", icon: Mail },
-  { name: "Newsletters", href: "/newsletters", icon: Newspaper },
-  { name: "Automations", href: "/automations", icon: Workflow },
-  { name: "Contact lists", href: "/audience/lists", icon: Users },
-  { name: "CRM", href: "/crm", icon: Users },
-  { name: "Analytics", href: "/analytics", icon: ChartNoAxesCombined },
-  { name: "Templates", href: "/templates", icon: PanelsTopLeft },
-  { name: "Forms", href: "/forms", icon: FilePenLine },
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import styles from "@/components/workspace-shell.module.css";
+
+const navigationGroups = [
+  {
+    name: "Workspace",
+    items: [
+      { name: "Overview", href: "/dashboard", icon: LayoutGrid },
+      { name: "Ask Xem", href: "/", icon: Sparkles },
+      { name: "Inbox", href: "/inbox", icon: Mail },
+      { name: "Outbox", href: "/developer/logs/emails", icon: Send },
+    ],
+  },
+  {
+    name: "Create",
+    items: [
+      { name: "Campaigns", href: "/campaigns", icon: Mail },
+      { name: "Newsletters", href: "/newsletters", icon: Newspaper },
+      { name: "Automations", href: "/automations", icon: Workflow },
+      { name: "Templates", href: "/templates", icon: PanelsTopLeft },
+      { name: "Forms", href: "/forms", icon: FilePenLine },
+    ],
+  },
+  {
+    name: "Audience",
+    items: [
+      { name: "Contact lists", href: "/audience/lists", icon: Users },
+      { name: "CRM", href: "/crm", icon: Users },
+      { name: "Analytics", href: "/analytics", icon: ChartNoAxesCombined },
+    ],
+  },
 ];
+const navigation = navigationGroups.flatMap((group) =>
+  group.items.map((item) => ({ ...item, group: group.name })),
+);
+const gettingStarted = { name: "Getting started", href: "/onboarding", icon: CircleHelp, group: "Workspace" };
 const settingsNavigation = [
   { name: "Managed sending", href: "/settings/sending", icon: Send },
   { name: "SMTP senders", href: "/settings/smtp", icon: Settings },
@@ -59,10 +88,20 @@ const settingsNavigation = [
   { name: "API keys", href: "/settings/api-keys", icon: Settings },
   { name: "Webhooks", href: "/settings/webhooks", icon: Settings },
   { name: "Tags", href: "/audience/tags", icon: Settings },
-  { name: "Team", href: "/team", icon: Settings },
+  { name: "Team", href: "/team", icon: Users },
   { name: "Billing", href: "/settings/billing", icon: Settings },
   { name: "Account", href: "/settings", icon: Settings },
 ];
+const searchNavigation = [
+  ...navigation,
+  gettingStarted,
+  ...settingsNavigation.map((item) => ({ ...item, group: "Settings" })),
+];
+const sharedHeadingPages = [
+  "/campaigns", "/settings", "/settings/billing", "/settings/api-keys",
+  "/settings/smtp", "/settings/imap", "/team",
+];
+
 export function AppShell({
   children,
   previewPage,
@@ -75,28 +114,17 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
   const [mobile, setMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
   const active = previewPage || pathname;
-  const sharedHeading = [
-    "/campaigns",
-    "/analytics",
-    "/analytics/campaigns",
-    "/analytics/audience",
-    "/analytics/team",
-    "/analytics/trends",
-    "/settings",
-    "/settings/billing",
-    "/settings/api-keys",
-    "/settings/smtp",
-    "/settings/imap",
-    "/team",
-  ].includes(active);
+
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setSearchOpen((value) => !value);
       }
@@ -104,274 +132,179 @@ export function AppShell({
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, []);
-  const current = navigation.find((n) =>
-    n.href === "/" ? active === "/" : n.href === "/analytics" ? active.startsWith("/analytics") || active === "/audience/dashboard" : active.startsWith(n.href),
+
+  useEffect(() => {
+    setMobile(false);
+  }, [active]);
+
+  useEffect(() => {
+    if (!searchOpen) setSearch("");
+  }, [searchOpen]);
+
+  const current = navigation.find((item) =>
+    item.href === "/"
+      ? active === "/"
+      : item.href === "/analytics"
+        ? active.startsWith("/analytics") || active === "/audience/dashboard"
+        : active === item.href || active.startsWith(`${item.href}/`),
   );
-  const currentSetting = settingsNavigation.find(
-    (n) =>
-      active === n.href ||
-      (n.href !== "/settings" && active.startsWith(`${n.href}/`)),
+  const currentSetting = settingsNavigation.find((item) =>
+    active === item.href || (item.href !== "/settings" && active.startsWith(`${item.href}/`)),
   );
-  if (
-    pathname.startsWith("/f/") ||
-    pathname.startsWith("/auth/") ||
-    (pathname === "/preview" && !previewPage)
-  )
+  const currentPage = currentSetting?.name || current?.name || (active === "/onboarding" ? "Getting started" : "Workspace");
+  const currentGroup = currentSetting ? "Settings" : current?.group || "Workspace";
+  const results = searchNavigation.filter((item) =>
+    `${item.name} ${item.group}`.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const name = session?.user?.name || (previewPage ? "Alex Morgan" : "Your account");
+  const initials = name.split(" ").filter(Boolean).map((part) => part[0]).slice(0, 2).join("");
+
+  if (pathname.startsWith("/f/") || pathname.startsWith("/auth/") || (pathname === "/preview" && !previewPage)) {
     return <>{children}</>;
-  const name =
-    session?.user?.name || (previewPage ? "Alex Morgan" : "Your workspace");
+  }
+
   const go = (href: string) => {
     setMobile(false);
     setSearchOpen(false);
     onPreviewNavigate ? onPreviewNavigate(href) : router.push(href);
   };
-  const sidebar = (
-    <>
-      <div className={workspaceClassName("brand")}>
-        <button
-          type="button"
-          className="flex shrink-0 items-center rounded-lg"
-          aria-label={collapsed ? "Expand sidebar" : "Xem dashboard"}
-          onClick={() => (collapsed ? setCollapsed(false) : go("/"))}
-        >
-          <img
-            src="/android-chrome-512x512.png"
-            alt="Xem"
-            className="h-9 w-9 object-contain"
-          />
-        </button>
-        {!collapsed && <span>Xem</span>}
-        <button
-          className={workspaceClassName("collapse-sidebar")}
-          aria-label="Collapse sidebar"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          <PanelLeftClose size={18} />
-        </button>
-      </div>
-      <nav aria-label="Main navigation">
-        {navigation.map(({ name, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            title={collapsed ? name : undefined}
-            onClick={(e) => {
-              if (onPreviewNavigate) {
-                e.preventDefault();
-                go(href);
-              } else setMobile(false);
-            }}
-            className={workspaceClassName(
-              `product-nav-item ${current?.href === href ? "active" : ""}`,
-            )}
-            aria-current={current?.href === href ? "page" : undefined}
-          >
-            <Icon size={19} strokeWidth={1.65} />
-            {!collapsed && <span>{name}</span>}
-            {!collapsed && name === "Newsletters" && <small>NEW</small>}
+  const handleNavigation = (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (onPreviewNavigate) {
+      event.preventDefault();
+      go(href);
+    } else {
+      setMobile(false);
+    }
+  };
+
+  const sidebar = (isMobile = false) => {
+    const compact = collapsed && !isMobile;
+    return (
+      <>
+        <div className={styles.brandRow}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={styles.workspaceIdentity} aria-label="Workspace menu" title={compact ? "Xem workspace" : undefined}>
+                <img src="/android-chrome-512x512.png" alt="" className={styles.brandMark} />
+                {!compact && <><span>Xem workspace</span><ChevronsUpDown size={13} strokeWidth={1.6} /></>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="bottom" align="start" className={styles.workspaceMenu}>
+              <DropdownMenuItem onClick={() => go("/settings")}><Settings size={15} />Workspace settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => go("/team")}><Users size={15} />Team</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => go("/settings/billing")}><LayoutGrid size={15} />Billing</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {!isMobile && !compact && <button type="button" className={styles.iconButton} aria-label="Collapse sidebar" onClick={() => setCollapsed(true)}><PanelLeftClose size={16} strokeWidth={1.6} /></button>}
+        </div>
+        {compact && <button type="button" className={cn(styles.iconButton, styles.expandButton)} aria-label="Expand sidebar" onClick={() => setCollapsed(false)}><PanelLeftOpen size={17} strokeWidth={1.6} /></button>}
+        <nav className={styles.navigation} aria-label={isMobile ? "Mobile navigation" : "Main navigation"}>
+          {navigationGroups.map((group) => (
+            <div className={styles.navGroup} key={group.name}>
+              {!compact && <p className={styles.groupLabel}>{group.name}</p>}
+              {group.items.map(({ name: label, href, icon: Icon }) => (
+                <Link key={href} href={href} title={compact ? label : undefined} aria-label={compact ? label : undefined} aria-current={current?.href === href ? "page" : undefined} onClick={(event) => handleNavigation(event, href)} className={cn(styles.navItem, current?.href === href && styles.active)}>
+                  <Icon size={17} strokeWidth={1.65} />
+                  {!compact && <span>{label}</span>}
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className={styles.sidebarBottom}>
+          <Link href="/onboarding" title={compact ? "Getting started" : undefined} aria-label={compact ? "Getting started" : undefined} aria-current={active === "/onboarding" ? "page" : undefined} onClick={(event) => handleNavigation(event, "/onboarding")} className={cn(styles.navItem, styles.onboarding, active === "/onboarding" && styles.active)}>
+            <CircleHelp size={17} strokeWidth={1.65} />
+            {!compact && <><span>Getting started</span><ArrowUpRight size={13} className={styles.trailingIcon} /></>}
           </Link>
-        ))}
-        {!collapsed && (
-          <details
-            key={currentSetting?.href || "workspace"}
-            open={!!currentSetting}
-            className={workspaceClassName("product-nav-settings")}
-          >
-            <summary className={workspaceClassName("product-nav-item")}>
-              <Settings size={19} />
-              Settings & workspace
-            </summary>
-            {settingsNavigation.map(({ name, href }) => (
-              <Link
-                key={href}
-                href={href}
-                aria-current={
-                  currentSetting?.href === href ? "page" : undefined
-                }
-                className={workspaceClassName(
-                  `product-nav-item pl-10 ${currentSetting?.href === href ? "active" : ""}`,
-                )}
-                onClick={(e) => {
-                  if (onPreviewNavigate) {
-                    e.preventDefault();
-                    go(href);
-                  } else setMobile(false);
-                }}
-              >
-                {name}
-              </Link>
-            ))}
-          </details>
-        )}
-        {collapsed && (
-          <Link
-            href="/settings"
-            title="Settings & workspace"
-            aria-label="Settings & workspace"
-            className={workspaceClassName(
-              `product-nav-item ${currentSetting ? "active" : ""}`,
-            )}
-          >
-            <Settings size={19} strokeWidth={1.65} />
-          </Link>
-        )}
-      </nav>
-      <div className={workspaceClassName("sidebar-bottom")}>
-        {!collapsed && (
-          <div className={workspaceClassName("workspace-note")}>
-            <span className={workspaceClassName("workspace-dot")} />
-            Your next great connection
-            <br />
-            <strong>starts with an email.</strong>
-          </div>
-        )}
-      </div>
-    </>
-  );
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={cn(styles.navItem, styles.settingsButton, currentSetting && styles.active)} title={compact ? "Settings" : undefined} aria-label="Settings and workspace">
+                <Settings size={17} strokeWidth={1.65} />
+                {!compact && <><span>Settings</span><ChevronDown size={13} className={styles.trailingIcon} /></>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side={isMobile ? "top" : "right"} align="end" sideOffset={8} collisionPadding={16} className={styles.workspaceMenu}>
+              {settingsNavigation.map(({ name: label, href, icon: Icon }) => <DropdownMenuItem key={href} onClick={() => go(href)} className={currentSetting?.href === href ? styles.menuActive : undefined}><Icon size={15} strokeWidth={1.65} />{label}</DropdownMenuItem>)}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </>
+    );
+  };
+
   return (
-    <div
-      className={workspaceClassName(
-        `product-frame ${collapsed ? "sidebar-collapsed" : ""}`,
-      )}
-    >
-      <aside className={workspaceClassName("product-sidebar")}>{sidebar}</aside>
+    <div className={cn("product-frame", styles.frame, collapsed && styles.collapsed)}>
+      <aside className={cn("product-sidebar", styles.sidebar)}>{sidebar()}</aside>
       <Sheet open={mobile} onOpenChange={setMobile}>
-        <SheetContent
-          side="left"
-          className={workspaceClassName("mobile-sidebar")}
-        >
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
-          {sidebar}
+        <SheetContent side="left" className={styles.mobileSidebar}>
+          <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
+          <SheetDescription className="sr-only">Open a page or change your workspace settings.</SheetDescription>
+          {sidebar(true)}
         </SheetContent>
       </Sheet>
-      <div className={workspaceClassName("product-main")}>
-        <header className={workspaceClassName("product-topbar")}>
-          <button
-            className={workspaceClassName("mobile-menu icon-button")}
-            aria-label="Open navigation"
-            onClick={() => setMobile(true)}
-          >
-            <Menu size={20} />
-          </button>
-          <button
-            aria-label="Search your workspace"
-            className={workspaceClassName("workspace-search")}
-            onClick={() => setSearchOpen(true)}
-          >
-            <Search size={19} />
-            <span>Search your workspace…</span>
-            <kbd>⌘ K</kbd>
-          </button>
-          <div className={workspaceClassName("topbar-actions ml-auto")}>
-            <Link
-              className={workspaceClassName("topbar-quick")}
-              href="/templates"
-              onClick={(e) => {
-                if (onPreviewNavigate) {
-                  e.preventDefault();
-                  go("/templates");
-                }
-              }}
-            >
-              <PanelsTopLeft size={17} />
-              Template library
-              <ArrowUpRight size={15} />
-            </Link>
+      <div className={cn("product-main", styles.main)}>
+        <header className={cn("product-topbar", styles.topbar)}>
+          <button type="button" className={cn(styles.iconButton, styles.mobileMenu)} aria-label="Open navigation" onClick={() => setMobile(true)}><Menu size={19} strokeWidth={1.65} /></button>
+          <nav className={styles.breadcrumb} aria-label="Breadcrumb">
+            <span className={styles.breadcrumbGroup}>{currentGroup}</span>
+            <span className={styles.breadcrumbSeparator} aria-hidden="true">/</span>
+            <span aria-current="page">{currentPage}</span>
+          </nav>
+          <div className={styles.topbarActions}>
+            <button type="button" aria-label="Search your workspace" className={styles.searchTrigger} onClick={() => setSearchOpen(true)}>
+              <Search size={16} strokeWidth={1.65} /><span>Search</span><kbd>⌘ K</kbd>
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`Account menu for ${name}`}
-                  className="flex h-11 min-w-0 items-center gap-2.5 rounded-xl border border-border bg-white px-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-[780px]:size-10 max-[780px]:justify-center max-[780px]:border-0 max-[780px]:bg-transparent max-[780px]:p-0"
-                >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">
-                    {name
-                      .split(" ")
-                      .map((s) => s[0])
-                      .slice(0, 2)
-                      .join("")}
-                  </span>
-                  <span className="max-w-36 truncate text-sm font-medium max-[1100px]:hidden">
-                    {name}
-                  </span>
-                  <ChevronDown
-                    size={14}
-                    className="shrink-0 text-muted-foreground max-[780px]:hidden"
-                  />
+                <button type="button" aria-label={`Account menu for ${name}`} className={styles.accountTrigger}>
+                  <span className={styles.avatar}>{initials}</span>
+                  <ChevronDown size={13} strokeWidth={1.65} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="bottom"
-                align="end"
-                sideOffset={8}
-                collisionPadding={12}
-                className="w-60 rounded-xl border-border p-2"
-              >
-                <div className="mb-1 border-b border-border px-3 py-2.5">
-                  <p className="truncate text-sm font-semibold">{name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Workspace settings
-                  </p>
-                </div>
-                <DropdownMenuItem
-                  className="min-h-10 gap-3 rounded-lg px-3 text-sm"
-                  onClick={() => go("/settings")}
-                >
-                  <Settings className="size-4 text-muted-foreground" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="min-h-10 gap-3 rounded-lg px-3 text-sm"
-                  onClick={() => signOut({ callbackUrl: "/auth/login" })}
-                >
-                  <LogOut className="size-4 text-muted-foreground" />
-                  Sign out
-                </DropdownMenuItem>
+              <DropdownMenuContent side="bottom" align="end" sideOffset={8} collisionPadding={12} className={styles.workspaceMenu}>
+                <div className={styles.accountInfo}><p>{name}</p><span>{session?.user?.email || "Your Xem workspace"}</span></div>
+                <DropdownMenuItem onClick={() => go("/settings")}><Settings size={15} strokeWidth={1.65} />Account settings</DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className={styles.appearanceTrigger}><Monitor size={15} strokeWidth={1.65} />Appearance</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className={styles.workspaceMenu}>
+                    <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                      <DropdownMenuRadioItem value="dark" className={styles.appearanceChoice}><Moon size={15} strokeWidth={1.65} />Dark</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="light" className={styles.appearanceChoice}><Sun size={15} strokeWidth={1.65} />Light</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="system" className={styles.appearanceChoice}><Monitor size={15} strokeWidth={1.65} />System</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/auth/login" })}><LogOut size={15} strokeWidth={1.65} />Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
-        <main
-          className={workspaceClassName(`product-content ${active === "/" ? "!p-0 !overflow-hidden" : ""}`)}
-          data-page={active}
-        >
-          {sharedHeading && !active.startsWith("/analytics") && !previewPage && <AppHeader />}
+        <main className={cn("product-content", styles.content, ["/", "/inbox", "/developer/logs/emails"].includes(active) && styles.assistantContent)} data-page={active}>
+          {sharedHeadingPages.includes(active) && !previewPage && <AppHeader />}
           {children}
-          {!["/", "/inbox", "/developer/logs/emails", "/automations"].includes(
-            active,
-          ) && (
-            <footer className={workspaceClassName("product-footer")}>
-              <span>Xem · Made for meaningful connections</span>
-              <span>
-                <ShieldCheck size={13} /> Your workspace, connected
-              </span>
-            </footer>
-          )}
         </main>
       </div>
-      <Modal
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        title="Find your way"
-        description="Jump to a workspace page."
-      >
-        <input
-          autoFocus
-          className={workspaceClassName("product-input")}
-          placeholder="Search pages…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className={workspaceClassName("search-results")}>
-          {[...navigation, ...settingsNavigation]
-            .filter((n) => n.name.toLowerCase().includes(search.toLowerCase()))
-            .map((n) => (
-              <button key={n.href} onClick={() => go(n.href)}>
-                <n.icon size={18} />
-                {n.name}
-                <ArrowUpRight size={16} />
-              </button>
-            ))}
+      <Modal open={searchOpen} onOpenChange={setSearchOpen} title="Search workspace" description="Open a page, tool, or setting.">
+        <div className={styles.searchField}>
+          <Search size={17} strokeWidth={1.65} />
+          <input autoFocus aria-label="Search workspace pages" placeholder="Where would you like to go?" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              searchResultsRef.current?.querySelector("button")?.focus();
+            }
+          }} />
+        </div>
+        <div ref={searchResultsRef} className={styles.searchResults} onKeyDown={(event) => {
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+          const buttons = Array.from(event.currentTarget.querySelectorAll("button"));
+          const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+          const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+          event.preventDefault();
+          buttons[nextIndex]?.focus();
+        }}>
+          {results.map(({ name: label, href, icon: Icon, group }) => <button key={href} type="button" onClick={() => go(href)}><Icon size={17} strokeWidth={1.65} /><span>{label}</span><small>{group}</small><ArrowUpRight size={14} strokeWidth={1.65} /></button>)}
+          {results.length === 0 && <p className={styles.searchEmpty}>No pages match “{search}”. Try another name.</p>}
         </div>
       </Modal>
     </div>

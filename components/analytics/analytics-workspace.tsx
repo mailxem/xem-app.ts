@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { AnalyticsCharts } from "./analytics-charts";
+import styles from "./analytics-surface.module.css";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -88,25 +89,18 @@ function MetricCard({
   change?: string;
 }) {
   return (
-    <Card className="rounded-2xl shadow-none">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-          <span>{label}</span>
-          <span className="rounded-lg bg-violet-50 p-2 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300">
-            <Icon className="h-4 w-4" />
-          </span>
-        </div>
-        <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">
-          {value}
-        </p>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>
-        {change && (
-          <p className="mt-2 text-xs font-medium text-foreground">{change}</p>
-        )}
-      </CardContent>
-    </Card>
+    <div className={styles.metric}>
+      <div className={styles.metricLabel}>
+        <Icon aria-hidden="true" />
+        <span>{label}</span>
+      </div>
+      <p className={styles.metricValue}>{value}</p>
+      <p className={styles.metricDetail}>{detail}</p>
+      {change && <p className={styles.metricChange}>{change}</p>}
+    </div>
   );
 }
+
 function RateValue({ rate }: { rate: Rate }) {
   return (
     <span
@@ -188,7 +182,7 @@ function Workspace({
   const scoped = new URLSearchParams(params);
   if (report) scoped.set("asOf", report.asOf);
   return (
-    <div className="space-y-6 pb-6">
+    <div className={styles.workspace}>
       {!embedded && (
         <>
           <PageHeading
@@ -217,16 +211,13 @@ function Workspace({
               </Button>
             }
           />
-          <nav
-            aria-label="Analytics reports"
-            className="flex gap-1 overflow-x-auto border-b"
-          >
+          <nav aria-label="Analytics reports" className={styles.reportNav}>
             {views.map((v) => (
               <Link
                 key={v.value}
                 href={`${v.href}?${params}`}
                 aria-current={view === v.value ? "page" : undefined}
-                className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium ${view === v.value ? "border-violet-600 text-violet-700" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                className="hover:text-foreground"
               >
                 {v.label}
               </Link>
@@ -234,8 +225,8 @@ function Workspace({
           </nav>
         </>
       )}
-      <div className="grid grid-cols-2 items-end gap-3 rounded-xl border bg-card p-4 sm:flex sm:flex-wrap">
-        <label className="min-w-0 space-y-1.5 text-xs font-medium">
+      <div className={styles.filters}>
+        <label className={styles.filter}>
           <span>Period</span>
           <Select
             value={days}
@@ -257,7 +248,7 @@ function Workspace({
             </SelectContent>
           </Select>
         </label>
-        <label className="min-w-0 space-y-1.5 text-xs font-medium">
+        <label className={styles.filter}>
           <span>From</span>
           <Input
             aria-label="From date"
@@ -270,7 +261,7 @@ function Workspace({
             className="w-full sm:w-36"
           />
         </label>
-        <label className="min-w-0 space-y-1.5 text-xs font-medium">
+        <label className={styles.filter}>
           <span>To</span>
           <Input
             aria-label="To date"
@@ -321,7 +312,7 @@ function Workspace({
         />
         <label className="col-span-2 flex h-9 items-center gap-2 text-xs text-muted-foreground">
           <input
-            className="accent-violet-600"
+            className="accent-primary"
             type="checkbox"
             checked={compare}
             onChange={(e) => setCompare(e.target.checked)}
@@ -363,7 +354,7 @@ function Workspace({
         report &&
         summary && (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <div className={styles.context}>
               <span>
                 Updated{" "}
                 {new Date(report.asOf).toLocaleString(undefined, {
@@ -373,14 +364,14 @@ function Workspace({
               </span>
               {campaignId && (
                 <Link
-                  className="text-violet-700 underline"
+                  className="text-foreground underline"
                   href="/analytics/campaigns"
                 >
                   Clear campaign filter
                 </Link>
               )}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className={styles.metrics}>
               {view === "audience" ? (
                 <>
                   <MetricCard
@@ -480,7 +471,7 @@ function Workspace({
               )}
             </div>
             {summary.accepted === 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed p-5">
+              <div className={styles.empty}>
                 <div>
                   <h2 className="font-medium">
                     No accepted messages in this period
@@ -541,9 +532,11 @@ function Workspace({
               />
             )}
             {view === "delivery" && (
-              <Card className="shadow-none">
+              <Card className={styles.panel}>
                 <CardHeader>
-                  <CardTitle className="text-base">Tracking coverage</CardTitle>
+                  <CardTitle className={styles.panelTitle}>
+                    Tracking coverage
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <p>
@@ -605,7 +598,7 @@ function FilterSelect({
   options: { id: string; name: string }[];
 }) {
   return (
-    <label className="min-w-0 space-y-1.5 text-xs font-medium">
+    <label className={styles.filter}>
       <span>{label}</span>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger aria-label={label} className="w-full sm:w-44">
@@ -706,11 +699,11 @@ function Breakdown({
     URL.revokeObjectURL(url);
   }
   return (
-    <Card className="overflow-hidden shadow-none">
-      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
+    <Card className={styles.panel}>
+      <CardHeader className={styles.panelHeader}>
         <div>
-          <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription className="mt-1">
+          <CardTitle className={styles.panelTitle}>{title}</CardTitle>
+          <CardDescription className={styles.panelDescription}>
             {kind === "sources"
               ? "New records grouped by known source, with subsequent campaign engagement. Unknown sources remain visible."
               : kind === "links"
@@ -798,7 +791,7 @@ function Breakdown({
                           <div className="truncate font-medium" title={r.name}>
                             {kind === "campaigns" || kind === "lists" ? (
                               <Link
-                                className="hover:text-violet-700"
+                                className="hover:text-primary"
                                 href={`${kind === "campaigns" ? "/analytics/campaigns" : "/audience/dashboard"}?${scope}`}
                               >
                                 {r.name} ↗
@@ -808,7 +801,7 @@ function Breakdown({
                             )}
                           </div>
                           {r.kind === "newsletter" && (
-                            <span className="text-xs text-violet-600">
+                            <span className="text-xs text-muted-foreground">
                               Newsletter edition
                             </span>
                           )}

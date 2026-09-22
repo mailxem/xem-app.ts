@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import styles from "./collection-card.module.css";
 
-/** Shared collection layout for templates, contact lists, and campaigns. */
+/** A quiet, shared resource surface for collections and connected services. */
 export function CollectionCard({ icon, badge, title, href, description, children, action, menu, onAction }: {
   icon: ReactNode;
   badge?: ReactNode;
@@ -14,19 +16,24 @@ export function CollectionCard({ icon, badge, title, href, description, children
   action: string;
   menu?: ReactNode;
 }) {
-  return <article className="group flex min-w-0 flex-col rounded-[20px] border border-border bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-    <div className="mb-5 flex items-center justify-between gap-3">
-      <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-violet-100 bg-violet-50 text-violet-500">{icon}</span>
-      {badge && <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{badge}</span>}
-    </div>
-    <div className="flex-1">
-      <h3 className="mb-1 break-words text-base font-semibold tracking-tight">{href ? <Link href={href} className="hover:text-primary">{title}</Link> : title}</h3>
-      {description && <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>}
-      {children}
-    </div>
-    <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-      {href ? <Link href={href} className="inline-flex items-center gap-2 text-xs font-medium text-primary">{action}<ArrowUpRight size={14}/></Link> : <button type="button" onClick={onAction} className="inline-flex items-center gap-2 text-xs font-medium text-primary">{action}<ArrowUpRight size={14}/></button>}
-      {menu}
-    </div>
-  </article>;
+  const textBadge = typeof badge === "string" || typeof badge === "number";
+  return (
+    <article className={styles.card}>
+      <div className={styles.header}>
+        <span className={styles.icon}>{icon}</span>
+        {badge && <span className={cn(styles.badge, textBadge && styles.textBadge)}>{badge}</span>}
+      </div>
+      <div className={styles.body}>
+        <h3>{href ? <Link href={href}>{title}</Link> : title}</h3>
+        {description && <p className={styles.description}>{description}</p>}
+        {children && <div className={styles.details}>{children}</div>}
+      </div>
+      <div className={styles.footer}>
+        {href
+          ? <Link href={href} className={styles.action}>{action}<ArrowUpRight size={14} strokeWidth={1.65} /></Link>
+          : <button type="button" onClick={onAction} className={styles.action}>{action}<ArrowUpRight size={14} strokeWidth={1.65} /></button>}
+        {menu}
+      </div>
+    </article>
+  );
 }
