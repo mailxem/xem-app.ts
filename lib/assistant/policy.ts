@@ -66,7 +66,7 @@ export function redact(value: unknown, depth = 0): unknown {
     );
   return value;
 }
-export function safeEndpoint(value: string) {
+export function safeEndpoint(value: string, { allowHTTP = false } = {}) {
   const url = new URL(value);
   if (
     url.username ||
@@ -76,7 +76,8 @@ export function safeEndpoint(value: string) {
     (url.protocol !== "https:" &&
       !(
         url.protocol === "http:" &&
-        ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+        (allowHTTP ||
+          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
       ))
   )
     throw new Error("Invalid assistant endpoint");

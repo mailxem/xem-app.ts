@@ -22,15 +22,22 @@ export function enabled() {
     (process.env.NODE_ENV !== "production" || !!process.env.ASSISTANT_REDIS_URL)
   );
 }
+function backendEndpoint() {
+  const internal = process.env.INTERNAL_API_URL;
+  // This server-only setting is the operator's trusted service address.
+  // Public API, MCP and model endpoints keep the default HTTPS requirement.
+  return safeEndpoint(
+    internal ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://api.xem.email/api/v1",
+    { allowHTTP: Boolean(internal) },
+  );
+}
 export async function authenticate(): Promise<AssistantScope> {
   const session = await auth();
   if (!session?.accessToken || session.error)
     throw new AssistantError(401, "Please sign in again.");
-  const base = safeEndpoint(
-    process.env.INTERNAL_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "https://api.xem.email/api/v1",
-  );
+  const base = backendEndpoint();
   const response = await fetch(`${base}/users/me`, {
     headers: { Authorization: `Bearer ${session.accessToken}` },
     cache: "no-store",
@@ -54,11 +61,7 @@ export async function authenticate(): Promise<AssistantScope> {
 }
 export const ownerKey = (s: AssistantScope) => `${s.teamId}:${s.userId}`;
 export async function connectMCP(scope: AssistantScope) {
-  const base = safeEndpoint(
-    process.env.INTERNAL_API_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "https://api.xem.email/api/v1",
-  );
+  const base = backendEndpoint();
   const response = await fetch(`${base}/assistant/credential`, {
     method: "POST",
     headers: {
