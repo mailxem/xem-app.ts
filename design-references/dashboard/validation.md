@@ -8,6 +8,7 @@ Reviewed locally on September 22, 2026. See [design-system.md](./design-system.m
 - The initial shared-workspace run passed all 67 tests across 15 suites, including 9 sheet interaction tests.
 - Before pushing, the redesign was separated from the unfinished form features and exported into an isolated checkout. All 45 tests across its 12 suites passed, including the same 9 sheet interaction tests.
 - After completing the form features, the combined frontend passed all 85 tests across 18 suites and the configured production build, including TypeScript validation.
+- After integrating the latest `sudo` DNS-onboarding changes, a clean checkout passed `bun install --frozen-lockfile`, all 90 tests across 19 suites, and `bun run build` with TypeScript validation. The committed Bun lockfile includes the Coss and sheet-test dependencies used by the release build.
 - Sheet coverage includes cancellation, focus restoration, dropdown handoff, nested selects, and busy states.
 - The existing ESLint configuration fails while loading; lint could not complete. Build, type checking, and tests passed independently.
 - An additional build using the unconfigured Webpack alternative failed to resolve the existing editor dependency `y-protocols/awareness`. The project's configured Turbopack build passed; Webpack compatibility is not claimed.
