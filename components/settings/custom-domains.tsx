@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 import { useState } from "react";
 import { Globe, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ import { QueryState, Empty } from "@/components/marketing/shared";
 import { workspaceClassName } from "@/lib/workspace-styles";
 interface Domain { id:string; domain:string; dnsRecord:string; isVerified:boolean }
 export function CustomDomains() {
+  const confirm = useConfirmSheet();
  const [page,setPage] = useState(1);
  const query = useResourcePage<Domain>("domains",page,12);
  const { request } = useMarketing();
@@ -26,7 +28,7 @@ export function CustomDomains() {
   setBusy(id);try{await request(`marketing/domains/${id}/verify`,"POST");toast.success("Domain ownership verified");}catch(error){toast.error((error as Error).message);}finally{await query.refetch();setBusy("");}
  };
  const remove = async(domain:Domain)=>{
-  if(!confirm(`Remove ${domain.domain}?`))return;
+  if (!(await confirm({ title: `Remove ${domain.domain}?`, description: "This domain will be removed from your workspace.", confirmLabel: "Remove domain", variant: "destructive" }))) return;
   setBusy(domain.id);try{await request(`domains/${domain.id}`,"DELETE");await query.refetch();toast.success("Domain removed");}catch(error){toast.error((error as Error).message);}finally{setBusy("");}
  };
  return <section className={workspaceClassName("product-panel")}><h2 className="text-lg font-semibold">Custom domains</h2><p className="mt-1 text-sm text-muted-foreground">Verify ownership with a DNS TXT record. Your sending provider manages SPF, DKIM, and email authentication.</p><form onSubmit={add} className="my-6 flex flex-wrap items-end gap-3"><div className="min-w-0 flex-1 space-y-2"><Label htmlFor="new-domain">Domain name</Label><Input id="new-domain" required value={name} onChange={e=>setName(e.target.value)} placeholder="example.com" maxLength={253}/></div><Button type="submit" disabled={!!busy}>{busy==="new"?"Adding…":"Add domain"}</Button></form>

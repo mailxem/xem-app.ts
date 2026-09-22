@@ -205,7 +205,7 @@ function MailboxPage({mode}: {mode: "inbox" | "outbox"}) {
                 <span
                   className={workspaceClassName("mail-avatar")}
                   style={{
-                    background: ["#e8eeeb", "#eee7f3", "#f0e9dc", "#e4edf1"][
+                    background: ["var(--muted)", "var(--secondary)", "var(--muted)", "var(--secondary)"][
                       i % 4
                     ],
                   }}

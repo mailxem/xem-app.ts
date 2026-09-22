@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, KeyRound, MoreHorizontal, Trash, ShieldCheck, Clock3 } from "lucide-react";
@@ -14,6 +15,7 @@ import { Metric, QueryState, Empty } from "@/components/marketing/shared";
 import { workspaceClassName } from "@/lib/workspace-styles";
 
 export default function APIKeysPage() {
+  const confirm = useConfirmSheet();
   const [page, setPage] = useState(1);
   const query = useResourcePage<APIKey>("api-keys", page, 20);
   const apiKeys = query.data?.data ?? [];
@@ -21,7 +23,7 @@ export default function APIKeysPage() {
   const [busy, setBusy] = useState("");
   const expired = (key: APIKey) => !!key.expiresAt && new Date(key.expiresAt) < new Date();
   const remove = async (id: string) => {
-    if (!confirm("Delete this API key? Applications using it will lose access.")) return;
+    if (!(await confirm({ title: "Delete API key?", description: "Applications using it will lose access.", confirmLabel: "Delete API key", variant: "destructive" }))) return;
     setBusy(id);
     try {
       const response = await apiFetch(`api-keys/${id}`, { method: "DELETE" });

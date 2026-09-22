@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -84,6 +85,7 @@ export function SMTPSettings({
   isDialogOpen: boolean;
   setIsDialogOpen: (open: boolean) => void;
 }) {
+  const confirm = useConfirmSheet();
   const [editConfig, setEditConfig] = useState<SMTPConfig | null>(null);
   const { team } = useTeam();
   const { configs: smtpConfigs, isLoading, refresh, error } = useSMTP();
@@ -200,7 +202,7 @@ export function SMTPSettings({
               <DropdownMenuItem onClick={() => edit(config)}><Pencil className="mr-2 size-4"/>Edit connection</DropdownMenuItem>
               <DropdownMenuItem onClick={() => { void testConfiguration(config).catch(() => {}); }}><TestTube className="mr-2 size-4"/>Test connection</DropdownMenuItem>
               <DropdownMenuSeparator/>
-              <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Delete this SMTP connection?")) void removeSMTPConfig(config.id as string); }}><Trash className="mr-2 size-4"/>Delete connection</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={async () => { if (await confirm({ title: "Delete SMTP connection?", description: "This connection will be removed from your workspace.", confirmLabel: "Delete connection", variant: "destructive" })) void removeSMTPConfig(config.id as string); }}><Trash className="mr-2 size-4"/>Delete connection</DropdownMenuItem>
             </DropdownMenuContent></DropdownMenu>
           }>
             <div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Send rate</p><p className="mt-1 text-sm font-medium">{config.maxSendRate}/sec</p></div><div className="rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Status</p><p className="mt-1 text-sm font-medium">{config.isActive ? "Active" : "Inactive"}</p></div></div>

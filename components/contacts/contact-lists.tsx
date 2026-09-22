@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 
 import { Button } from "@/components/ui/button";
 import { Trash, Users, UserCheck, ListFilter, MoreHorizontal, ArrowUpRight } from "lucide-react";
@@ -14,10 +15,11 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import Link from "next/link";
 
 export function ContactLists() {
+  const confirm = useConfirmSheet();
   const { lists, refetch, pagination, setPagination, isLoading, error } = useMailingLists();
   const { apiFetch } = useApi();
   const deleteList = async (id: string) => {
-    if (!confirm("Delete this contact list? This cannot be undone.")) return;
+    if (!(await confirm({ title: "Delete contact list?", description: "This cannot be undone.", confirmLabel: "Delete list", variant: "destructive" }))) return;
     try {
       const response = await apiFetch(`mailing-lists/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete list");

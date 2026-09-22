@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 import { useState } from "react";
 import { Tag, Plus, MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 
 export interface ContactTag { id: string; name: string; value?: string; contactCount: number; }
 export default function TagsPage() {
+  const confirm = useConfirmSheet();
   const query = useMarketingQuery<ContactTag[]>("marketing/tags");
   const { request, refresh } = useMarketing();
   const [editing, setEditing] = useState<Partial<ContactTag> | null>(null);
@@ -23,7 +25,7 @@ export default function TagsPage() {
     finally { setBusy(false); }
   }
   async function remove(tag: ContactTag) {
-    if (!confirm(`Delete “${tag.name}”? It will be removed from contacts without deleting them.`)) return;
+    if (!(await confirm({ title: `Delete “${tag.name}”?`, description: "It will be removed from contacts without deleting them.", confirmLabel: "Delete tag", variant: "destructive" }))) return;
     try { await request(`marketing/tags/${tag.id}`, "DELETE"); await refresh(); toast.success("Tag deleted"); }
     catch (error) { toast.error((error as Error).message); }
   }

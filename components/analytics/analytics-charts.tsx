@@ -29,8 +29,16 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import type { Report } from "@/lib/analytics/types";
+import styles from "./analytics-surface.module.css";
 
-const colors = ["#9676d9", "#52b5a1", "#eca878", "#6d97cc", "#c0b9cc"];
+const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-5)", "var(--chart-4)", "var(--muted-foreground)"];
+const heatmapColors = [
+  "var(--muted)",
+  "color-mix(in srgb, var(--chart-1) 22%, var(--card))",
+  "color-mix(in srgb, var(--chart-1) 44%, var(--card))",
+  "color-mix(in srgb, var(--chart-1) 68%, var(--card))",
+  "var(--chart-1)",
+];
 const deviceLabels: Record<string, string> = {
   desktop: "Desktop",
   mobile: "Mobile",
@@ -39,11 +47,11 @@ const deviceLabels: Record<string, string> = {
   unknown: "Unknown",
 };
 const cohortColors: Record<string, string> = {
-  recent: "#52b5a1",
-  earlier: "#6d97cc",
-  no_clicks: "#eca878",
-  not_contacted: "#9676d9",
-  insufficient: "#c0b9cc",
+  recent: "var(--chart-2)",
+  earlier: "var(--chart-4)",
+  no_clicks: "var(--chart-5)",
+  not_contacted: "var(--chart-1)",
+  insufficient: "var(--muted-foreground)",
 };
 const labels = {
   campaigns: { label: "Campaigns" },
@@ -76,7 +84,7 @@ function useChartAnimation() {
 }
 function EmptyChart({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed bg-muted/20 p-8 text-center text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+    <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed bg-muted/20 p-8 text-center text-sm leading-relaxed text-muted-foreground">
       {children}
     </div>
   );
@@ -170,16 +178,18 @@ export function AnalyticsCharts({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
-    <div className="space-y-5" data-testid="live-analytics-charts">
+    <div className={styles.chartCollection} data-testid="live-analytics-charts">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
-        <Card className="min-w-0 overflow-hidden rounded-2xl shadow-none">
-          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0 border-b border-border/60 pb-5">
+        <Card className={styles.panel}>
+          <CardHeader className={styles.panelHeader}>
             <div>
-              <p className="mb-2 text-[10px] font-medium uppercase tracking-[.16em] text-slate-600 dark:text-slate-400">
-                Every send, in perspective
+              <p className="mb-2 text-xs text-muted-foreground">
+                Campaigns & newsletters
               </p>
-              <CardTitle className="text-base">Sending performance</CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400 mt-2 max-w-md text-xs leading-relaxed">
+              <CardTitle className={styles.panelTitle}>
+                Sending performance
+              </CardTitle>
+              <CardDescription className={styles.panelDescription}>
                 {metric === "accepted"
                   ? "SMTP-accepted messages"
                   : "Messages with at least one tracked click"}
@@ -195,14 +205,14 @@ export function AnalyticsCharts({
                   key={v}
                   aria-pressed={metric === v}
                   onClick={() => setMetric(v)}
-                  className={`rounded-md px-3 py-2 text-xs transition-colors ${metric === v ? "bg-background font-medium text-violet-700 shadow-sm dark:text-violet-300" : "text-slate-600 dark:text-slate-400"}`}
+                  className={`rounded-md px-3 py-2 text-xs transition-colors ${metric === v ? "bg-background font-medium text-foreground shadow-none" : "text-muted-foreground"}`}
                 >
                   {v === "accepted" ? "Messages" : "Clicks"}
                 </button>
               ))}
             </div>
           </CardHeader>
-          <CardContent className="pt-5">
+          <CardContent className={styles.panelBody}>
             {charts ? (
               <>
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -214,7 +224,7 @@ export function AnalyticsCharts({
                           : report.summary.clickedMessages,
                       )}
                     </span>
-                    <span className="ml-2 text-xs text-slate-600 dark:text-slate-400">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       in selected period
                     </span>
                   </div>
@@ -224,10 +234,11 @@ export function AnalyticsCharts({
                         key={name}
                         aria-pressed={!hidden.includes(String(i))}
                         onClick={() => toggle(String(i))}
-                        className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-[11px] transition-opacity ${hidden.includes(String(i)) ? "opacity-40" : "bg-background"}`}
+                        className={`inline-flex min-h-8 items-center gap-2 rounded-md px-2 text-xs transition-opacity hover:bg-muted ${hidden.includes(String(i)) ? "opacity-40" : ""}`}
                       >
                         <span
-                          className={`h-2 w-2 rounded-full ${i === 0 ? "bg-[#9676d9]" : "bg-[#52b5a1]"}`}
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: colors[i] }}
                         />
                         {name}
                       </button>
@@ -259,7 +270,7 @@ export function AnalyticsCharts({
                         axisLine={false}
                       />
                       <ChartTooltip
-                        cursor={{ fill: "#9676d910" }}
+                        cursor={{ fill: "var(--muted)" }}
                         content={<ChartTooltipContent hideIndicator />}
                       />
                       {keys.map((key, i) => (
@@ -285,7 +296,7 @@ export function AnalyticsCharts({
                   </EmptyChart>
                 )}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  <p className="text-[11px] text-muted-foreground">
                     Accepted is an SMTP handoff, not confirmed inbox delivery.
                   </p>
                   <div className="flex gap-1">
@@ -315,7 +326,7 @@ export function AnalyticsCharts({
                     className="mt-3 max-h-72 overflow-auto rounded-lg border"
                   >
                     <table className="w-full text-left text-xs">
-                      <caption className="p-3 text-left text-slate-600 dark:text-slate-400">
+                      <caption className="p-3 text-left text-muted-foreground">
                         Daily send cohorts · {report.timezone}. Clicks counted
                         up to the report cutoff.
                       </caption>
@@ -370,18 +381,18 @@ export function AnalyticsCharts({
             )}
           </CardContent>
         </Card>
-        <Card className="min-w-0 rounded-2xl shadow-none">
-          <CardHeader>
-            <p className="mb-1 text-[10px] font-medium uppercase tracking-[.16em] text-slate-600 dark:text-slate-400">
+        <Card className={styles.panel}>
+          <CardHeader className={styles.panelHeader}>
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-[.16em] text-muted-foreground">
               Your audience, understood
             </p>
-            <CardTitle className="text-base">Engagement mix</CardTitle>
-            <CardDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+            <CardTitle className={styles.panelTitle}>Engagement mix</CardTitle>
+            <CardDescription className={styles.panelDescription}>
               Active subscribers grouped by tracked activity in the 90 days
               ending at the cutoff.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={styles.panelBody}>
             {cohortTotal > 0 ? (
               <>
                 <div className="relative">
@@ -426,26 +437,27 @@ export function AnalyticsCharts({
                     <strong className="text-2xl font-semibold tabular-nums">
                       {compact(cohortTotal)}
                     </strong>
-                    <span className="mt-1 text-[10px] text-slate-600 dark:text-slate-400">
+                    <span className="mt-1 text-[10px] text-muted-foreground">
                       active subscribers
                     </span>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1">
-                  {report.cohorts.map((c, i) => (
+                  {report.cohorts.map((c) => (
                     <Link
                       key={c.key}
                       href={`/analytics/audience/contacts?${scope}&cohort=${c.key}`}
                       className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-[11px] hover:bg-muted/60"
                     >
                       <span
-                        className={`h-2 w-2 shrink-0 rounded-full ${["bg-[#52b5a1]", "bg-[#6d97cc]", "bg-[#eca878]", "bg-[#9676d9]", "bg-[#c0b9cc]"][i]}`}
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: cohortColors[c.key] }}
                       />
                       <span className="flex-1">{c.label}</span>
                       <strong className="font-medium tabular-nums">
                         {number(c.count)}
                       </strong>
-                      <ArrowUpRight className="h-3 w-3 shrink-0 text-slate-600 dark:text-slate-400" />
+                      <ArrowUpRight className="h-3 w-3 shrink-0 text-muted-foreground" />
                     </Link>
                   ))}
                 </div>
@@ -459,15 +471,17 @@ export function AnalyticsCharts({
         </Card>
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card className="min-w-0 rounded-2xl shadow-none">
-          <CardHeader>
-            <CardTitle className="text-base">Subscriber growth</CardTitle>
-            <CardDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+        <Card className={styles.panel}>
+          <CardHeader className={styles.panelHeader}>
+            <CardTitle className={styles.panelTitle}>
+              Subscriber growth
+            </CardTitle>
+            <CardDescription className={styles.panelDescription}>
               Recorded active list subscriptions. Separate from current
               deliverability eligibility.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={styles.panelBody}>
             {report.growth.available ? (
               <>
                 <div className="mb-5 flex flex-wrap gap-8">
@@ -477,7 +491,7 @@ export function AnalyticsCharts({
                     ["Net change", report.growth.net],
                   ].map(([label, value]) => (
                     <div key={String(label)}>
-                      <p className="text-[10px] text-slate-600 dark:text-slate-400">
+                      <p className="text-[10px] text-muted-foreground">
                         {label}
                       </p>
                       <p className="mt-1 text-xl font-semibold tabular-nums">
@@ -503,12 +517,12 @@ export function AnalyticsCharts({
                       >
                         <stop
                           offset="0%"
-                          stopColor="#52b5a1"
+                          stopColor="var(--chart-2)"
                           stopOpacity={0.35}
                         />
                         <stop
                           offset="100%"
-                          stopColor="#52b5a1"
+                          stopColor="var(--chart-2)"
                           stopOpacity={0.02}
                         />
                       </linearGradient>
@@ -534,7 +548,7 @@ export function AnalyticsCharts({
                     <Area
                       type="stepAfter"
                       dataKey="active"
-                      stroke="#359985"
+                      stroke="var(--chart-2)"
                       fill={`url(#${gradient}-growth)`}
                       strokeWidth={2.5}
                       isAnimationActive={animate}
@@ -543,7 +557,7 @@ export function AnalyticsCharts({
                   </AreaChart>
                 </ChartContainer>
                 <details className="mt-3 text-xs">
-                  <summary className="cursor-pointer text-slate-600 dark:text-slate-400">
+                  <summary className="cursor-pointer text-muted-foreground">
                     View subscription history
                   </summary>
                   <div className="mt-3 max-h-52 overflow-auto">
@@ -571,7 +585,7 @@ export function AnalyticsCharts({
             ) : (
               <EmptyChart>
                 <div>
-                  <BarChart3 className="mx-auto mb-3 h-6 w-6 text-teal-600" />
+                  <BarChart3 className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
                   <p className="font-medium text-foreground">
                     Building reliable subscriber history
                   </p>
@@ -589,22 +603,24 @@ export function AnalyticsCharts({
             )}
           </CardContent>
         </Card>
-        <Card className="min-w-0 rounded-2xl shadow-none">
-          <CardHeader>
-            <CardTitle className="text-base">Audience activity</CardTitle>
-            <CardDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+        <Card className={styles.panel}>
+          <CardHeader className={styles.panelHeader}>
+            <CardTitle className={styles.panelTitle}>
+              Audience activity
+            </CardTitle>
+            <CardDescription className={styles.panelDescription}>
               Daily unique recipients. Click activity may come from messages
               sent before this period.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={styles.panelBody}>
             <div className="mb-5 flex flex-wrap gap-4 text-[11px]">
               <span className="flex items-center gap-2">
-                <i className="h-2 w-2 rounded-full bg-[#9676d9]" />
+                <i className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[0] }} />
                 Recipients reached
               </span>
               <span className="flex items-center gap-2">
-                <i className="h-2 w-2 rounded-full bg-[#52b5a1]" />
+                <i className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[1] }} />
                 Recipients who clicked
               </span>
             </div>
@@ -622,8 +638,8 @@ export function AnalyticsCharts({
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="0%" stopColor="#9676d9" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#9676d9" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 5" />
@@ -645,7 +661,7 @@ export function AnalyticsCharts({
                 <Area
                   dataKey="reached"
                   type="linear"
-                  stroke="#9676d9"
+                  stroke="var(--chart-1)"
                   fill={`url(#${gradient}-activity)`}
                   strokeWidth={2}
                   isAnimationActive={animate}
@@ -653,7 +669,7 @@ export function AnalyticsCharts({
                 <Area
                   dataKey="clicked"
                   type="linear"
-                  stroke="#359985"
+                  stroke="var(--chart-2)"
                   fill="transparent"
                   strokeWidth={2}
                   isAnimationActive={animate}
@@ -661,7 +677,7 @@ export function AnalyticsCharts({
               </AreaChart>
             </ChartContainer>
             <details className="mt-3 text-xs">
-              <summary className="cursor-pointer text-slate-600 dark:text-slate-400">
+              <summary className="cursor-pointer text-muted-foreground">
                 View daily activity values
               </summary>
               <div className="mt-3 max-h-52 overflow-auto">
@@ -687,7 +703,7 @@ export function AnalyticsCharts({
                 </table>
               </div>
             </details>
-            <p className="mt-3 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
               Daily unique counts do not add up to period unique totals.
             </p>
           </CardContent>
@@ -695,16 +711,16 @@ export function AnalyticsCharts({
       </div>
       {charts && (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-          <Card className="min-w-0 rounded-2xl shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base">
+          <Card className={styles.panel}>
+            <CardHeader className={styles.panelHeader}>
+              <CardTitle className={styles.panelTitle}>
                 Devices behind the clicks
               </CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+              <CardDescription className={styles.panelDescription}>
                 Reported device types on recorded click events.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={styles.panelBody}>
               {charts.clickEvents > 0 ? (
                 <>
                   <div className="relative">
@@ -760,7 +776,7 @@ export function AnalyticsCharts({
                           ? `${((selectedDevice.count / charts.clickEvents) * 100).toFixed(1)}%`
                           : compact(charts.clickEvents)}
                       </strong>
-                      <span className="mt-1 text-[10px] text-slate-600 dark:text-slate-400">
+                      <span className="mt-1 text-[10px] text-muted-foreground">
                         {selectedDevice
                           ? deviceLabels[selectedDevice.device]
                           : "click events"}
@@ -775,10 +791,11 @@ export function AnalyticsCharts({
                         onClick={() =>
                           setDevice(device === d.device ? null : d.device)
                         }
-                        className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-xs ${device === d.device ? "bg-violet-50 dark:bg-violet-950/30" : "hover:bg-muted/60"}`}
+                        className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-xs ${device === d.device ? "bg-muted" : "hover:bg-muted/60"}`}
                       >
                         <span
-                          className={`h-2 w-2 rounded-full ${["bg-[#9676d9]", "bg-[#52b5a1]", "bg-[#eca878]", "bg-[#6d97cc]", "bg-[#c0b9cc]"][i]}`}
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: colors[i] }}
                         />
                         <span className="flex-1 text-left">
                           {deviceLabels[d.device]}
@@ -786,7 +803,7 @@ export function AnalyticsCharts({
                         <strong className="font-medium tabular-nums">
                           {number(d.count)}
                         </strong>
-                        <span className="w-12 text-right text-slate-600 dark:text-slate-400">
+                        <span className="w-12 text-right text-muted-foreground">
                           {((d.count / charts.clickEvents) * 100).toFixed(1)}%
                         </span>
                       </button>
@@ -798,30 +815,30 @@ export function AnalyticsCharts({
                   No recorded click events in this period.
                 </EmptyChart>
               )}
-              <p className="mt-4 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+              <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
                 Repeat clicks and scanners can be included. Unknown devices stay
                 unknown.
               </p>
             </CardContent>
           </Card>
-          <Card className="min-w-0 rounded-2xl shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base">
+          <Card className={styles.panel}>
+            <CardHeader className={styles.panelHeader}>
+              <CardTitle className={styles.panelTitle}>
                 Click activity by time
               </CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+              <CardDescription className={styles.panelDescription}>
                 Observed events in {report.timezone}, grouped into four-hour
                 windows. Select a cell to inspect it.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={styles.panelBody}>
               <div className="grid grid-cols-[28px_repeat(6,minmax(0,1fr))] gap-1.5 sm:gap-2.5">
                 <div />
                 {["00–04", "04–08", "08–12", "12–16", "16–20", "20–24"].map(
                   (t) => (
                     <span
                       key={t}
-                      className="pb-1 text-center text-[9px] text-slate-600 dark:text-slate-400 sm:text-[10px]"
+                      className="pb-1 text-center text-[9px] text-muted-foreground sm:text-[10px]"
                     >
                       {t}
                     </span>
@@ -829,7 +846,7 @@ export function AnalyticsCharts({
                 )}
                 {dayNames.map((day, i) => (
                   <div key={day} className="contents">
-                    <span className="flex items-center text-[10px] text-slate-600 dark:text-slate-400">
+                    <span className="flex items-center text-[10px] text-muted-foreground">
                       {day}
                     </span>
                     {hourBlocks
@@ -847,23 +864,18 @@ export function AnalyticsCharts({
                             onClick={() =>
                               setSelectedHour({ day: i, block: h.block })
                             }
-                            className={`h-10 rounded-md border border-transparent transition-all hover:ring-2 hover:ring-violet-400 focus-visible:ring-2 focus-visible:ring-violet-600 ${h.count === 0 ? "bg-muted" : intensity < 0.25 ? "bg-[#e7def6]" : intensity < 0.5 ? "bg-[#c4afe6]" : intensity < 0.75 ? "bg-[#9e7dce]" : "bg-[#7352a5]"} ${selectedHour?.day === i && selectedHour.block === h.block ? "ring-2 ring-violet-600 ring-offset-2 ring-offset-background" : ""}`}
+                            className={`h-10 rounded-md border border-transparent transition-all hover:ring-2 hover:ring-ring focus-visible:ring-2 focus-visible:ring-ring ${selectedHour?.day === i && selectedHour.block === h.block ? "ring-2 ring-ring ring-offset-2 ring-offset-background" : ""}`}
+                            style={{ backgroundColor: heatmapColors[h.count === 0 ? 0 : intensity < 0.25 ? 1 : intensity < 0.5 ? 2 : intensity < 0.75 ? 3 : 4] }}
                           />
                         );
                       })}
                   </div>
                 ))}
               </div>
-              <div className="mt-5 flex justify-end gap-1.5 text-[10px] text-slate-600 dark:text-slate-400">
+              <div className="mt-5 flex justify-end gap-1.5 text-[10px] text-muted-foreground">
                 <span className="mr-1">Fewer</span>
-                {[
-                  "bg-muted",
-                  "bg-[#e7def6]",
-                  "bg-[#c4afe6]",
-                  "bg-[#9e7dce]",
-                  "bg-[#7352a5]",
-                ].map((c) => (
-                  <span key={c} className={`h-3 w-3 rounded-sm ${c}`} />
+                {heatmapColors.map((color) => (
+                  <span key={color} className="h-3 w-3 rounded-sm" style={{ backgroundColor: color }} />
                 ))}
                 <span className="ml-1">More</span>
               </div>
@@ -879,7 +891,7 @@ export function AnalyticsCharts({
                       {String((hourSelection.block + 1) * 4).padStart(2, "0")}
                       :00
                     </strong>
-                    <p className="mt-1.5 text-slate-600 dark:text-slate-400">
+                    <p className="mt-1.5 text-muted-foreground">
                       {number(hourSelection.count)} recorded click events across
                       the selected period.
                     </p>
@@ -889,7 +901,7 @@ export function AnalyticsCharts({
                     <strong>
                       {number(charts.clickEvents)} recorded click events
                     </strong>
-                    <p className="mt-1.5 text-slate-600 dark:text-slate-400">
+                    <p className="mt-1.5 text-muted-foreground">
                       {charts.clickEvents
                         ? "Explore a time window above."
                         : "Time windows will fill as clicks are recorded."}
@@ -897,7 +909,7 @@ export function AnalyticsCharts({
                   </>
                 )}
               </div>
-              <p className="mt-4 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+              <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
                 Includes clicks on older messages and repeat events. This
                 describes observed activity, not a recommended or statistically
                 optimal send time.

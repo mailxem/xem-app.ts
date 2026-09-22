@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -34,6 +35,7 @@ export function IMAPSettings({
   isDialogOpen: boolean;
   setIsDialogOpen: (open: boolean) => void;
 }) {
+  const confirm = useConfirmSheet();
   const [editConfig, setEditConfig] = useState<IMAPConfig | null>(null);
   const { configs: imapConfigs, isLoading, refresh, error } = useIMAP();
   const { apiFetch } = useApi();
@@ -131,7 +133,7 @@ export function IMAPSettings({
               <DropdownMenuItem onClick={() => edit(config)}><Pencil className="mr-2 size-4"/>Edit connection</DropdownMenuItem>
               <DropdownMenuItem onClick={() => { void testConfiguration(config).catch(() => {}); }}><TestTube className="mr-2 size-4"/>Test connection</DropdownMenuItem>
               <DropdownMenuSeparator/>
-              <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Delete this IMAP connection?")) void removeSMTPConfig(config.id as string); }}><Trash className="mr-2 size-4"/>Delete connection</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={async () => { if (await confirm({ title: "Delete IMAP connection?", description: "This connection will be removed from your workspace.", confirmLabel: "Delete connection", variant: "destructive" })) void removeSMTPConfig(config.id as string); }}><Trash className="mr-2 size-4"/>Delete connection</DropdownMenuItem>
             </DropdownMenuContent></DropdownMenu>
           }>
             <div className="mt-5 rounded-xl bg-muted p-3"><p className="text-xs text-muted-foreground">Mailbox server</p><p className="mt-1 break-all text-sm font-medium">{config.host}:{config.port}</p></div>

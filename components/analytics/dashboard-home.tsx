@@ -51,18 +51,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import styles from "./analytics-surface.module.css";
 
 const number = (n: number) => n.toLocaleString();
 const compact = (n: number) =>
   Intl.NumberFormat("en", { notation: "compact" }).format(n);
 const chartConfig = {
-  sent: { label: "Sent", color: "#9676d9" },
-  queued: { label: "Pending", color: "#6d97cc" },
-  failed: { label: "Failed", color: "#eca878" },
-  drafts: { label: "Drafts", color: "#c0b9cc" },
-  unknown: { label: "Unknown", color: "#64748b" },
-  opened: { label: "Opened", color: "#9676d9" },
-  clicked: { label: "Clicked", color: "#52b5a1" },
+  sent: { label: "Sent", color: "var(--chart-1)" },
+  queued: { label: "Pending", color: "var(--chart-4)" },
+  failed: { label: "Failed", color: "var(--chart-5)" },
+  drafts: { label: "Drafts", color: "var(--muted-foreground)" },
+  unknown: { label: "Unknown", color: "var(--chart-3)" },
+  opened: { label: "Opened", color: "var(--chart-4)" },
+  clicked: { label: "Clicked", color: "var(--chart-2)" },
 };
 function dateString(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
@@ -87,8 +88,8 @@ export function DashboardHome() {
   const [dates, setDates] = useState(() => period(30));
   const [days, setDays] = useState("30");
   return (
-    <div className="space-y-6 pb-6">
-      <OnboardingBanner/>
+    <div className={styles.workspace}>
+      <OnboardingBanner />
       <PageHeading
         title="Dashboard"
         description="Your email activity and campaign performance, in one place."
@@ -117,17 +118,17 @@ export function DashboardHome() {
           router.replace(`/?${q}`, { scroll: false });
         }}
       >
-        <TabsList aria-label="Dashboard analytics" className="mb-6 h-11">
-          <TabsTrigger value="email" className="gap-2 px-5 py-2">
+        <TabsList aria-label="Dashboard analytics" className={styles.tabs}>
+          <TabsTrigger value="email" className={styles.tab}>
             <Mail className="h-4 w-4" />
             Email
           </TabsTrigger>
-          <TabsTrigger value="campaigns" className="gap-2 px-5 py-2">
+          <TabsTrigger value="campaigns" className={styles.tab}>
             <BarChart3 className="h-4 w-4" />
             Campaigns
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="email" className="mt-0">
+        <TabsContent value="email" className="mt-6">
           <EmailActivity
             dates={dates}
             setDates={setDates}
@@ -135,7 +136,7 @@ export function DashboardHome() {
             setDays={setDays}
           />
         </TabsContent>
-        <TabsContent value="campaigns" className="mt-0">
+        <TabsContent value="campaigns" className="mt-6">
           <AnalyticsWorkspace view="campaigns" embedded />
         </TabsContent>
       </Tabs>
@@ -172,9 +173,9 @@ function EmailActivity({
     refreshTeam,
   } = useTeam();
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
-        <label className="space-y-1.5 text-xs font-medium">
+    <div className={styles.report}>
+      <div className={styles.filters}>
+        <label className={styles.filter}>
           <span>Period</span>
           <Select
             value={days}
@@ -196,7 +197,7 @@ function EmailActivity({
             </SelectContent>
           </Select>
         </label>
-        <label className="space-y-1.5 text-xs font-medium">
+        <label className={styles.filter}>
           <span>From</span>
           <Input
             type="date"
@@ -209,7 +210,7 @@ function EmailActivity({
             }}
           />
         </label>
-        <label className="space-y-1.5 text-xs font-medium">
+        <label className={styles.filter}>
           <span>To</span>
           <Input
             type="date"
@@ -222,12 +223,10 @@ function EmailActivity({
             }}
           />
         </label>
-        <span className="pb-2 text-xs text-muted-foreground">
-          All email sources · UTC
-        </span>
+        <span className={styles.filterNote}>All email sources · UTC</span>
         <Button
           variant="outline"
-          className="ml-auto"
+          className={styles.refresh}
           disabled={!valid || query.isFetching}
           onClick={() => void query.refetch()}
         >
@@ -252,306 +251,364 @@ function EmailActivity({
           Select a workspace to view email activity.
         </p>
       )}
-      {valid && team && r && !query.isError && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+      {valid && team && r && !query.isError && <EmailOverview report={r} />}
+    </div>
+  );
+}
+
+/** Presentational report shared with the development-only visual preview. */
+export function EmailOverview({ report: r }: { report: EmailReport }) {
+  return (
+    <div className={styles.report}>
+      <div className={styles.context}>
+        <p>All email sources · Test sends excluded</p>
+        <time dateTime={r.asOf}>
+          Updated{" "}
+          {new Date(r.asOf).toLocaleString([], {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "UTC",
+            timeZoneName: "short",
+          })}
+        </time>
+      </div>
+      <div className={styles.metrics}>
+        <Stat
+          label="Emails sent"
+          value={number(r.summary.sent)}
+          detail="Accepted by SMTP in this period."
+          icon={Send}
+          tone="accent"
+        />
+        <Stat
+          label="Pending emails"
+          value={number(r.summary.queued)}
+          detail="Queued, scheduled, or sending; created in this period."
+          icon={Clock3}
+        />
+        <Stat
+          label="Click rate"
+          value={formatRate(r.clickRate)}
+          detail={`${number(r.summary.clicked)} clicked messages / ${number(r.summary.sent)} sent.`}
+          icon={MousePointer2}
+        />
+        <Stat
+          label="Failed emails"
+          value={number(r.summary.failed)}
+          detail="Current failed status; created in this period."
+          icon={ShieldAlert}
+          tone={r.summary.failed > 0 ? "danger" : undefined}
+        />
+      </div>
+      {r.summary.total === 0 && (
+        <div className={styles.empty}>
+          <div>
+            <h2>No email activity in this period</h2>
             <p>
-              API, outbox, automation, campaign, and newsletter emails. Test
-              sends are excluded.
+              Try a wider date range, or send an email from the outbox or API.
+              You don’t need a campaign to see activity here.
             </p>
-            <span>
-              Through{" "}
-              {new Date(r.asOf).toLocaleString([], {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone: "UTC",
-                timeZoneName: "short",
-              })}
-            </span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Stat
-              label="Emails sent"
-              value={number(r.summary.sent)}
-              detail="Accepted by SMTP in this period."
-              icon={Send}
-            />
-            <Stat
-              label="Pending emails"
-              value={number(r.summary.queued)}
-              detail="Queued, scheduled, or sending; created in this period."
-              icon={Clock3}
-            />
-            <Stat
-              label="Click rate"
-              value={formatRate(r.clickRate)}
-              detail={`${number(r.summary.clicked)} clicked messages / ${number(r.summary.sent)} sent.`}
-              icon={MousePointer2}
-            />
-            <Stat
-              label="Failed emails"
-              value={number(r.summary.failed)}
-              detail="Current failed status; created in this period."
-              icon={ShieldAlert}
-            />
-          </div>
-          {r.summary.total === 0 && (
-            <Card className="rounded-2xl border-dashed shadow-none">
-              <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
-                <div>
-                  <h2 className="font-semibold">
-                    No email activity in this period
-                  </h2>
-                  <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                    Try a wider date range, or send an email from the outbox or
-                    API. You don’t need a campaign to see activity here.
-                  </p>
-                </div>
-                <Button asChild>
-                  <Link href="/developer/logs/emails">
-                    Go to outbox
-                    <ArrowUpRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          <Card className="rounded-2xl shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base">Email activity</CardTitle>
-              <CardDescription>
-                Sent emails by send date; all other records by creation date.
+          <Button variant="outline" asChild>
+            <Link href="/developer/logs/emails">
+              Go to outbox <ArrowUpRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+      <div className={styles.primaryGrid}>
+        <Card className={styles.panel}>
+          <CardHeader className={styles.panelHeader}>
+            <div>
+              <CardTitle className={styles.panelTitle}>
+                Email activity
+              </CardTitle>
+              <CardDescription className={styles.panelDescription}>
+                Your sending volume, day by day.
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-5 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                {(
-                  ["sent", "queued", "failed", "drafts", "unknown"] as const
-                ).map((k) => (
-                  <span key={k} className="inline-flex items-center gap-1.5">
-                    <svg width="9" height="9" aria-hidden="true">
+            </div>
+          </CardHeader>
+          <CardContent className={styles.panelBody}>
+            <div className={styles.legend}>
+              {(["sent", "queued", "failed", "drafts", "unknown"] as const).map(
+                (k) => (
+                  <span key={k} className={styles.legendItem}>
+                    <svg width="7" height="7" aria-hidden="true">
                       <circle
-                        cx="4.5"
-                        cy="4.5"
-                        r="4.5"
+                        cx="3.5"
+                        cy="3.5"
+                        r="3.5"
                         fill={chartConfig[k].color}
                       />
                     </svg>
                     {chartConfig[k].label}
                   </span>
-                ))}
-              </div>
-              <ChartContainer
-                config={chartConfig}
-                className="h-[300px] w-full"
-                role="img"
-                aria-label="Daily email records by status"
+                ),
+              )}
+            </div>
+            <ChartContainer
+              config={chartConfig}
+              className={styles.chart}
+              role="img"
+              aria-label="Daily email records by status"
+            >
+              <BarChart
+                accessibilityLayer
+                data={r.series}
+                margin={{ left: -8, right: 0, top: 8, bottom: 0 }}
+                barCategoryGap="28%"
               >
-                <BarChart
-                  accessibilityLayer
-                  data={r.series}
-                  margin={{ left: 0, right: 8, top: 8, bottom: 0 }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(d) => d.slice(5)}
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={24}
+                <CartesianGrid vertical={false} strokeDasharray="3 5" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(d) => d.slice(5)}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={28}
+                  tickMargin={12}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickFormatter={compact}
+                  tickLine={false}
+                  axisLine={false}
+                  width={42}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                {(
+                  ["sent", "queued", "failed", "drafts", "unknown"] as const
+                ).map((k) => (
+                  <Bar
+                    key={k}
+                    dataKey={k}
+                    stackId="status"
+                    fill={`var(--color-${k})`}
+                    maxBarSize={22}
+                    isAnimationActive={false}
                   />
-                  <YAxis
-                    allowDecimals={false}
-                    tickFormatter={compact}
-                    tickLine={false}
-                    axisLine={false}
-                    width={42}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  {(
-                    ["sent", "queued", "failed", "drafts", "unknown"] as const
-                  ).map((k) => (
-                    <Bar
-                      key={k}
-                      dataKey={k}
-                      stackId="status"
-                      fill={`var(--color-${k})`}
-                      maxBarSize={36}
-                      isAnimationActive={false}
-                    />
-                  ))}
-                </BarChart>
-              </ChartContainer>
-              <details className="mt-4 text-xs text-muted-foreground">
-                <summary className="cursor-pointer">View daily counts</summary>
-                <div className="mt-3 max-h-64 overflow-auto">
-                  <table className="w-full text-left tabular-nums">
-                    <thead>
-                      <tr>
-                        {[
-                          "Date",
-                          "Sent",
-                          "Pending",
-                          "Failed",
-                          "Drafts",
-                          "Unknown",
-                        ].map((s) => (
-                          <th key={s} className="p-2">
-                            {s}
-                          </th>
+                ))}
+              </BarChart>
+            </ChartContainer>
+            <details className={styles.dataDetails}>
+              <summary>View daily counts</summary>
+              <div className={styles.dataScroll}>
+                <table>
+                  <thead>
+                    <tr>
+                      {[
+                        "Date",
+                        "Sent",
+                        "Pending",
+                        "Failed",
+                        "Drafts",
+                        "Unknown",
+                      ].map((s) => (
+                        <th key={s} scope="col">
+                          {s}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {r.series.map((d) => (
+                      <tr key={d.date}>
+                        <td>{d.date}</td>
+                        {(
+                          [
+                            "sent",
+                            "queued",
+                            "failed",
+                            "drafts",
+                            "unknown",
+                          ] as const
+                        ).map((k) => (
+                          <td key={k}>{number(d[k])}</td>
                         ))}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {r.series.map((d) => (
-                        <tr key={d.date} className="border-t">
-                          <td className="p-2">{d.date}</td>
-                          {(
-                            [
-                              "sent",
-                              "queued",
-                              "failed",
-                              "drafts",
-                              "unknown",
-                            ] as const
-                          ).map((k) => (
-                            <td key={k} className="p-2">
-                              {number(d[k])}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            </CardContent>
-          </Card>
-          <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-            <Card className="rounded-2xl shadow-none">
-              <CardHeader>
-                <CardTitle className="text-base">Email engagement</CardTitle>
-                <CardDescription>
-                  Unique opened and clicked messages, grouped by send date.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[230px] w-full"
-                  role="img"
-                  aria-label="Opened and clicked emails by send date"
-                >
-                  <AreaChart accessibilityLayer data={r.series}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(d) => d.slice(5)}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={24}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      width={40}
-                      tickFormatter={compact}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area
-                      dataKey="opened"
-                      type="monotone"
-                      stroke="var(--color-opened)"
-                      fill="var(--color-opened)"
-                      fillOpacity={0.12}
-                      strokeWidth={2}
-                      isAnimationActive={false}
-                    />
-                    <Area
-                      dataKey="clicked"
-                      type="monotone"
-                      stroke="var(--color-clicked)"
-                      fill="var(--color-clicked)"
-                      fillOpacity={0.16}
-                      strokeWidth={2}
-                      isAnimationActive={false}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-                <p className="mt-4 text-xs leading-5 text-muted-foreground">
-                  Open tracking is directional. Clicks can include scanners.
-                  Missing tracking does not prove a message was unread.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-2xl shadow-none">
-              <CardHeader>
-                <CardTitle className="text-base">At a glance</CardTitle>
-                <CardDescription>
-                  All email sources, including standalone sends.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-0">
-                {[
-                  ["Open rate", formatRate(r.openRate)],
-                  [
-                    "Known bounces",
-                    `${number(r.summary.bounced)} (${formatRate(r.bounceRate)})`,
-                  ],
-                  ["Campaign-linked sends", number(r.summary.campaigns)],
-                  ["Other email sends", number(r.summary.other)],
-                  ["Drafts", number(r.summary.drafts)],
-                  ["Unknown outcomes", number(r.summary.unknown)],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between gap-3 border-b py-3 text-sm last:border-0"
-                  >
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="font-medium tabular-nums">{value}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </CardContent>
+          <div className={styles.panelFooter}>
+            Sent emails use their send date. Other records use their creation
+            date.
           </div>
-          <p className="text-xs leading-5 text-muted-foreground">
-            Counts are email records, not individual recipients in CC/BCC. Sent
-            means accepted by SMTP, not verified inbox delivery. Bounces are a
-            subset of sent emails. Statuses reflect the latest recorded state.
-          </p>
-        </>
-      )}
+        </Card>
+        <Card className={styles.panel}>
+          <CardHeader className={styles.panelHeader}>
+            <div>
+              <CardTitle className={styles.panelTitle}>At a glance</CardTitle>
+              <CardDescription className={styles.panelDescription}>
+                Across API, outbox, and marketing.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className={styles.detailRows}>
+            <dl>
+              {[
+                ["Open rate", formatRate(r.openRate)],
+                [
+                  "Known bounces",
+                  `${number(r.summary.bounced)} (${formatRate(r.bounceRate)})`,
+                ],
+                ["Campaign-linked sends", number(r.summary.campaigns)],
+                ["Other email sends", number(r.summary.other)],
+                ["Drafts", number(r.summary.drafts)],
+                ["Unknown outcomes", number(r.summary.unknown)],
+              ].map(([label, value]) => (
+                <div key={label} className={styles.detailRow}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+          <div className={styles.panelFooter}>
+            <Link href="/developer/logs/emails">
+              Inspect individual emails <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </Card>
+      </div>
+      <Card className={styles.panel}>
+        <CardHeader className={styles.panelHeader}>
+          <div>
+            <CardTitle className={styles.panelTitle}>
+              Email engagement
+            </CardTitle>
+            <CardDescription className={styles.panelDescription}>
+              Unique opened and clicked messages, grouped by send date.
+            </CardDescription>
+          </div>
+          <div className={styles.engagementHeader}>
+            {(["opened", "clicked"] as const).map((key) => (
+              <span key={key} className={styles.engagementStat}>
+                <svg width="7" height="7" aria-hidden="true">
+                  <circle
+                    cx="3.5"
+                    cy="3.5"
+                    r="3.5"
+                    fill={chartConfig[key].color}
+                  />
+                </svg>
+                {chartConfig[key].label}
+                <strong>{number(r.summary[key])}</strong>
+              </span>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent className={styles.panelBody}>
+          <ChartContainer
+            config={chartConfig}
+            className={styles.chart}
+            role="img"
+            aria-label="Opened and clicked emails by send date"
+          >
+            <AreaChart
+              accessibilityLayer
+              data={r.series}
+              margin={{ left: -8, right: 0, top: 8, bottom: 0 }}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 5" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(d) => d.slice(5)}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={28}
+                tickMargin={12}
+              />
+              <YAxis
+                allowDecimals={false}
+                width={42}
+                tickFormatter={compact}
+                axisLine={false}
+                tickLine={false}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area
+                dataKey="opened"
+                type="monotone"
+                stroke="var(--color-opened)"
+                fill="var(--color-opened)"
+                fillOpacity={0.08}
+                strokeWidth={2}
+                isAnimationActive={false}
+              />
+              <Area
+                dataKey="clicked"
+                type="monotone"
+                stroke="var(--color-clicked)"
+                fill="var(--color-clicked)"
+                fillOpacity={0.08}
+                strokeWidth={2}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ChartContainer>
+          <details className={styles.dataDetails}>
+            <summary>View engagement counts</summary>
+            <div className={styles.dataScroll}>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Opened</th>
+                    <th scope="col">Clicked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.series.map((d) => (
+                    <tr key={d.date}>
+                      <td>{d.date}</td>
+                      <td>{number(d.opened)}</td>
+                      <td>{number(d.clicked)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </CardContent>
+        <div className={styles.panelFooter}>
+          Open tracking is directional. Clicks can include scanners. Missing
+          tracking does not prove a message was unread.
+        </div>
+      </Card>
+      <p className={styles.note}>
+        Counts are email records, not individual recipients in CC/BCC. Sent
+        means accepted by SMTP, not verified inbox delivery. Bounces are a
+        subset of sent emails. Statuses reflect the latest recorded state.
+      </p>
     </div>
   );
 }
+
 function Stat({
   label,
   value,
   detail,
   icon: Icon,
+  tone,
 }: {
   label: string;
   value: string;
   detail: string;
   icon: typeof Mail;
+  tone?: "accent" | "danger";
 }) {
   return (
-    <Card className="rounded-2xl shadow-none">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-          <span>{label}</span>
-          <span className="rounded-lg bg-violet-50 p-2 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300">
-            <Icon className="h-4 w-4" />
-          </span>
-        </div>
-        <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">
-          {value}
-        </p>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>
-      </CardContent>
-    </Card>
+    <div className={styles.metric} data-tone={tone}>
+      <div className={styles.metricLabel}>
+        <Icon aria-hidden="true" />
+        <span>{label}</span>
+      </div>
+      <p className={styles.metricValue}>{value}</p>
+      <p className={styles.metricDetail}>{detail}</p>
+    </div>
   );
 }

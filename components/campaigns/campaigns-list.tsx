@@ -1,4 +1,5 @@
 "use client";
+import { useConfirmSheet } from "@/components/ui/confirm-sheet";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,11 +14,12 @@ import { CollectionCard } from "@/components/ui/collection-card";
 import { CollectionPagination } from "@/components/ui/collection-pagination";
 
 export function CampaignsList() {
+  const confirm = useConfirmSheet();
   const { campaigns, refetch, loading, error, total, page, limit, setPage } = useCampaigns();
   const { apiFetch } = useApi();
   const [busy, setBusy] = useState("");
   const deleteCampaign = async (id: string) => {
-    if (!confirm("Delete this campaign? This cannot be undone.")) return;
+    if (!(await confirm({ title: "Delete campaign?", description: "This cannot be undone.", confirmLabel: "Delete campaign", variant: "destructive" }))) return;
     setBusy(id);
     try {
       const response = await apiFetch(`campaigns/${id}`, { method: "DELETE" });

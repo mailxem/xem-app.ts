@@ -1,5 +1,6 @@
 import { workspaceClassName } from "@/lib/workspace-styles";
 import "./globals.css";
+import { ConfirmSheetProvider } from "@/components/ui/confirm-sheet";
 import { AppShell } from "@/components/app-shell";
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -113,7 +114,7 @@ export default async function RootLayout({
         {/* favicon */}
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
         {/* theme color */}
-        <meta name="theme-color" content="#0065FD" />
+        <meta name="theme-color" content="#191919" />
       </head>
       <body
         className={workspaceClassName(cn(
@@ -124,13 +125,16 @@ export default async function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="dark"
+          storageKey="xem-appearance"
+          enableSystem
         >
           <NextAuthProvider>
             <QueryProvider>
               <TeamProvider>
-                <MainLayout>{children}</MainLayout>
+                <ConfirmSheetProvider>
+                  <MainLayout>{children}</MainLayout>
+                </ConfirmSheetProvider>
               </TeamProvider>
             </QueryProvider>
           </NextAuthProvider>

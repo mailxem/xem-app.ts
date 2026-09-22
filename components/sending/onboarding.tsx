@@ -9,7 +9,6 @@ import {
   Cloud,
   PlugZap,
   Send,
-  Sparkles,
   CheckCheck,
   CircleHelp,
 } from "lucide-react";
@@ -35,20 +34,22 @@ export function OnboardingBanner() {
   return (
     <Link
       href="/onboarding"
-      className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-violet-200 bg-violet-50/70 px-6 py-5 dark:border-violet-900 dark:bg-violet-950/30"
+      className="group flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/40"
     >
       <div className="flex items-center gap-4">
-        <span className="grid size-11 place-items-center rounded-xl bg-white text-violet-700 shadow-sm dark:bg-violet-900 dark:text-violet-200">
-          <Send size={20} />
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground">
+          <Send size={16} />
         </span>
         <div>
-          <p className="font-semibold">A good email starts here.</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-sm font-medium">
+            Finish setting up your workspace
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
             {done} of {steps.length} steps complete. Pick up where you left off.
           </p>
         </div>
       </div>
-      <span className="flex items-center gap-2 text-sm font-medium text-violet-800 dark:text-violet-200">
+      <span className="flex items-center gap-2 text-xs font-medium text-foreground">
         Continue setup{" "}
         <ArrowRight
           size={16}
@@ -77,10 +78,8 @@ export function Onboarding() {
     );
   if (q.error || !q.data)
     return (
-      <div className="mx-auto max-w-xl space-y-4 rounded-2xl border p-8">
-        <h1 className="text-xl font-semibold">
-          Let’s get your workspace ready
-        </h1>
+      <div className="mx-auto max-w-xl space-y-4 rounded-xl border p-8">
+        <h1 className="text-xl font-medium">Let’s get your workspace ready</h1>
         <p role="alert" className="text-sm text-muted-foreground">
           {q.error?.message || "Sign in to continue."} A workspace administrator
           can connect your sender.
@@ -126,7 +125,7 @@ export function Onboarding() {
     }
   }
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-12">
+    <div className="mx-auto max-w-6xl space-y-7 pb-10">
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/"
@@ -141,75 +140,56 @@ export function Onboarding() {
           Sending settings <ChevronRight size={13} className="inline" />
         </Link>
       </div>
-      <header className="relative overflow-hidden rounded-[28px] border border-violet-200/70 bg-gradient-to-br from-violet-50 via-white to-amber-50/70 px-7 py-9 dark:border-violet-900 dark:from-violet-950/40 dark:via-background dark:to-background sm:px-10 sm:py-12">
-        <div className="relative z-10 max-w-2xl">
-          <p className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-violet-700 dark:text-violet-300">
-            <Sparkles size={15} />
-            Your first good email
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-[42px] sm:leading-[1.15]">
-            {complete
-              ? "You’re ready to make an impression."
-              : "A little setup.\nA lot of possibility."}
+      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-7">
+        <div className="max-w-xl">
+          <h1 className="text-2xl font-medium tracking-tight">
+            {complete ? "Your workspace is ready" : "Set up your workspace"}
           </h1>
-          <p className="mt-4 max-w-lg text-sm leading-7 text-muted-foreground sm:text-base">
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {complete
-              ? "Your workspace is connected and your first campaign is taking shape. Here’s to messages people look forward to."
-              : "Let’s give your emails a home. We’ll take care of the details together, one small step at a time."}
+              ? "Your setup is complete. Review your campaign and choose when to send."
+              : "Connect a sender, prepare your domain, and send your first email."}
           </p>
-          <div className="mt-7 flex items-center gap-4">
-            <div
-              role="progressbar"
-              aria-label="Onboarding progress"
-              aria-valuemin={0}
-              aria-valuemax={steps.length}
-              aria-valuenow={done}
-              className="h-2 w-40 overflow-hidden rounded-full bg-violet-100 dark:bg-violet-900"
-            >
-              <div
-                className="h-full rounded-full bg-violet-600 transition-all duration-500 motion-reduce:transition-none"
-                style={{ width: `${(done / steps.length) * 100}%` }}
-              />
-            </div>
-            <span className="text-xs font-medium text-violet-800 dark:text-violet-200">
-              {done} of {steps.length} complete
-            </span>
-          </div>
         </div>
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-8 top-10 hidden h-52 w-64 rotate-[-9deg] items-center justify-center lg:flex"
-        >
-          <div className="absolute size-52 rounded-full border border-dashed border-violet-300" />
-          <div className="absolute size-40 rounded-full bg-violet-100/60" />
-          <div className="relative rounded-2xl border border-violet-200 bg-white p-8 text-violet-600 shadow-xl shadow-violet-200/40">
-            <Send size={58} strokeWidth={1} />
-            <span className="absolute -right-3 -top-3 rounded-full bg-emerald-100 p-2.5 text-emerald-700">
-              <Check size={20} />
-            </span>
+        <div className="min-w-40 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {done} of {steps.length} steps complete
+          </p>
+          <div
+            role="progressbar"
+            aria-label="Onboarding progress"
+            aria-valuemin={0}
+            aria-valuemax={steps.length}
+            aria-valuenow={done}
+            className="h-1 w-40 overflow-hidden rounded-full bg-muted"
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500 motion-reduce:transition-none"
+              style={{ width: `${(done / steps.length) * 100}%` }}
+            />
           </div>
         </div>
       </header>
-      <div className="grid items-start gap-6 lg:grid-cols-[290px_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[264px_minmax(0,1fr)]">
         <aside className="order-2 space-y-5 lg:order-1">
           <nav
             aria-label="Welcome checklist"
-            className="rounded-2xl border bg-card p-3"
+            className="overflow-hidden rounded-xl border border-border bg-card"
           >
-            <p className="px-3 pb-3 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Your launch checklist
+            <p className="border-b border-border px-4 py-4 text-xs font-medium text-muted-foreground">
+              Setup checklist
             </p>
-            <ol className="space-y-1">
+            <ol className="divide-y divide-border">
               {steps.map((step, i) => (
                 <li key={step.title}>
                   <button
                     onClick={() => setSelected(i)}
                     disabled={busy || i > unlocked}
                     aria-current={active === i ? "step" : undefined}
-                    className={`flex w-full gap-3 rounded-xl p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${active === i ? "bg-violet-50 dark:bg-violet-950/50" : "hover:bg-muted"}`}
+                    className={`flex w-full gap-3 p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${active === i ? "bg-muted/70" : "hover:bg-muted/40"}`}
                   >
                     <span
-                      className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-xs ${step.done ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" : active === i ? "bg-violet-600 text-white" : "border text-muted-foreground"}`}
+                      className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border text-xs ${step.done ? "border-border bg-muted text-foreground" : active === i ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
                     >
                       {step.done ? <Check size={15} /> : i + 1}
                     </span>
@@ -242,15 +222,15 @@ export function Onboarding() {
         </aside>
         <section
           aria-live="polite"
-          className="order-1 min-w-0 rounded-2xl border bg-card p-6 sm:p-8 lg:order-2"
+          className="order-1 min-w-0 rounded-xl border border-border bg-card p-5 sm:p-6 lg:order-2"
         >
           {complete && selected === null ? (
             <div className="py-8 text-center">
-              <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
-                <CheckCheck size={30} />
+              <span className="mx-auto grid size-12 place-items-center rounded-xl border border-border bg-muted text-foreground">
+                <CheckCheck size={24} />
               </span>
-              <h2 className="mt-6 text-2xl font-semibold">
-                That’s a lovely start.
+              <h2 className="mt-5 text-xl font-medium">
+                You’re ready to send.
               </h2>
               <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
                 Your setup is complete. Review your campaign, make it yours, and
@@ -264,17 +244,17 @@ export function Onboarding() {
             </div>
           ) : (
             <>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-violet-700 dark:text-violet-300">
+              <p className="mb-2 text-xs text-muted-foreground">
                 Step {active + 1} of {steps.length}
               </p>
-              <h2 className="mb-3 text-2xl font-semibold tracking-tight">
+              <h2 className="mb-2 text-lg font-medium tracking-tight">
                 {steps[active].title}
               </h2>
-              <p className="mb-7 text-sm leading-6 text-muted-foreground">
+              <p className="mb-6 text-sm leading-6 text-muted-foreground">
                 {steps[active].detail}
               </p>
               {active === 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="overflow-hidden rounded-xl border border-border divide-y divide-border">
                   {[
                     {
                       mode: "MANAGED",
@@ -295,20 +275,26 @@ export function Onboarding() {
                         busy || (option.mode === "MANAGED" && !state.enabled)
                       }
                       onClick={() => void choose(option.mode)}
-                      className={`group rounded-2xl border p-5 text-left transition-all hover:border-violet-400 disabled:opacity-50 ${state.account.sendingMode === option.mode ? "border-violet-400 bg-violet-50/60 dark:bg-violet-950/30" : ""}`}
+                      aria-pressed={state.account.sendingMode === option.mode}
+                      className={`group flex w-full gap-4 p-5 text-left transition-colors hover:bg-muted/40 disabled:opacity-50 ${state.account.sendingMode === option.mode ? "bg-muted/60 ring-1 ring-inset ring-primary" : ""}`}
                     >
-                      <option.icon size={24} className="mb-5 text-violet-600" />
-                      <span className="block text-base font-semibold">
-                        {option.title}
-                      </span>
-                      <span className="mt-2 block text-sm leading-6 text-muted-foreground">
-                        {option.body}
-                      </span>
-                      <span className="mt-5 flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
-                        {option.mode === "MANAGED" && !state.enabled
-                          ? "Not enabled on this installation"
-                          : "Choose this path"}
-                        <ArrowRight size={15} />
+                      <option.icon
+                        size={20}
+                        className="mt-0.5 shrink-0 text-muted-foreground"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium">
+                          {option.title}
+                        </span>
+                        <span className="mt-2 block text-xs leading-6 text-muted-foreground">
+                          {option.body}
+                        </span>
+                        <span className="mt-3 flex items-center gap-2 text-xs font-medium text-primary">
+                          {option.mode === "MANAGED" && !state.enabled
+                            ? "Not enabled on this installation"
+                            : "Choose this path"}
+                          <ArrowRight size={15} />
+                        </span>
                       </span>
                     </button>
                   ))}
@@ -380,8 +366,8 @@ export function Onboarding() {
                   </p>
                 )
               ) : !managed && active === 1 ? (
-                <div className="rounded-2xl bg-muted/50 p-6">
-                  <PlugZap className="mb-4 text-violet-600" />
+                <div className="rounded-xl border border-border bg-muted/30 p-5">
+                  <PlugZap className="mb-4 text-muted-foreground" />
                   <p className="mb-5 text-sm leading-7">
                     You’ll need your provider’s SMTP host, port, username, and
                     password. Xem checks the connection before saving it.
@@ -394,7 +380,7 @@ export function Onboarding() {
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-2xl bg-muted/50 p-6">
+                <div className="rounded-xl border border-border bg-muted/30 p-5">
                   <MailArt />
                   <p className="my-5 text-sm leading-7">
                     {!managed && active === 3
@@ -449,7 +435,7 @@ export function Onboarding() {
 }
 function MailArt() {
   return (
-    <span className="inline-grid size-12 place-items-center rounded-xl border bg-background text-violet-600">
+    <span className="inline-grid size-12 place-items-center rounded-xl border bg-background text-muted-foreground">
       <Send size={23} strokeWidth={1.4} />
     </span>
   );
