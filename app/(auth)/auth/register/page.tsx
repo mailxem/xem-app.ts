@@ -1,41 +1,31 @@
 "use client";
-
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
 import { signIn, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { EyeOffIcon } from "lucide-react";
 import Link from "next/link";
-import { EyeIcon } from "lucide-react";
+import { toast } from "sonner";
 import GoogleIcon from "@/components/icon/GoogleIcon";
 import { useApi } from "@/hooks/use-api";
-
+import { AuthField, AuthPasswordField } from "@/components/auth/auth-fields";
+import styles from "@/components/auth/auth.module.css";
+const schema = z
+  .object({
+    email: z.string().email(),
+    first_name: z.string().min(1, "Enter your first name"),
+    last_name: z.string().min(1, "Enter your last name"),
+    password: z.string().min(8, "Use at least 8 characters"),
+    confirmPassword: z.string().min(8, "Use at least 8 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don’t match",
+    path: ["confirmPassword"],
+  });
 export default function RegisterPage() {
-  const registerFormSchema = z
-    .object({
-      email: z.string().email(),
-      first_name: z.string().min(1),
-      last_name: z.string().min(1),
-      password: z.string().min(8),
-      confirmPassword: z.string().min(8),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: "Passwords don't match",
-      path: ["confirmPassword"],
-    });
-
-  const form = useForm<z.infer<typeof registerFormSchema>>({
+  const form = useForm<z.infer<typeof schema>>({
     defaultValues: {
       email: "",
       first_name: "",
@@ -44,28 +34,24 @@ export default function RegisterPage() {
       confirmPassword: "",
     },
     mode: "onBlur",
-    resolver: zodResolver(registerFormSchema),
+    resolver: zodResolver(schema),
   });
-
   const { data: session } = useSession();
   const { apiFetch } = useApi();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  if (session) {
-    redirect("/");
-  }
-
-  const handleRegister = async (data: z.infer<typeof registerFormSchema>) => {
+  const [error, setError] = useState("");
+  if (session) redirect("/");
+  const submit = async (data: z.infer<typeof schema>) => {
+    setError("");
     try {
       const response = await apiFetch("auth/register", {
         method: "POST",
         requireAuth: false,
         body: JSON.stringify(data),
       });
-      if (!response.ok) {
-        throw new Error("Registration failed");
-      }
+      if (!response.ok)
+        throw new Error(
+          "Registration failed. Please check your details and try again.",
+        );
       toast.success("Registration successful", {
         description: "Please check your email for verification",
       });
@@ -75,178 +61,88 @@ export default function RegisterPage() {
         redirect: true,
         callbackUrl: "/onboarding",
       });
-    } catch (error) {
-      console.error("Registration error:", error);
-      toast.error("Registration error", {
-        description: "Please try again later",
-      });
+    } catch {
+      setError(
+        "We couldn’t create your account. Please check your details and try again.",
+      );
     }
   };
-
+  const errors = form.formState.errors;
+  const busy = form.formState.isSubmitting;
   return (
-    <div className="flex items-center justify-center bg-transparent w-full md:w-1/2 mx-auto">
-      <div className="w-full bg-transparent p-8">
-        <div className="mb-8 grid gap-4">
-          <div className="grid">
-            <h1 className="text-4xl text-center dark:text-foreground text-white">
-              Create your Xem account
-            </h1>
-            <div className="text-center">
-              <div
-                className="cursor-pointer flex mx-auto justify-center items-center w-fit !rounded-xl border border-white text-sm bg-background gap-2 px-5 py-2 mt-8"
-                onClick={() => signIn("google")}
-              >
-                <GoogleIcon />
-                <span>Sign up with Google</span>
-              </div>
-            </div>
-
-            <div className="mx-auto w-[400px] mt-4">
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(handleRegister)}
-                  className="space-y-4"
-                >
-                  <div className="grid gap-2 grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="first_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter your first name"
-                              {...field}
-                              className="!rounded-xl !border-none"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="last_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter your last name"
-                              {...field}
-                              className="!rounded-xl !border-none"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your email"
-                            type="email"
-                            {...field}
-                            className="!rounded-xl !border-none"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem className="relative">
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your password"
-                            type={showPassword ? "text" : "password"}
-                            {...field}
-                            className="!rounded-xl !border-none"
-                          />
-                        </FormControl>
-                        <div
-                          className="absolute right-2 top-1 cursor-pointer"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {!showPassword ? (
-                            <EyeIcon
-                              size={20}
-                              className="text-muted-foreground"
-                            />
-                          ) : (
-                            <EyeOffIcon
-                              size={20}
-                              className="text-muted-foreground"
-                            />
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem className="relative">
-                        <FormControl>
-                          <Input
-                            placeholder="Confirm your password"
-                            type={showConfirmPassword ? "text" : "password"}
-                            {...field}
-                            className="!rounded-xl !border-none"
-                          />
-                        </FormControl>
-                        <div
-                          className="absolute right-2 top-1 cursor-pointer"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
-                        >
-                          {!showConfirmPassword ? (
-                            <EyeIcon
-                              size={20}
-                              className="text-muted-foreground"
-                            />
-                          ) : (
-                            <EyeOffIcon
-                              size={20}
-                              className="text-muted-foreground"
-                            />
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Creating account…" : "Create account"}</button>
-                </form>
-              </Form>
-              <div className="flex items-center justify-center gap-6 mt-2">
-                <span className="text-sm dark:text-foreground text-white">
-                  <Link href="/auth/login" className="text-sm hover:underline">
-                    login
-                  </Link>
-                </span>
-                <div className="text-right text-sm dark:text-foreground text-white w-full">
-
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className={styles.page}>
+      <header className={styles.heading}>
+        <h1>Your next chapter.</h1>
+        <p>Create your Xem account.</p>
+      </header>
+      <form className={styles.form} onSubmit={form.handleSubmit(submit)}>
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
+        <div className={styles.row}>
+          <AuthField
+            label="First name"
+            autoComplete="given-name"
+            placeholder="Alex"
+            {...form.register("first_name")}
+            error={errors.first_name?.message}
+            disabled={busy}
+          />
+          <AuthField
+            label="Last name"
+            autoComplete="family-name"
+            placeholder="Morgan"
+            {...form.register("last_name")}
+            error={errors.last_name?.message}
+            disabled={busy}
+          />
         </div>
-      </div>
+        <AuthField
+          label="Email"
+          type="email"
+          autoComplete="username"
+          placeholder="you@example.com"
+          {...form.register("email")}
+          error={errors.email?.message}
+          disabled={busy}
+        />
+        <AuthPasswordField
+          label="Password"
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          {...form.register("password")}
+          error={errors.password?.message}
+          disabled={busy}
+        />
+        <AuthPasswordField
+          label="Confirm password"
+          autoComplete="new-password"
+          placeholder="Repeat your password"
+          {...form.register("confirmPassword")}
+          error={errors.confirmPassword?.message}
+          disabled={busy}
+        />
+        <div className={styles.actions}>
+          <Button type="submit" className={styles.primary} disabled={busy}>
+            {busy ? "Creating account…" : "Create account"}
+          </Button>
+          <Button
+            type="button"
+            className={styles.google}
+            disabled={busy}
+            variant="outline"
+            onClick={() => signIn("google")}
+          >
+            <GoogleIcon />
+            Continue with Google
+          </Button>
+          <p className={styles.footnote}>
+            Already have an account? <Link href="/auth/login">Log in</Link>.
+          </p>
+        </div>
+      </form>
     </div>
   );
 }

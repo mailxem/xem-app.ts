@@ -38,7 +38,8 @@
     --chart-3: #987522;
     --chart-4: #617eaa;
     --chart-5: #ad6068;
-    --sidebar: #f4f4f0;
+    --sidebar: #f5f4f2;
+    --workspace-canvas: #ffffff;
     --sidebar-background: var(--sidebar);
     --sidebar-foreground: #686a61;
     --sidebar-primary: var(--primary);
@@ -86,7 +87,8 @@
     --chart-3: #d6b371;
     --chart-4: #8baacb;
     --chart-5: #d28c91;
-    --sidebar: #191919;
+    --sidebar: #171717;
+    --workspace-canvas: #202020;
     --sidebar-foreground: #a3a39e;
     --sidebar-accent: #2b2b28;
     --shadow-sm: 0 1px 2px #0000000a;

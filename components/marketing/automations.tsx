@@ -36,6 +36,11 @@ import {
   History,
   ShieldCheck,
   ChevronRight,
+  Tags,
+  ListPlus,
+  ContactRound,
+  Shuffle,
+  Variable,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMarketing, useMarketingQuery } from "@/lib/marketing/api";
@@ -57,12 +62,22 @@ import {
   FilterTabs,
 } from "./shared";
 import { toast } from "sonner";
+import {
+  ActionSettings,
+  ConditionSettings,
+  WaitSettings,
+} from "./automation-settings";
 const icons: Record<string, typeof Zap> = {
   START: Zap,
   EMAIL: Mail,
   WAIT: Clock,
   CONDITION: GitBranch,
   EXIT: Flag,
+  TAG: Tags,
+  ADD_TO_LIST: ListPlus,
+  UPDATE_SUBSCRIBER: ContactRound,
+  PERCENTAGE_SPLIT: Shuffle,
+  SET_VARIABLE: Variable,
 };
 const labels: Record<string, string> = {
   START: "Trigger",
@@ -70,6 +85,11 @@ const labels: Record<string, string> = {
   WAIT: "Wait for a while",
   CONDITION: "Split into paths",
   EXIT: "Finish workflow",
+  TAG: "Manage tags",
+  ADD_TO_LIST: "Move to a list",
+  UPDATE_SUBSCRIBER: "Update contact",
+  PERCENTAGE_SPLIT: "Percentage split",
+  SET_VARIABLE: "Set a variable",
 };
 const triggerLabels: Record<string, string> = {
   manual: "Started manually",
@@ -77,6 +97,16 @@ const triggerLabels: Record<string, string> = {
   "email.opened": "Email opened",
   "email.clicked": "Email link clicked",
   "form.completed": "Form completed",
+};
+const stepDescriptions: Record<string, string> = {
+  EMAIL: "Template, sender and subject",
+  WAIT: "Duration or a specific date",
+  CONDITION: "Match all or any rules",
+  TAG: "Add or remove contact tags",
+  ADD_TO_LIST: "Change the contact’s list",
+  UPDATE_SUBSCRIBER: "Update profile fields",
+  PERCENTAGE_SPLIT: "Send contacts down A/B paths",
+  SET_VARIABLE: "Remember a value for later steps",
 };
 function StepNode({
   data,
@@ -87,9 +117,19 @@ function StepNode({
 }) {
   const Icon = icons[data.kind] || Zap;
   return (
-    <div className={workspaceClassName(`workflow-step ${selected ? "selected" : ""}`)}>
-      <Handle type="target" position={Position.Top} />
-      <div className={workspaceClassName(`step-icon step-${data.kind.toLowerCase()}`)}>
+    <div
+      className={workspaceClassName(
+        `workflow-step ${selected ? "selected" : ""}`,
+      )}
+    >
+      {data.kind !== "START" && (
+        <Handle type="target" position={Position.Top} />
+      )}
+      <div
+        className={workspaceClassName(
+          `step-icon step-${data.kind.toLowerCase()}`,
+        )}
+      >
         <Icon size={19} />
       </div>
       <div>
@@ -100,11 +140,26 @@ function StepNode({
               ? "ALL DONE"
               : `THEN DO THIS`}
         </small>
-        <strong>{data.label || labels[data.kind]}</strong>
+        <strong>{data.title || data.label || labels[data.kind]}</strong>
         <p>{data.summary || "Click to configure this step"}</p>
       </div>
       <ChevronRight size={15} className={workspaceClassName("step-chevron")} />
-      <Handle type="source" position={Position.Bottom} />
+      {["CONDITION", "PERCENTAGE_SPLIT"].includes(data.kind)
+        ? (data.kind === "CONDITION" ? ["true", "false"] : ["A", "B"]).map(
+            (path, index) => (
+              <Handle
+                key={path}
+                id={path}
+                type="source"
+                position={Position.Bottom}
+                style={{ left: index ? "75%" : "25%" }}
+                title={`Path ${path}`}
+              />
+            ),
+          )
+        : data.kind !== "EXIT" && (
+            <Handle type="source" position={Position.Bottom} />
+          )}
     </div>
   );
 }
@@ -259,7 +314,9 @@ export function AutomationsPage() {
                   <tr key={a.id}>
                     <td>
                       <button
-                        className={workspaceClassName("newsletter-title text-left")}
+                        className={workspaceClassName(
+                          "newsletter-title text-left",
+                        )}
                         onClick={() => setEditing(a)}
                       >
                         <span>
@@ -315,6 +372,8 @@ export function AutomationBuilder({
   const { request, refresh } = useMarketing();
   const [id, setID] = useState(initial.id);
   const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.description || "");
+  const [stepSearch, setStepSearch] = useState("");
   const [trigger, setTrigger] = useState(initial.triggerEvent || "manual");
   const [active, setActive] = useState(initial.isActive);
   const [selected, setSelected] = useState(
@@ -371,7 +430,7 @@ export function AutomationBuilder({
   };
   const serialized = () => ({
     name,
-    description: initial.description || "",
+    description,
     triggerEvent: trigger,
     nodes: nodes.map((n) => {
       const { kind, label, summary, ...data } = n.data;
@@ -423,16 +482,28 @@ export function AutomationBuilder({
   }
   const addStep = (type: string) => {
     if (active) return;
+    const incoming =
+      current?.data.kind === "EXIT"
+        ? edges.filter((e) => e.target === current.id)
+        : [];
+    if (current?.data.kind === "EXIT" && incoming.length !== 1) {
+      setError("Select a step on one of the incoming paths first.");
+      return;
+    }
     const source =
-      current?.data.kind !== "EXIT"
-        ? current
-        : nodes.find((n) => n.data.kind === "START");
+      current?.data.kind === "EXIT"
+        ? nodes.find((n) => n.id === incoming[0]?.source)
+        : current;
     if (!source) return;
-    const nextEdges = edges.filter((e) => e.source === source.id);
-    if (nextEdges.length > 1) {
+    const nextEdges =
+      current?.data.kind === "EXIT"
+        ? incoming
+        : edges.filter((e) => e.source === source.id);
+    if (nextEdges.length !== 1) {
       setError("Select a step within a branch before adding another step.");
       return;
     }
+    setError("");
     const nodeID = crypto.randomUUID();
     const next = nextEdges[0];
     const newNode: Node = {
@@ -443,6 +514,12 @@ export function AutomationBuilder({
         kind: type,
         label: labels[type],
         ...(type === "WAIT" ? { duration: "24h" } : {}),
+        ...(type === "TAG" ? { action: "add", tags: [] } : {}),
+        ...(type === "PERCENTAGE_SPLIT" ? { percentage: 50 } : {}),
+        ...(type === "SET_VARIABLE"
+          ? { variable: "workflow_stage", value: "" }
+          : {}),
+        ...(type === "UPDATE_SUBSCRIBER" ? { fields: { company: "" } } : {}),
         ...(type === "CONDITION"
           ? {
               operator: "AND",
@@ -461,14 +538,15 @@ export function AutomationBuilder({
       ),
       newNode,
     ];
-    let newEdges = edges.filter((e) => e.source !== source.id);
+    let newEdges = edges.filter((e) => e.id !== next?.id);
     newEdges.push({
       id: crypto.randomUUID(),
       source: source.id,
       target: nodeID,
+      label: next?.label,
       type: "smoothstep",
     });
-    if (type === "CONDITION") {
+    if (type === "CONDITION" || type === "PERCENTAGE_SPLIT") {
       const falseID = crypto.randomUUID();
       newNodes.push({
         id: falseID,
@@ -480,7 +558,7 @@ export function AutomationBuilder({
         id: crypto.randomUUID(),
         source: nodeID,
         target: falseID,
-        label: "false",
+        label: type === "CONDITION" ? "false" : "B",
         type: "smoothstep",
       });
       if (next)
@@ -488,10 +566,15 @@ export function AutomationBuilder({
           ...next,
           id: crypto.randomUUID(),
           source: nodeID,
-          label: "true",
+          label: type === "CONDITION" ? "true" : "A",
         });
     } else if (next)
-      newEdges.push({ ...next, id: crypto.randomUUID(), source: nodeID });
+      newEdges.push({
+        ...next,
+        id: crypto.randomUUID(),
+        source: nodeID,
+        label: "",
+      });
     setNodes(newNodes);
     setEdges(newEdges);
     setSelected(nodeID);
@@ -527,10 +610,23 @@ export function AutomationBuilder({
             ? options.data?.templates.find((t) => t.id === n.data.templateId)
                 ?.name || "Choose a template and sender"
             : n.data.kind === "WAIT"
-              ? `Pause for ${n.data.duration || "…"}`
+              ? n.data.until
+                ? `Wait until ${new Date(String(n.data.until)).toLocaleString()}`
+                : `Pause for ${n.data.duration || "…"}`
               : n.data.kind === "CONDITION"
-                ? "Continue based on a condition"
-                : "End this journey",
+                ? `${(n.data.conditions as any[])?.length || 0} rules · ${n.data.operator === "OR" ? "match any" : "match all"}`
+                : n.data.kind === "PERCENTAGE_SPLIT"
+                  ? `A: ${n.data.percentage}% · B: ${100 - Number(n.data.percentage)}%`
+                  : n.data.kind === "TAG"
+                    ? `${n.data.action === "remove" ? "Remove" : "Add"}: ${((n.data.tags as string[]) || []).join(", ") || "choose tags"}`
+                    : n.data.kind === "ADD_TO_LIST"
+                      ? options.data?.lists.find((l) => l.id === n.data.listId)
+                          ?.name || "Choose a destination list"
+                      : n.data.kind === "UPDATE_SUBSCRIBER"
+                        ? `Update ${Object.keys(n.data.fields || {}).length} profile fields`
+                        : n.data.kind === "SET_VARIABLE"
+                          ? `${n.data.variable || "Choose a variable"} = ${n.data.value || "…"}`
+                          : "End this journey",
     },
   }));
   return (
@@ -618,7 +714,10 @@ export function AutomationBuilder({
         </div>
       </div>
       {error && (
-        <div role="alert" className={workspaceClassName("product-error builder-error")}>
+        <div
+          role="alert"
+          className={workspaceClassName("product-error builder-error")}
+        >
           {error}
         </div>
       )}
@@ -629,34 +728,49 @@ export function AutomationBuilder({
       )}
       <div className={workspaceClassName("builder-workspace")}>
         <aside className={workspaceClassName("step-palette")}>
-          <div className={workspaceClassName("eyebrow")}>Build your journey</div>
+          <div className={workspaceClassName("eyebrow")}>
+            Build your journey
+          </div>
           <h3>One step at a time.</h3>
           <p>Add an action after the selected step.</p>
-          {["EMAIL", "WAIT", "CONDITION"].map((type) => {
-            const Icon = icons[type];
-            return (
-              <button
-                key={type}
-                disabled={active}
-                onClick={() => addStep(type)}
-              >
-                <span className={workspaceClassName(`step-icon step-${type.toLowerCase()}`)}>
-                  <Icon size={17} />
-                </span>
-                <span>
-                  <strong>{labels[type]}</strong>
-                  <small>
-                    {type === "EMAIL"
-                      ? "A message that matters"
-                      : type === "WAIT"
-                        ? "Give it a little time"
-                        : "Let the journey branch"}
-                  </small>
-                </span>
-                <Plus size={14} />
-              </button>
-            );
-          })}
+          <input
+            aria-label="Search steps"
+            placeholder="Search steps…"
+            value={stepSearch}
+            onChange={(e) => setStepSearch(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-2 text-xs mb-3"
+          />
+          {Object.keys(stepDescriptions)
+            .filter((type) =>
+              `${labels[type]} ${stepDescriptions[type]}`
+                .toLowerCase()
+                .includes(stepSearch.toLowerCase()),
+            )
+            .map((type) => {
+              const Icon = icons[type];
+              return (
+                <button
+                  key={type}
+                  title={labels[type]}
+                  aria-label={`Add ${labels[type]}`}
+                  disabled={active}
+                  onClick={() => addStep(type)}
+                >
+                  <span
+                    className={workspaceClassName(
+                      `step-icon step-${type.toLowerCase()}`,
+                    )}
+                  >
+                    <Icon size={17} />
+                  </span>
+                  <span>
+                    <strong>{labels[type]}</strong>
+                    <small>{stepDescriptions[type]}</small>
+                  </span>
+                  <Plus size={14} />
+                </button>
+              );
+            })}
           <div className={workspaceClassName("palette-hint")}>
             <MousePointer2 size={17} />
             <p>
@@ -672,9 +786,20 @@ export function AutomationBuilder({
           </div>
           <ReactFlow
             nodes={displayNodes}
-            edges={edges}
+            edges={edges.map((e) => ({
+              ...e,
+              sourceHandle: ["CONDITION", "PERCENTAGE_SPLIT"].includes(
+                String(nodes.find((n) => n.id === e.source)?.data.kind),
+              )
+                ? String(e.label || "")
+                : undefined,
+            }))}
             nodeTypes={nodeTypes}
             onNodesChange={(changes) => {
+              const selection = changes.find(
+                (change) => change.type === "select" && change.selected,
+              );
+              if (selection && "id" in selection) setSelected(selection.id);
               if (active) return;
               onNodesChange(changes);
               if (changes.some((c) => c.type === "position" && c.dragging))
@@ -693,7 +818,7 @@ export function AutomationBuilder({
                     ...connection,
                     id: crypto.randomUUID(),
                     type: "smoothstep",
-                    label: "",
+                    label: connection.sourceHandle || "",
                   },
                   es,
                 ),
@@ -715,7 +840,11 @@ export function AutomationBuilder({
         </div>
         <aside className={workspaceClassName("step-inspector")}>
           <div className={workspaceClassName("inspector-title")}>
-            <span className={workspaceClassName(`step-icon step-${kind.toLowerCase()}`)}>
+            <span
+              className={workspaceClassName(
+                `step-icon step-${kind.toLowerCase()}`,
+              )}
+            >
               {kind &&
                 (() => {
                   const Icon = icons[kind] || Zap;
@@ -727,9 +856,32 @@ export function AutomationBuilder({
               <h3>{labels[kind] || "Select a step"}</h3>
             </div>
           </div>
-          <fieldset disabled={active} className={workspaceClassName("product-form")}>
+          <fieldset
+            disabled={active}
+            className={workspaceClassName("product-form")}
+          >
+            {current && (
+              <Field label="Step name" hint="Optional label for your team.">
+                <input
+                  maxLength={100}
+                  value={String(config.title || "")}
+                  placeholder={labels[kind]}
+                  onChange={(e) => update({ title: e.target.value })}
+                />
+              </Field>
+            )}
             {kind === "START" && (
               <>
+                <Field label="Workflow description">
+                  <textarea
+                    maxLength={1000}
+                    value={description}
+                    onChange={(e) => {
+                      setDescription(e.target.value);
+                      setDirty(true);
+                    }}
+                  />
+                </Field>
                 <Field label="Start this workflow when">
                   <select
                     value={trigger}
@@ -745,7 +897,24 @@ export function AutomationBuilder({
                     ))}
                   </select>
                 </Field>
-                {trigger === "form.completed" && <Field label="Which form?" hint="Only opted-in subscribers completing this form enter the journey."><select value={String(config.formId || "")} onChange={e => update({formId:e.target.value})}><option value="">Choose a form</option>{forms.data?.map(form=><option key={form.id} value={form.id}>{form.Name}</option>)}</select></Field>}
+                {trigger === "form.completed" && (
+                  <Field
+                    label="Which form?"
+                    hint="Only opted-in subscribers completing this form enter the journey."
+                  >
+                    <select
+                      value={String(config.formId || "")}
+                      onChange={(e) => update({ formId: e.target.value })}
+                    >
+                      <option value="">Choose a form</option>
+                      {forms.data?.map((form) => (
+                        <option key={form.id} value={form.id}>
+                          {form.Name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
                 <p className={workspaceClassName("inspector-help")}>
                   Only matching events in your workspace will start this
                   workflow.
@@ -792,81 +961,48 @@ export function AutomationBuilder({
                 </Field>
               </>
             )}
-            {kind === "EMAIL" && <Field label="Sender postal address" hint="Required for marketing templates; included with an unsubscribe link."><textarea maxLength={500} value={String(config.postalAddress || "")} onChange={e => update({postalAddress:e.target.value})}/></Field>}
-            {kind === "WAIT" && (
+            {kind === "EMAIL" && (
               <Field
-                label="How long should we wait?"
-                hint="Use s for seconds, m for minutes, or h for hours. For two days, enter 48h."
+                label="Sender postal address"
+                hint="Required for marketing templates; included with an unsubscribe link."
               >
-                <input
-                  required
-                  value={String(config.duration || "")}
-                  onChange={(e) => update({ duration: e.target.value })}
+                <textarea
+                  maxLength={500}
+                  value={String(config.postalAddress || "")}
+                  onChange={(e) => update({ postalAddress: e.target.value })}
                 />
               </Field>
             )}
+            {kind === "WAIT" && (
+              <WaitSettings config={config} update={update} />
+            )}
+            <ActionSettings
+              kind={kind}
+              config={config}
+              update={update}
+              options={options.data}
+            />
             {kind === "CONDITION" && (
+              <ConditionSettings
+                config={config}
+                update={update}
+                form={
+                  trigger === "form.completed"
+                    ? forms.data?.find(
+                        (form) =>
+                          form.id ===
+                          nodes.find((node) => node.data.kind === "START")?.data
+                            .formId,
+                      )
+                    : undefined
+                }
+                variables={nodes
+                  .filter((n) => n.data.kind === "SET_VARIABLE")
+                  .map((n) => String(n.data.variable))}
+              />
+            )}
+            {["CONDITION", "PERCENTAGE_SPLIT"].includes(kind) && (
               <>
-                <Field label="Contact variable">
-                  <select
-                    value={
-                      (config.conditions as any[])?.[0]?.variable ||
-                      "contact_email"
-                    }
-                    onChange={(e) =>
-                      update({
-                        conditions: [
-                          {
-                            ...(config.conditions as any[])?.[0],
-                            variable: e.target.value,
-                          },
-                        ],
-                      })
-                    }
-                  >
-                    <option value="contact_email">Email address</option>
-                    <option value="contact_first_name">First name</option>
-                    <option value="contact_last_name">Last name</option>
-                    {trigger === "form.completed" && forms.data?.find(form => form.id === nodes.find(node => node.data.kind === "START")?.data.formId)?.definition?.pages.flatMap(page => page.fields).map(field => <option key={field.key} value={`form_${field.key}`}>Form: {field.label}</option>)}
-                  </select>
-                </Field>
-                <Field label="Condition">
-                  <select
-                    value={
-                      (config.conditions as any[])?.[0]?.operator || "contains"
-                    }
-                    onChange={(e) =>
-                      update({
-                        conditions: [
-                          {
-                            ...(config.conditions as any[])?.[0],
-                            operator: e.target.value,
-                          },
-                        ],
-                      })
-                    }
-                  >
-                    <option value="contains">Contains</option>
-                    <option value="==">Equals</option>
-                    <option value="!=">Does not equal</option>
-                    <option value="exists">Exists</option>
-                  </select>
-                </Field>
-                <Field label="Value">
-                  <input
-                    value={(config.conditions as any[])?.[0]?.value || ""}
-                    onChange={(e) =>
-                      update({
-                        conditions: [
-                          {
-                            ...(config.conditions as any[])?.[0],
-                            value: e.target.value,
-                          },
-                        ],
-                      })
-                    }
-                  />
-                </Field>
                 {edges
                   .filter((e) => e.source === selected)
                   .map((e) => (
@@ -888,8 +1024,17 @@ export function AutomationBuilder({
                         }}
                       >
                         <option value="">Choose path</option>
-                        <option value="true">Condition is true</option>
-                        <option value="false">Condition is false</option>
+                        {kind === "CONDITION" ? (
+                          <>
+                            <option value="true">Condition is true</option>
+                            <option value="false">Condition is false</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="A">Path A</option>
+                            <option value="B">Path B</option>
+                          </>
+                        )}
                       </select>
                     </Field>
                   ))}
@@ -962,6 +1107,31 @@ function RunHistory({ id, close }: { id: string; close: () => void }) {
               <td>
                 {run.contact?.email || run.contactId}
                 <small>{run.error}</small>
+                {Array.isArray(run.executionLog) &&
+                  run.executionLog.length > 0 && (
+                    <details className="mt-2 text-xs">
+                      <summary className="cursor-pointer">
+                        {run.executionLog.length} step events
+                      </summary>
+                      <ol className="mt-3 space-y-3">
+                        {run.executionLog.map((entry: any, index: number) => (
+                          <li key={index} className="border-l-2 pl-3">
+                            <strong>
+                              {labels[entry.nodeType] || entry.nodeType}
+                            </strong>{" "}
+                            · {entry.status}
+                            <p>{entry.message}</p>
+                            {entry.error && (
+                              <p className="text-destructive">{entry.error}</p>
+                            )}
+                            <time className="text-muted-foreground">
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </time>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  )}
               </td>
               <td>
                 <Status value={run.status} />
