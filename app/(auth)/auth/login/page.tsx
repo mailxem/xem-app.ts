@@ -1,138 +1,129 @@
 "use client";
-
+import { Button } from "@/components/ui/button";
 import { useState, useEffect, use } from "react";
-import { Input } from "@/components/ui/input";
-import { Mail, Lock, EyeIcon, EyeOffIcon } from "lucide-react";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import GoogleIcon from "@/components/icon/GoogleIcon";
+import styles from "@/components/auth/auth.module.css";
 
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string; code: string }>;
+  searchParams: Promise<{ error?: string; code?: string }>;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showError, setShowError] = useState(false);
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { error, code } = use(searchParams);
-  const [showPassword, setShowPassword] = useState(false);
   const { data: session } = useSession();
-
   useEffect(() => {
-    if (error === "CredentialsSignin" && code === "credentials") {
-      setShowError(true);
-      // Clear the URL parameters
+    if (error) {
+      setMessage(
+        error === "CredentialsSignin" && code === "credentials"
+          ? "Invalid email or password. Please try again."
+          : "We couldn’t sign you in. Please try again.",
+      );
       router.replace("/auth/login");
     }
   }, [error, code, router]);
-
-  if (session) {
-    redirect("/");
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  if (session) redirect("/");
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    return await signIn("credentials", {
-      email,
-      password,
-      redirect: true,
-      callbackUrl: "/",
-    });
+    if (busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await signIn("credentials", {
+        email,
+        password,
+        redirect: true,
+        callbackUrl: "/",
+      });
+    } catch {
+      setMessage("We couldn’t sign you in. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
-
   return (
-    <div className="flex items-center justify-center bg-transparent w-full md:w-1/2 mx-auto">
-      <div className="w-full bg-transparent p-8">
-        <div className="mb-8 grid gap-4">
-          <div className="grid">
-            <h1 className="text-4xl text-center dark:dark:text-foreground text-white text-white">
-              Welcome back
-            </h1>
-            <div className="text-center">
-              <div
-                className="cursor-pointer flex mx-auto justify-center text-sm items-center w-fit !rounded-xl border border-white bg-background gap-2 px-5 py-2 mt-8"
-                onClick={() => signIn("google")}
-              >
-                <GoogleIcon />
-                <span>Login with Google</span>
-              </div>
-            </div>
-
-            <div className="mx-auto w-[400px] mt-4">
-              {showError && (
-                <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
-                  Invalid email or password. Please try again.
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1">
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="name@example.com"
-                      className="pl-9 !rounded-xl !border-none"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-foreground" />
-                    <Input
-                      placeholder="Enter your password"
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      className="pl-9 !rounded-xl !border-none"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <div
-                      className="absolute right-2 top-3 cursor-pointer"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {!showPassword ? (
-                        <EyeIcon size={20} className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <EyeOffIcon
-                          size={20}
-                          className="h-4 w-4 text-muted-foreground"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <button type="submit">Sign in</button>
-              </form>
-              <div className="flex items-center justify-center gap-4 mt-2">
-                <Link
-                  className="text-left text-sm dark:text-foreground text-white w-full hover:underline"
-                  href="/auth/forgot-password"
-                >
-                  Forgot password?
-                </Link>
-                <div className="text-right text-sm dark:text-foreground text-white w-full">
-
-                </div>
-              </div>
-              <div className="text-center mt-4">
-                <span className="text-sm dark:text-foreground text-white">
-                  Don't have an account?{" "}
-                  <Link href="/auth/register" className="text-sm hover:underline">
-                    Sign up
-                  </Link>
-                </span>
-              </div>
-            </div>
+    <div className={styles.page}>
+      <header className={styles.heading}>
+        <h1>Welcome to Xem.</h1>
+        <p>Email built for better conversations.</p>
+      </header>
+      <form className={styles.form} onSubmit={submit}>
+        {message && (
+          <p role="alert" className={styles.error}>
+            {message}
+          </p>
+        )}
+        <div className={styles.field}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={busy}
+          />
+        </div>
+        <div className={styles.field}>
+          <div className={styles.labelRow}>
+            <label htmlFor="password">Password</label>
+            <Link href="/auth/forgot-password">Forgot password</Link>
+          </div>
+          <div className={styles.password}>
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={busy}
+            />
+            <button
+              type="button"
+              className={styles.reveal}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
           </div>
         </div>
-      </div>
+        <div className={styles.actions}>
+          <Button type="submit" className={styles.primary} disabled={busy}>
+            {busy ? "Signing in…" : "Log in"}
+          </Button>
+          <Button
+            type="button"
+            className={styles.google}
+            disabled={busy}
+            variant="outline"
+            onClick={() => signIn("google")}
+          >
+            <GoogleIcon />
+            Continue with Google
+          </Button>
+          <p className={styles.footnote}>
+            New to Xem? <Link href="/auth/register">Create an account</Link> to
+            get started.
+          </p>
+        </div>
+      </form>
     </div>
   );
 }

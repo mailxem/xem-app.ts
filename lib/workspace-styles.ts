@@ -419,6 +419,7 @@ const recipes: Record<string, string> = {
     max-[1200px]:[width:190px] max-[1200px]:[padding:20px_13px]
     max-[900px]:[width:65px] max-[900px]:[padding:18px_12px]
     max-[900px]:[&_.eyebrow]:hidden
+    max-[900px]:[&_>_input]:hidden
     max-[900px]:[&_h3]:hidden
     max-[900px]:[&_>_p]:hidden
     max-[900px]:[&_button_>_span:nth-child(2)]:hidden

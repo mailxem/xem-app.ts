@@ -1,181 +1,99 @@
 "use client";
-
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { use, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
-import { toast } from "sonner";
-import React, { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { toast } from "sonner";
 import { useApi } from "@/hooks/use-api";
-
-const resetPasswordSchema = z
+import { AuthPasswordField } from "@/components/auth/auth-fields";
+import styles from "@/components/auth/auth.module.css";
+const schema = z
   .object({
-    password: z.string().min(6, "Password must be at least 6 characters long"),
-    confirmPassword: z
-      .string()
-      .min(8, "Confirm Password must be at least 6 characters long"),
+    password: z.string().min(8, "Use at least 8 characters"),
+    confirmPassword: z.string().min(8, "Use at least 8 characters"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "Passwords don’t match",
     path: ["confirmPassword"],
   });
-
 export default function ResetPasswordPage({
   params,
 }: {
   params: Promise<{ token: string }>;
-}): React.ReactNode {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+}) {
   const { token } = use(params);
   const router = useRouter();
   const { apiFetch } = useApi();
-
-  const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+  const [error, setError] = useState("");
+  const form = useForm<z.infer<typeof schema>>({
+    defaultValues: { password: "", confirmPassword: "" },
     mode: "onBlur",
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(schema),
   });
-
-  const handleResetPassword = async (
-    data: z.infer<typeof resetPasswordSchema>
-  ) => {
+  const submit = async (data: z.infer<typeof schema>) => {
+    setError("");
     try {
       const response = await apiFetch("auth/password-reset/verify", {
         method: "POST",
         requireAuth: false,
-        body: JSON.stringify({
-          code: token,
-          new_password: data.password,
-        }),
+        body: JSON.stringify({ code: token, new_password: data.password }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to reset password");
-      }
-
-      toast.success("Password reset successful", {
-        description: "Your password has been reset successfully",
-      });
-
+      if (!response.ok) throw new Error();
+      toast.success("Password reset successful");
       router.push("/auth/login");
-    } catch (error) {
-      toast.error("Error resetting password", {
-        description: "Please try again later",
-      });
+    } catch {
+      setError(
+        "We couldn’t reset your password. The link may have expired; request a new one below.",
+      );
     }
   };
-
   return (
-    <div className="flex items-center justify-center bg-transparent w-full md:w-1/2 mx-auto">
-      <div className="w-full bg-transparent p-8">
-        <div className="mb-8 grid gap-4">
-          <div className="grid">
-            <h1 className="text-4xl text-center font-normal text-primary-foreground">
-              Reset Password 🔐
-            </h1>
-            <Form {...resetPasswordForm}>
-              <form
-                onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)}
-                className="space-y-6 mx-auto w-[300px] mt-4"
-              >
-                <FormField
-                  control={resetPasswordForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter new password"
-                          type={showPassword ? "text" : "password"}
-                          {...field}
-                          className="!rounded-xl !border-none"
-                        />
-                      </FormControl>
-                      <div
-                        className="absolute right-2 top-1 cursor-pointer"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {!showPassword ? (
-                          <EyeIcon
-                            size={20}
-                            className="text-muted-foreground"
-                          />
-                        ) : (
-                          <EyeOffIcon
-                            size={20}
-                            className="text-muted-foreground"
-                          />
-                        )}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={resetPasswordForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          placeholder="Confirm new password"
-                          type={showConfirmPassword ? "text" : "password"}
-                          {...field}
-                          className="!rounded-xl !border-none"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <div
-                        className="absolute right-2 top-1 cursor-pointer"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                      >
-                        {!showConfirmPassword ? (
-                          <EyeIcon
-                            size={20}
-                            className="text-muted-foreground"
-                          />
-                        ) : (
-                          <EyeOffIcon
-                            size={20}
-                            className="text-muted-foreground"
-                          />
-                        )}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              <button type="submit">Reset password</button></form>
-            </Form>
-            <div className="flex items-center justify-center w-[300px] mx-auto gap-4 mt-2">
-              <Link
-                className="text-left text-primary-foreground w-full hover:underline"
-                href={"/auth/login"}
-              >
-                login
-              </Link>
-              <div className="text-right text-primary-foreground w-full">
-                {" "}
-              </div>
-            </div>
-          </div>
+    <div className={styles.page}>
+      <header className={styles.heading}>
+        <h1>A fresh start.</h1>
+        <p>Choose a new password for your Xem account.</p>
+      </header>
+      <form className={styles.form} onSubmit={form.handleSubmit(submit)}>
+        {error && (
+          <p role="alert" className={styles.error}>
+            {error} <Link href="/auth/forgot-password">Request a new link</Link>
+            .
+          </p>
+        )}
+        <AuthPasswordField
+          label="New password"
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          {...form.register("password")}
+          error={form.formState.errors.password?.message}
+          disabled={form.formState.isSubmitting}
+        />
+        <AuthPasswordField
+          label="Confirm password"
+          autoComplete="new-password"
+          placeholder="Repeat your password"
+          {...form.register("confirmPassword")}
+          error={form.formState.errors.confirmPassword?.message}
+          disabled={form.formState.isSubmitting}
+        />
+        <div className={styles.actions}>
+          <Button
+            type="submit"
+            className={styles.primary}
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting
+              ? "Updating password…"
+              : "Reset password"}
+          </Button>
+          <p className={styles.footnote}>
+            <Link href="/auth/login">Back to log in</Link>
+          </p>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
